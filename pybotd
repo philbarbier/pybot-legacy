@@ -1,0 +1,118 @@
+#!/usr/bin/env php
+<?php
+$user = get_current_user();
+$config_path =  "./pybotrc";
+if (!file_exists($config_path)) {
+	die("FATAL: Could not find configuration in $config_path\n");
+}
+if (!is_readable($config_path)) {
+    die("FATAL: Configuration file $config_path cannot be read or I don't have permission\n"); 
+}
+
+$pi = pathinfo(__FILE__);
+$_cwd = $pi['dirname'];
+
+$_module_path = $_cwd . '/modules/';
+
+
+
+include $config_path;
+include $_cwd . '/lib/log.php';
+include $_cwd . '/lib/irc.php';
+include $_cwd . '/lib/curl.php';
+include $_cwd . '/lib/simple_html_dom.php';
+
+$_classes = array();
+$config['_methods'] = array();
+
+// Just in case!
+/*
+    IMPORTANT
+    =================
+    This requires >= PHP5
+    If your PHP version doesn't
+    support the dir() functions,
+    you will need to ensure manual
+    include calls are in the else
+    clause, otherwise you may miss
+    out on functionality.
+
+*/
+
+if (version_compare(PHP_VERSION, '5.0.0', '>=')) {
+    
+    $mod_files = scandir($_module_path);
+
+    foreach($mod_files as $file) {
+        switch ($file) {
+            case '.':
+            case '..':
+                break;
+            default:
+                // reading is good
+                if (is_readable($_module_path . $file)) {
+                    /*
+                        I feel we have to ensure that it's a valid PHP file,
+                        I guess we don't but sunshine (Flimflam) did it anyway.
+                        
+                        I do some basic string checks to "ensure"(loose) that
+                        the files are:
+                        a) at least in part PHP
+                        b) class declaration matching the title case of the filename
+                        
+                        --
+                        Flimflam
+                    */
+                    $pathinfo = pathinfo($_module_path . $file);
+
+                    if (strtolower($pathinfo['extension']) == 'php') {
+                        $expected_class = ucfirst(substr($file, 0, strpos($file, '.')));
+                        $sample = file_get_contents($_module_path . $file, NULL, NULL, 0, 1024);
+                    
+                        $res = false;
+                        if (stristr($sample, '<?php')) {
+                            if (stristr($sample, 'class ' . $expected_class)) {
+                                $res = include $_module_path . $file;
+                                array_push($_classes, $expected_class);
+                                if (!isset($config['_methods'][$expected_class])) $config['_methods'][$expected_class] = array();
+                                $config['_methods'][$expected_class] = get_class_methods($expected_class);
+                            }                    
+                        }
+
+                        // here's where we can log a success or not
+                        if ($res && class_exists($expected_class)) {
+                            // echo "Loading module " . $file . " (class " . $expected_class . ") was a success!\n";
+                        }
+                    }
+                    
+                }
+
+        }
+    }
+
+} else {
+    include $_cwd . '/modules/linguo.php';
+    include $_cwd . '/modules/tweet.php';
+}
+
+foreach($config['_methods'] as $classname => $classes) {
+    foreach($classes as $index => $value) {
+        if (substr($value, 0, 1) === '_') {
+            unset($config['_methods'][$classname][$index]);
+        }
+    }
+    $config['_methods'][$classname] = array_values($config['_methods'][$classname]);
+}
+
+include $_cwd . '/lib/transmissionrpc.php';
+# Required for twitter
+require $_cwd . '/oauth/tmhOAuth.php';
+#require $_cwd . '/oauth/tmhUtilities.php';
+
+// We keep this here because it's not user configurable
+// and to avoid having to change config files every iteration
+
+$config['version'] = '4.0.'.file_get_contents('VERSION');
+
+$socket = new Irc($config);
+

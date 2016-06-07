@@ -1,0 +1,8 @@
+nohup.out
+docs/
+latex/
+config.php
+cache.properties
+build/logs/
+build/pdepend/
+log

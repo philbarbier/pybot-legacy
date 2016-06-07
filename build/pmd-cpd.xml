@@ -1,0 +1,2237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pmd-cpd>
+  <duplication lines="16" tokens="14">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_utility.php" line="82"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/oci8/oci8_utility.php" line="67"/>
+    <codefragment>        return FALSE;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * ODBC Export
+     *
+     * @access    private
+     * @param    array    Preferences
+     * @return    mixed
+     */
+    function _backup($params = array())
+    {
+        // Currently unsupported
+        return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+</codefragment>
+  </duplication>
+  <duplication lines="10" tokens="21">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_driver.php" line="439"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/oci8/oci8_driver.php" line="573"/>
+    <codefragment>    function _escape_identifiers($item)
+    {
+        if ($this-&gt;_escape_char == '')
+        {
+            return $item;
+        }
+
+        foreach ($this-&gt;_reserved_identifiers as $id)
+        {
+            if (strpos($item, '.'.$id) !== FALSE)
+</codefragment>
+  </duplication>
+  <duplication lines="70" tokens="111">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_forge.php" line="62"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/oci8/oci8_forge.php" line="50"/>
+    <codefragment>        return FALSE;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Create Table
+     *
+     * @access    private
+     * @param    string    the table name
+     * @param    array    the fields
+     * @param    mixed    primary key(s)
+     * @param    mixed    key(s)
+     * @param    boolean    should 'IF NOT EXISTS' be added to the SQL
+     * @return    bool
+     */
+    function _create_table($table, $fields, $primary_keys, $keys, $if_not_exists)
+    {
+        $sql = 'CREATE TABLE ';
+
+        if ($if_not_exists === TRUE)
+        {
+            $sql .= 'IF NOT EXISTS ';
+        }
+
+        $sql .= $this-&gt;db-&gt;_escape_identifiers($table)." (";
+        $current_field_count = 0;
+
+        foreach ($fields as $field=&gt;$attributes)
+        {
+            // Numeric field names aren't allowed in databases, so if the key is
+            // numeric, we know it was assigned by PHP and the developer manually
+            // entered the field information, so we'll simply add it to the list
+            if (is_numeric($field))
+            {
+                $sql .= "\n\t$attributes";
+            }
+            else
+            {
+                $attributes = array_change_key_case($attributes, CASE_UPPER);
+
+                $sql .= "\n\t".$this-&gt;db-&gt;_protect_identifiers($field);
+
+                $sql .=  ' '.$attributes['TYPE'];
+
+                if (array_key_exists('CONSTRAINT', $attributes))
+                {
+                    $sql .= '('.$attributes['CONSTRAINT'].')';
+                }
+
+                if (array_key_exists('UNSIGNED', $attributes) &amp;&amp; $attributes['UNSIGNED'] === TRUE)
+                {
+                    $sql .= ' UNSIGNED';
+                }
+
+                if (array_key_exists('DEFAULT', $attributes))
+                {
+                    $sql .= ' DEFAULT \''.$attributes['DEFAULT'].'\'';
+                }
+
+                if (array_key_exists('NULL', $attributes) &amp;&amp; $attributes['NULL'] === TRUE)
+                {
+                    $sql .= ' NULL';
+                }
+                else
+                {
+                    $sql .= ' NOT NULL';
+                }
+
+                if (array_key_exists('AUTO_INCREMENT', $attributes) &amp;&amp; $attributes['AUTO_INCREMENT'] === TRUE)
+</codefragment>
+  </duplication>
+  <duplication lines="72" tokens="99">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_forge.php" line="187"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/oci8/oci8_forge.php" line="170"/>
+    <codefragment>        return FALSE;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Alter table query
+     *
+     * Generates a platform-specific query so that a table can be altered
+     * Called by add_column(), drop_column(), and column_alter(),
+     *
+     * @access    private
+     * @param    string    the ALTER type (ADD, DROP, CHANGE)
+     * @param    string    the column name
+     * @param    string    the table name
+     * @param    string    the column definition
+     * @param    string    the default value
+     * @param    boolean    should 'NOT NULL' be added
+     * @param    string    the field after which we should add the new field
+     * @return    object
+     */
+    function _alter_table($alter_type, $table, $column_name, $column_definition = '', $default_value = '', $null = '', $after_field = '')
+    {
+        $sql = 'ALTER TABLE '.$this-&gt;db-&gt;_protect_identifiers($table)." $alter_type ".$this-&gt;db-&gt;_protect_identifiers($column_name);
+
+        // DROP has everything it needs now.
+        if ($alter_type == 'DROP')
+        {
+            return $sql;
+        }
+
+        $sql .= " $column_definition";
+
+        if ($default_value != '')
+        {
+            $sql .= " DEFAULT \"$default_value\"";
+        }
+
+        if ($null === NULL)
+        {
+            $sql .= ' NULL';
+        }
+        else
+        {
+            $sql .= ' NOT NULL';
+        }
+
+        if ($after_field != '')
+        {
+            $sql .= ' AFTER ' . $this-&gt;db-&gt;_protect_identifiers($after_field);
+        }
+
+        return $sql;
+
+    }
+
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Rename a table
+     *
+     * Generates a platform-specific query so that a table can be renamed
+     *
+     * @access    private
+     * @param    string    the old table name
+     * @param    string    the new table name
+     * @return    string
+     */
+    function _rename_table($table_name, $new_table_name)
+    {
+        $sql = 'ALTER TABLE '.$this-&gt;db-&gt;_protect_identifiers($table_name)." RENAME TO ".$this-&gt;db-&gt;_protect_identifiers($new_table_name);
+</codefragment>
+  </duplication>
+  <duplication lines="34" tokens="22">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/oci8/oci8_utility.php" line="49"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlsrv/sqlsrv_utility.php" line="49"/>
+    <codefragment>    function _optimize_table($table)
+    {
+        return FALSE; // Is this supported in Oracle?
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Repair table query
+     *
+     * Generates a platform-specific query so that a table can be repaired
+     *
+     * @access    private
+     * @param    string    the table name
+     * @return    object
+     */
+    function _repair_table($table)
+    {
+        return FALSE; // Is this supported in Oracle?
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Oracle Export
+     *
+     * @access    private
+     * @param    array    Preferences
+     * @return    mixed
+     */
+    function _backup($params = array())
+    {
+        // Currently unsupported
+        return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+</codefragment>
+  </duplication>
+  <duplication lines="61" tokens="120">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_forge.php" line="78"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlsrv/sqlsrv_forge.php" line="79"/>
+    <codefragment>    function _create_table($table, $fields, $primary_keys, $keys, $if_not_exists)
+    {
+        $sql = 'CREATE TABLE ';
+
+        if ($if_not_exists === TRUE)
+        {
+            $sql .= 'IF NOT EXISTS ';
+        }
+
+        $sql .= $this-&gt;db-&gt;_escape_identifiers($table)." (";
+        $current_field_count = 0;
+
+        foreach ($fields as $field=&gt;$attributes)
+        {
+            // Numeric field names aren't allowed in databases, so if the key is
+            // numeric, we know it was assigned by PHP and the developer manually
+            // entered the field information, so we'll simply add it to the list
+            if (is_numeric($field))
+            {
+                $sql .= "\n\t$attributes";
+            }
+            else
+            {
+                $attributes = array_change_key_case($attributes, CASE_UPPER);
+
+                $sql .= "\n\t".$this-&gt;db-&gt;_protect_identifiers($field);
+
+                $sql .=  ' '.$attributes['TYPE'];
+
+                if (array_key_exists('CONSTRAINT', $attributes))
+                {
+                    $sql .= '('.$attributes['CONSTRAINT'].')';
+                }
+
+                if (array_key_exists('UNSIGNED', $attributes) &amp;&amp; $attributes['UNSIGNED'] === TRUE)
+                {
+                    $sql .= ' UNSIGNED';
+                }
+
+                if (array_key_exists('DEFAULT', $attributes))
+                {
+                    $sql .= ' DEFAULT \''.$attributes['DEFAULT'].'\'';
+                }
+
+                if (array_key_exists('NULL', $attributes) &amp;&amp; $attributes['NULL'] === TRUE)
+                {
+                    $sql .= ' NULL';
+                }
+                else
+                {
+                    $sql .= ' NOT NULL';
+                }
+
+                if (array_key_exists('AUTO_INCREMENT', $attributes) &amp;&amp; $attributes['AUTO_INCREMENT'] === TRUE)
+                {
+                    $sql .= ' AUTO_INCREMENT';
+                }
+            }
+
+            // don't add a comma on the end of the last field
+            if (++$current_field_count &lt; count($fields))
+</codefragment>
+  </duplication>
+  <duplication lines="52" tokens="97">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_forge.php" line="208"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlsrv/sqlsrv_forge.php" line="191"/>
+    <codefragment>    function _alter_table($alter_type, $table, $column_name, $column_definition = '', $default_value = '', $null = '', $after_field = '')
+    {
+        $sql = 'ALTER TABLE '.$this-&gt;db-&gt;_protect_identifiers($table)." $alter_type ".$this-&gt;db-&gt;_protect_identifiers($column_name);
+
+        // DROP has everything it needs now.
+        if ($alter_type == 'DROP')
+        {
+            return $sql;
+        }
+
+        $sql .= " $column_definition";
+
+        if ($default_value != '')
+        {
+            $sql .= " DEFAULT \"$default_value\"";
+        }
+
+        if ($null === NULL)
+        {
+            $sql .= ' NULL';
+        }
+        else
+        {
+            $sql .= ' NOT NULL';
+        }
+
+        if ($after_field != '')
+        {
+            $sql .= ' AFTER ' . $this-&gt;db-&gt;_protect_identifiers($after_field);
+        }
+
+        return $sql;
+
+    }
+
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Rename a table
+     *
+     * Generates a platform-specific query so that a table can be renamed
+     *
+     * @access    private
+     * @param    string    the old table name
+     * @param    string    the new table name
+     * @return    string
+     */
+    function _rename_table($table_name, $new_table_name)
+    {
+        $sql = 'ALTER TABLE '.$this-&gt;db-&gt;_protect_identifiers($table_name)." RENAME TO ".$this-&gt;db-&gt;_protect_identifiers($new_table_name);
+        return $sql;
+</codefragment>
+  </duplication>
+  <duplication lines="58" tokens="24">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/oci8/oci8_utility.php" line="35"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/cubrid/cubrid_utility.php" line="46"/>
+    <codefragment>        return FALSE;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Optimize table query
+     *
+     * Generates a platform-specific query so that a table can be optimized
+     *
+     * @access    private
+     * @param    string    the table name
+     * @return    object
+     */
+    function _optimize_table($table)
+    {
+        return FALSE; // Is this supported in Oracle?
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Repair table query
+     *
+     * Generates a platform-specific query so that a table can be repaired
+     *
+     * @access    private
+     * @param    string    the table name
+     * @return    object
+     */
+    function _repair_table($table)
+    {
+        return FALSE; // Is this supported in Oracle?
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Oracle Export
+     *
+     * @access    private
+     * @param    array    Preferences
+     * @return    mixed
+     */
+    function _backup($params = array())
+    {
+        // Currently unsupported
+        return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+    }
+}
+
+/* End of file oci8_utility.php */
+/* Location: ./system/database/drivers/oci8/oci8_utility.php */</codefragment>
+  </duplication>
+  <duplication lines="29" tokens="47">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_driver.php" line="425"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/cubrid/cubrid_driver.php" line="483"/>
+    <codefragment>        return odbc_error($this-&gt;conn_id);
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Escape the SQL Identifiers
+     *
+     * This function escapes column and table names
+     *
+     * @access    private
+     * @param    string
+     * @return    string
+     */
+    function _escape_identifiers($item)
+    {
+        if ($this-&gt;_escape_char == '')
+        {
+            return $item;
+        }
+
+        foreach ($this-&gt;_reserved_identifiers as $id)
+        {
+            if (strpos($item, '.'.$id) !== FALSE)
+            {
+                $str = $this-&gt;_escape_char. str_replace('.', $this-&gt;_escape_char.'.', $item);
+
+                // remove duplicates if the user already included the escape
+                return preg_replace('/['.$this-&gt;_escape_char.']+/', $this-&gt;_escape_char, $str);
+</codefragment>
+  </duplication>
+  <duplication lines="12" tokens="31">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_driver.php" line="439"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/postgre/postgre_driver.php" line="484"/>
+    <codefragment>    function _escape_identifiers($item)
+    {
+        if ($this-&gt;_escape_char == '')
+        {
+            return $item;
+        }
+
+        foreach ($this-&gt;_reserved_identifiers as $id)
+        {
+            if (strpos($item, '.'.$id) !== FALSE)
+            {
+                $str = $this-&gt;_escape_char. str_replace('.', $this-&gt;_escape_char.'.', $item);
+</codefragment>
+  </duplication>
+  <duplication lines="34" tokens="22">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/oci8/oci8_utility.php" line="49"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/postgre/postgre_utility.php" line="49"/>
+    <codefragment>    function _optimize_table($table)
+    {
+        return FALSE; // Is this supported in Oracle?
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Repair table query
+     *
+     * Generates a platform-specific query so that a table can be repaired
+     *
+     * @access    private
+     * @param    string    the table name
+     * @return    object
+     */
+    function _repair_table($table)
+    {
+        return FALSE; // Is this supported in Oracle?
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Oracle Export
+     *
+     * @access    private
+     * @param    array    Preferences
+     * @return    mixed
+     */
+    function _backup($params = array())
+    {
+        // Currently unsupported
+        return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+</codefragment>
+  </duplication>
+  <duplication lines="51" tokens="97">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_forge.php" line="208"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/postgre/postgre_forge.php" line="242"/>
+    <codefragment>    function _alter_table($alter_type, $table, $column_name, $column_definition = '', $default_value = '', $null = '', $after_field = '')
+    {
+        $sql = 'ALTER TABLE '.$this-&gt;db-&gt;_protect_identifiers($table)." $alter_type ".$this-&gt;db-&gt;_protect_identifiers($column_name);
+
+        // DROP has everything it needs now.
+        if ($alter_type == 'DROP')
+        {
+            return $sql;
+        }
+
+        $sql .= " $column_definition";
+
+        if ($default_value != '')
+        {
+            $sql .= " DEFAULT \"$default_value\"";
+        }
+
+        if ($null === NULL)
+        {
+            $sql .= ' NULL';
+        }
+        else
+        {
+            $sql .= ' NOT NULL';
+        }
+
+        if ($after_field != '')
+        {
+            $sql .= ' AFTER ' . $this-&gt;db-&gt;_protect_identifiers($after_field);
+        }
+
+        return $sql;
+
+    }
+
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Rename a table
+     *
+     * Generates a platform-specific query so that a table can be renamed
+     *
+     * @access    private
+     * @param    string    the old table name
+     * @param    string    the new table name
+     * @return    string
+     */
+    function _rename_table($table_name, $new_table_name)
+    {
+        $sql = 'ALTER TABLE '.$this-&gt;db-&gt;_protect_identifiers($table_name)." RENAME TO ".$this-&gt;db-&gt;_protect_identifiers($new_table_name);
+</codefragment>
+  </duplication>
+  <duplication lines="35" tokens="57">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_driver.php" line="425"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysql/mysql_driver.php" line="470"/>
+    <codefragment>        return odbc_error($this-&gt;conn_id);
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Escape the SQL Identifiers
+     *
+     * This function escapes column and table names
+     *
+     * @access    private
+     * @param    string
+     * @return    string
+     */
+    function _escape_identifiers($item)
+    {
+        if ($this-&gt;_escape_char == '')
+        {
+            return $item;
+        }
+
+        foreach ($this-&gt;_reserved_identifiers as $id)
+        {
+            if (strpos($item, '.'.$id) !== FALSE)
+            {
+                $str = $this-&gt;_escape_char. str_replace('.', $this-&gt;_escape_char.'.', $item);
+
+                // remove duplicates if the user already included the escape
+                return preg_replace('/['.$this-&gt;_escape_char.']+/', $this-&gt;_escape_char, $str);
+            }
+        }
+
+        if (strpos($item, '.') !== FALSE)
+        {
+            $str = $this-&gt;_escape_char.str_replace('.', $this-&gt;_escape_char.'.'.$this-&gt;_escape_char, $item).$this-&gt;_escape_char;
+</codefragment>
+  </duplication>
+  <duplication lines="102" tokens="158">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/cubrid/cubrid_driver.php" line="625"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysql/mysql_driver.php" line="612"/>
+    <codefragment>            $valstr[] = sprintf('"%s" = %s', $key, $val);
+        }
+
+        $limit = ( ! $limit) ? '' : ' LIMIT '.$limit;
+
+        $orderby = (count($orderby) &gt;= 1)?' ORDER BY '.implode(", ", $orderby):'';
+
+        $sql = "UPDATE ".$table." SET ".implode(', ', $valstr);
+
+        $sql .= ($where != '' AND count($where) &gt;=1) ? " WHERE ".implode(" ", $where) : '';
+
+        $sql .= $orderby.$limit;
+
+        return $sql;
+    }
+
+    // --------------------------------------------------------------------
+
+
+    /**
+     * Update_Batch statement
+     *
+     * Generates a platform-specific batch update string from the supplied data
+     *
+     * @access    public
+     * @param    string    the table name
+     * @param    array    the update data
+     * @param    array    the where clause
+     * @return    string
+     */
+    function _update_batch($table, $values, $index, $where = NULL)
+    {
+        $ids = array();
+        $where = ($where != '' AND count($where) &gt;=1) ? implode(" ", $where).' AND ' : '';
+
+        foreach ($values as $key =&gt; $val)
+        {
+            $ids[] = $val[$index];
+
+            foreach (array_keys($val) as $field)
+            {
+                if ($field != $index)
+                {
+                    $final[$field][] = 'WHEN '.$index.' = '.$val[$index].' THEN '.$val[$field];
+                }
+            }
+        }
+
+        $sql = "UPDATE ".$table." SET ";
+        $cases = '';
+
+        foreach ($final as $k =&gt; $v)
+        {
+            $cases .= $k.' = CASE '."\n";
+            foreach ($v as $row)
+            {
+                $cases .= $row."\n";
+            }
+
+            $cases .= 'ELSE '.$k.' END, ';
+        }
+
+        $sql .= substr($cases, 0, -2);
+
+        $sql .= ' WHERE '.$where.$index.' IN ('.implode(',', $ids).')';
+
+        return $sql;
+    }
+
+    // --------------------------------------------------------------------
+
+
+    /**
+     * Truncate statement
+     *
+     * Generates a platform-specific truncate string from the supplied data
+     * If the database does not support the truncate() command
+     * This function maps to "DELETE FROM table"
+     *
+     * @access    public
+     * @param    string    the table name
+     * @return    string
+     */
+    function _truncate($table)
+    {
+        return "TRUNCATE ".$table;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Delete statement
+     *
+     * Generates a platform-specific delete string from the supplied data
+     *
+     * @access    public
+     * @param    string    the table name
+     * @param    array    the where clause
+     * @param    string    the limit clause
+     * @return    string
+     */
+    function _delete($table, $where = array(), $like = array(), $limit = FALSE)
+</codefragment>
+  </duplication>
+  <duplication lines="24" tokens="37">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_forge.php" line="234"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysql/mysql_forge.php" line="244"/>
+    <codefragment>        if ($after_field != '')
+        {
+            $sql .= ' AFTER ' . $this-&gt;db-&gt;_protect_identifiers($after_field);
+        }
+
+        return $sql;
+
+    }
+
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Rename a table
+     *
+     * Generates a platform-specific query so that a table can be renamed
+     *
+     * @access    private
+     * @param    string    the old table name
+     * @param    string    the new table name
+     * @return    string
+     */
+    function _rename_table($table_name, $new_table_name)
+    {
+</codefragment>
+  </duplication>
+  <duplication lines="34" tokens="22">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/oci8/oci8_utility.php" line="49"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlite/sqlite_utility.php" line="58"/>
+    <codefragment>    function _optimize_table($table)
+    {
+        return FALSE; // Is this supported in Oracle?
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Repair table query
+     *
+     * Generates a platform-specific query so that a table can be repaired
+     *
+     * @access    private
+     * @param    string    the table name
+     * @return    object
+     */
+    function _repair_table($table)
+    {
+        return FALSE; // Is this supported in Oracle?
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Oracle Export
+     *
+     * @access    private
+     * @param    array    Preferences
+     * @return    mixed
+     */
+    function _backup($params = array())
+    {
+        // Currently unsupported
+        return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+</codefragment>
+  </duplication>
+  <duplication lines="118" tokens="185">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_driver.php" line="425"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlite/sqlite_driver.php" line="439"/>
+    <codefragment>        return odbc_error($this-&gt;conn_id);
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Escape the SQL Identifiers
+     *
+     * This function escapes column and table names
+     *
+     * @access    private
+     * @param    string
+     * @return    string
+     */
+    function _escape_identifiers($item)
+    {
+        if ($this-&gt;_escape_char == '')
+        {
+            return $item;
+        }
+
+        foreach ($this-&gt;_reserved_identifiers as $id)
+        {
+            if (strpos($item, '.'.$id) !== FALSE)
+            {
+                $str = $this-&gt;_escape_char. str_replace('.', $this-&gt;_escape_char.'.', $item);
+
+                // remove duplicates if the user already included the escape
+                return preg_replace('/['.$this-&gt;_escape_char.']+/', $this-&gt;_escape_char, $str);
+            }
+        }
+
+        if (strpos($item, '.') !== FALSE)
+        {
+            $str = $this-&gt;_escape_char.str_replace('.', $this-&gt;_escape_char.'.'.$this-&gt;_escape_char, $item).$this-&gt;_escape_char;
+        }
+        else
+        {
+            $str = $this-&gt;_escape_char.$item.$this-&gt;_escape_char;
+        }
+
+        // remove duplicates if the user already included the escape
+        return preg_replace('/['.$this-&gt;_escape_char.']+/', $this-&gt;_escape_char, $str);
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * From Tables
+     *
+     * This function implicitly groups FROM tables so there is no confusion
+     * about operator precedence in harmony with SQL standards
+     *
+     * @access    public
+     * @param    type
+     * @return    type
+     */
+    function _from_tables($tables)
+    {
+        if ( ! is_array($tables))
+        {
+            $tables = array($tables);
+        }
+
+        return '('.implode(', ', $tables).')';
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Insert statement
+     *
+     * Generates a platform-specific insert string from the supplied data
+     *
+     * @access    public
+     * @param    string    the table name
+     * @param    array    the insert keys
+     * @param    array    the insert values
+     * @return    string
+     */
+    function _insert($table, $keys, $values)
+    {
+        return "INSERT INTO ".$table." (".implode(', ', $keys).") VALUES (".implode(', ', $values).")";
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Update statement
+     *
+     * Generates a platform-specific update string from the supplied data
+     *
+     * @access    public
+     * @param    string    the table name
+     * @param    array    the update data
+     * @param    array    the where clause
+     * @param    array    the orderby clause
+     * @param    array    the limit clause
+     * @return    string
+     */
+    function _update($table, $values, $where, $orderby = array(), $limit = FALSE)
+    {
+        foreach ($values as $key =&gt; $val)
+        {
+            $valstr[] = $key." = ".$val;
+        }
+
+        $limit = ( ! $limit) ? '' : ' LIMIT '.$limit;
+
+        $orderby = (count($orderby) &gt;= 1)?' ORDER BY '.implode(", ", $orderby):'';
+
+        $sql = "UPDATE ".$table." SET ".implode(', ', $valstr);
+
+        $sql .= ($where != '' AND count($where) &gt;=1) ? " WHERE ".implode(" ", $where) : '';
+
+        $sql .= $orderby.$limit;
+
+        return $sql;
+</codefragment>
+  </duplication>
+  <duplication lines="17" tokens="10">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/cubrid/cubrid_driver.php" line="710"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlite/sqlite_driver.php" line="575"/>
+    <codefragment>        return "TRUNCATE ".$table;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Delete statement
+     *
+     * Generates a platform-specific delete string from the supplied data
+     *
+     * @access    public
+     * @param    string    the table name
+     * @param    array    the where clause
+     * @param    string    the limit clause
+     * @return    string
+     */
+    function _delete($table, $where = array(), $like = array(), $limit = FALSE)
+</codefragment>
+  </duplication>
+  <duplication lines="44" tokens="84">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_forge.php" line="88"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlite/sqlite_forge.php" line="86"/>
+    <codefragment>        $current_field_count = 0;
+
+        foreach ($fields as $field=&gt;$attributes)
+        {
+            // Numeric field names aren't allowed in databases, so if the key is
+            // numeric, we know it was assigned by PHP and the developer manually
+            // entered the field information, so we'll simply add it to the list
+            if (is_numeric($field))
+            {
+                $sql .= "\n\t$attributes";
+            }
+            else
+            {
+                $attributes = array_change_key_case($attributes, CASE_UPPER);
+
+                $sql .= "\n\t".$this-&gt;db-&gt;_protect_identifiers($field);
+
+                $sql .=  ' '.$attributes['TYPE'];
+
+                if (array_key_exists('CONSTRAINT', $attributes))
+                {
+                    $sql .= '('.$attributes['CONSTRAINT'].')';
+                }
+
+                if (array_key_exists('UNSIGNED', $attributes) &amp;&amp; $attributes['UNSIGNED'] === TRUE)
+                {
+                    $sql .= ' UNSIGNED';
+                }
+
+                if (array_key_exists('DEFAULT', $attributes))
+                {
+                    $sql .= ' DEFAULT \''.$attributes['DEFAULT'].'\'';
+                }
+
+                if (array_key_exists('NULL', $attributes) &amp;&amp; $attributes['NULL'] === TRUE)
+                {
+                    $sql .= ' NULL';
+                }
+                else
+                {
+                    $sql .= ' NOT NULL';
+                }
+
+                if (array_key_exists('AUTO_INCREMENT', $attributes) &amp;&amp; $attributes['AUTO_INCREMENT'] === TRUE)
+</codefragment>
+  </duplication>
+  <duplication lines="41" tokens="61">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_forge.php" line="218"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlite/sqlite_forge.php" line="220"/>
+    <codefragment>        $sql .= " $column_definition";
+
+        if ($default_value != '')
+        {
+            $sql .= " DEFAULT \"$default_value\"";
+        }
+
+        if ($null === NULL)
+        {
+            $sql .= ' NULL';
+        }
+        else
+        {
+            $sql .= ' NOT NULL';
+        }
+
+        if ($after_field != '')
+        {
+            $sql .= ' AFTER ' . $this-&gt;db-&gt;_protect_identifiers($after_field);
+        }
+
+        return $sql;
+
+    }
+
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Rename a table
+     *
+     * Generates a platform-specific query so that a table can be renamed
+     *
+     * @access    private
+     * @param    string    the old table name
+     * @param    string    the new table name
+     * @return    string
+     */
+    function _rename_table($table_name, $new_table_name)
+    {
+        $sql = 'ALTER TABLE '.$this-&gt;db-&gt;_protect_identifiers($table_name)." RENAME TO ".$this-&gt;db-&gt;_protect_identifiers($new_table_name);
+</codefragment>
+  </duplication>
+  <duplication lines="59" tokens="62">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysql/mysql_driver.php" line="193"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysqli/mysqli_driver.php" line="194"/>
+    <codefragment>    function _prep_query($sql)
+    {
+        // "DELETE FROM TABLE" returns 0 affected rows This hack modifies
+        // the query so that it returns the number of affected rows
+        if ($this-&gt;delete_hack === TRUE)
+        {
+            if (preg_match('/^\s*DELETE\s+FROM\s+(\S+)\s*$/i', $sql))
+            {
+                $sql = preg_replace("/^\s*DELETE\s+FROM\s+(\S+)\s*$/", "DELETE FROM \\1 WHERE 1=1", $sql);
+            }
+        }
+
+        return $sql;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Begin Transaction
+     *
+     * @access    public
+     * @return    bool
+     */
+    function trans_begin($test_mode = FALSE)
+    {
+        if ( ! $this-&gt;trans_enabled)
+        {
+            return TRUE;
+        }
+
+        // When transactions are nested we only begin/commit/rollback the outermost ones
+        if ($this-&gt;_trans_depth &gt; 0)
+        {
+            return TRUE;
+        }
+
+        // Reset the transaction failure flag.
+        // If the $test_mode flag is set to TRUE transactions will be rolled back
+        // even if the queries produce a successful result.
+        $this-&gt;_trans_failure = ($test_mode === TRUE) ? TRUE : FALSE;
+
+        $this-&gt;simple_query('SET AUTOCOMMIT=0');
+        $this-&gt;simple_query('START TRANSACTION'); // can also be BEGIN or BEGIN WORK
+        return TRUE;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Commit Transaction
+     *
+     * @access    public
+     * @return    bool
+     */
+    function trans_commit()
+    {
+        if ( ! $this-&gt;trans_enabled)
+        {
+            return TRUE;
+</codefragment>
+  </duplication>
+  <duplication lines="30" tokens="43">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysql/mysql_driver.php" line="358"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysqli/mysqli_driver.php" line="359"/>
+    <codefragment>        return @mysql_insert_id($this-&gt;conn_id);
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * "Count All" query
+     *
+     * Generates a platform-specific query string that counts all records in
+     * the specified database
+     *
+     * @access    public
+     * @param    string
+     * @return    string
+     */
+    function count_all($table = '')
+    {
+        if ($table == '')
+        {
+            return 0;
+        }
+
+        $query = $this-&gt;query($this-&gt;_count_string . $this-&gt;_protect_identifiers('numrows') . " FROM " . $this-&gt;_protect_identifiers($table, TRUE, NULL, FALSE));
+
+        if ($query-&gt;num_rows() == 0)
+        {
+            return 0;
+        }
+
+        $row = $query-&gt;row();
+</codefragment>
+  </duplication>
+  <duplication lines="35" tokens="57">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_driver.php" line="425"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysqli/mysqli_driver.php" line="471"/>
+    <codefragment>        return odbc_error($this-&gt;conn_id);
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Escape the SQL Identifiers
+     *
+     * This function escapes column and table names
+     *
+     * @access    private
+     * @param    string
+     * @return    string
+     */
+    function _escape_identifiers($item)
+    {
+        if ($this-&gt;_escape_char == '')
+        {
+            return $item;
+        }
+
+        foreach ($this-&gt;_reserved_identifiers as $id)
+        {
+            if (strpos($item, '.'.$id) !== FALSE)
+            {
+                $str = $this-&gt;_escape_char. str_replace('.', $this-&gt;_escape_char.'.', $item);
+
+                // remove duplicates if the user already included the escape
+                return preg_replace('/['.$this-&gt;_escape_char.']+/', $this-&gt;_escape_char, $str);
+            }
+        }
+
+        if (strpos($item, '.') !== FALSE)
+        {
+            $str = $this-&gt;_escape_char.str_replace('.', $this-&gt;_escape_char.'.'.$this-&gt;_escape_char, $item).$this-&gt;_escape_char;
+</codefragment>
+  </duplication>
+  <duplication lines="64" tokens="140">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/cubrid/cubrid_driver.php" line="625"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysqli/mysqli_driver.php" line="612"/>
+    <codefragment>            $valstr[] = sprintf('"%s" = %s', $key, $val);
+        }
+
+        $limit = ( ! $limit) ? '' : ' LIMIT '.$limit;
+
+        $orderby = (count($orderby) &gt;= 1)?' ORDER BY '.implode(", ", $orderby):'';
+
+        $sql = "UPDATE ".$table." SET ".implode(', ', $valstr);
+
+        $sql .= ($where != '' AND count($where) &gt;=1) ? " WHERE ".implode(" ", $where) : '';
+
+        $sql .= $orderby.$limit;
+
+        return $sql;
+    }
+
+    // --------------------------------------------------------------------
+
+
+    /**
+     * Update_Batch statement
+     *
+     * Generates a platform-specific batch update string from the supplied data
+     *
+     * @access    public
+     * @param    string    the table name
+     * @param    array    the update data
+     * @param    array    the where clause
+     * @return    string
+     */
+    function _update_batch($table, $values, $index, $where = NULL)
+    {
+        $ids = array();
+        $where = ($where != '' AND count($where) &gt;=1) ? implode(" ", $where).' AND ' : '';
+
+        foreach ($values as $key =&gt; $val)
+        {
+            $ids[] = $val[$index];
+
+            foreach (array_keys($val) as $field)
+            {
+                if ($field != $index)
+                {
+                    $final[$field][] = 'WHEN '.$index.' = '.$val[$index].' THEN '.$val[$field];
+                }
+            }
+        }
+
+        $sql = "UPDATE ".$table." SET ";
+        $cases = '';
+
+        foreach ($final as $k =&gt; $v)
+        {
+            $cases .= $k.' = CASE '."\n";
+            foreach ($v as $row)
+            {
+                $cases .= $row."\n";
+            }
+
+            $cases .= 'ELSE '.$k.' END, ';
+        }
+
+        $sql .= substr($cases, 0, -2);
+
+</codefragment>
+  </duplication>
+  <duplication lines="35" tokens="15">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/postgre/postgre_driver.php" line="605"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysqli/mysqli_driver.php" line="677"/>
+    <codefragment>        return $sql;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Truncate statement
+     *
+     * Generates a platform-specific truncate string from the supplied data
+     * If the database does not support the truncate() command
+     * This function maps to "DELETE FROM table"
+     *
+     * @access    public
+     * @param    string    the table name
+     * @return    string
+     */
+    function _truncate($table)
+    {
+        return "TRUNCATE ".$table;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Delete statement
+     *
+     * Generates a platform-specific delete string from the supplied data
+     *
+     * @access    public
+     * @param    string    the table name
+     * @param    array    the where clause
+     * @param    string    the limit clause
+     * @return    string
+     */
+    function _delete($table, $where = array(), $like = array(), $limit = FALSE)
+</codefragment>
+  </duplication>
+  <duplication lines="12" tokens="8">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysql/mysql_forge.php" line="25"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysqli/mysqli_forge.php" line="25"/>
+    <codefragment>class CI_DB_mysql_forge extends CI_DB_forge {
+
+    /**
+     * Create database
+     *
+     * @access    private
+     * @param    string    the database name
+     * @return    bool
+     */
+    function _create_database($name)
+    {
+        return "CREATE DATABASE ".$name;
+</codefragment>
+  </duplication>
+  <duplication lines="159" tokens="280">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysql/mysql_forge.php" line="107"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysqli/mysqli_forge.php" line="94"/>
+    <codefragment>                                $sql .= '('.$attributes['CONSTRAINT'].')';
+                        }
+                    }
+                }
+
+                if (array_key_exists('UNSIGNED', $attributes) &amp;&amp; $attributes['UNSIGNED'] === TRUE)
+                {
+                    $sql .= ' UNSIGNED';
+                }
+
+                if (array_key_exists('DEFAULT', $attributes))
+                {
+                    $sql .= ' DEFAULT \''.$attributes['DEFAULT'].'\'';
+                }
+
+                if (array_key_exists('NULL', $attributes) &amp;&amp; $attributes['NULL'] === TRUE)
+                {
+                    $sql .= ' NULL';
+                }
+                else
+                {
+                    $sql .= ' NOT NULL';
+                }
+
+                if (array_key_exists('AUTO_INCREMENT', $attributes) &amp;&amp; $attributes['AUTO_INCREMENT'] === TRUE)
+                {
+                    $sql .= ' AUTO_INCREMENT';
+                }
+            }
+
+            // don't add a comma on the end of the last field
+            if (++$current_field_count &lt; count($fields))
+            {
+                $sql .= ',';
+            }
+        }
+
+        return $sql;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Create Table
+     *
+     * @access    private
+     * @param    string    the table name
+     * @param    mixed    the fields
+     * @param    mixed    primary key(s)
+     * @param    mixed    key(s)
+     * @param    boolean    should 'IF NOT EXISTS' be added to the SQL
+     * @return    bool
+     */
+    function _create_table($table, $fields, $primary_keys, $keys, $if_not_exists)
+    {
+        $sql = 'CREATE TABLE ';
+
+        if ($if_not_exists === TRUE)
+        {
+            $sql .= 'IF NOT EXISTS ';
+        }
+
+        $sql .= $this-&gt;db-&gt;_escape_identifiers($table)." (";
+
+        $sql .= $this-&gt;_process_fields($fields);
+
+        if (count($primary_keys) &gt; 0)
+        {
+            $key_name = $this-&gt;db-&gt;_protect_identifiers(implode('_', $primary_keys));
+            $primary_keys = $this-&gt;db-&gt;_protect_identifiers($primary_keys);
+            $sql .= ",\n\tPRIMARY KEY ".$key_name." (" . implode(', ', $primary_keys) . ")";
+        }
+
+        if (is_array($keys) &amp;&amp; count($keys) &gt; 0)
+        {
+            foreach ($keys as $key)
+            {
+                if (is_array($key))
+                {
+                    $key_name = $this-&gt;db-&gt;_protect_identifiers(implode('_', $key));
+                    $key = $this-&gt;db-&gt;_protect_identifiers($key);
+                }
+                else
+                {
+                    $key_name = $this-&gt;db-&gt;_protect_identifiers($key);
+                    $key = array($key_name);
+                }
+
+                $sql .= ",\n\tKEY {$key_name} (" . implode(', ', $key) . ")";
+            }
+        }
+
+        $sql .= "\n) DEFAULT CHARACTER SET {$this-&gt;db-&gt;char_set} COLLATE {$this-&gt;db-&gt;dbcollat};";
+
+        return $sql;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Drop Table
+     *
+     * @access    private
+     * @return    string
+     */
+    function _drop_table($table)
+    {
+        return "DROP TABLE IF EXISTS ".$this-&gt;db-&gt;_escape_identifiers($table);
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Alter table query
+     *
+     * Generates a platform-specific query so that a table can be altered
+     * Called by add_column(), drop_column(), and column_alter(),
+     *
+     * @access    private
+     * @param    string    the ALTER type (ADD, DROP, CHANGE)
+     * @param    string    the column name
+     * @param    array    fields
+     * @param    string    the field after which we should add the new field
+     * @return    object
+     */
+    function _alter_table($alter_type, $table, $fields, $after_field = '')
+    {
+        $sql = 'ALTER TABLE '.$this-&gt;db-&gt;_protect_identifiers($table)." $alter_type ";
+
+        // DROP has everything it needs now.
+        if ($alter_type == 'DROP')
+        {
+            return $sql.$this-&gt;db-&gt;_protect_identifiers($fields);
+        }
+
+        $sql .= $this-&gt;_process_fields($fields);
+
+        if ($after_field != '')
+        {
+            $sql .= ' AFTER ' . $this-&gt;db-&gt;_protect_identifiers($after_field);
+        }
+
+        return $sql;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Rename a table
+     *
+     * Generates a platform-specific query so that a table can be renamed
+     *
+     * @access    private
+     * @param    string    the old table name
+     * @param    string    the new table name
+     * @return    string
+     */
+    function _rename_table($table_name, $new_table_name)
+    {
+</codefragment>
+  </duplication>
+  <duplication lines="58" tokens="28">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlsrv/sqlsrv_utility.php" line="25"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mssql/mssql_utility.php" line="25"/>
+    <codefragment>class CI_DB_sqlsrv_utility extends CI_DB_utility {
+
+    /**
+     * List databases
+     *
+     * @access    private
+     * @return    bool
+     */
+    function _list_databases()
+    {
+        return "EXEC sp_helpdb"; // Can also be: EXEC sp_databases
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Optimize table query
+     *
+     * Generates a platform-specific query so that a table can be optimized
+     *
+     * @access    private
+     * @param    string    the table name
+     * @return    object
+     */
+    function _optimize_table($table)
+    {
+        return FALSE; // Is this supported in MS SQL?
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Repair table query
+     *
+     * Generates a platform-specific query so that a table can be repaired
+     *
+     * @access    private
+     * @param    string    the table name
+     * @return    object
+     */
+    function _repair_table($table)
+    {
+        return FALSE; // Is this supported in MS SQL?
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * MSSQL Export
+     *
+     * @access    private
+     * @param    array    Preferences
+     * @return    mixed
+     */
+    function _backup($params = array())
+    {
+        // Currently unsupported
+        return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+</codefragment>
+  </duplication>
+  <duplication lines="36" tokens="56">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/postgre/postgre_driver.php" line="468"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mssql/mssql_driver.php" line="452"/>
+    <codefragment>    function _error_number()
+    {
+        return '';
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Escape the SQL Identifiers
+     *
+     * This function escapes column and table names
+     *
+     * @access    private
+     * @param    string
+     * @return    string
+     */
+    function _escape_identifiers($item)
+    {
+        if ($this-&gt;_escape_char == '')
+        {
+            return $item;
+        }
+
+        foreach ($this-&gt;_reserved_identifiers as $id)
+        {
+            if (strpos($item, '.'.$id) !== FALSE)
+            {
+                $str = $this-&gt;_escape_char. str_replace('.', $this-&gt;_escape_char.'.', $item);
+
+                // remove duplicates if the user already included the escape
+                return preg_replace('/['.$this-&gt;_escape_char.']+/', $this-&gt;_escape_char, $str);
+            }
+        }
+
+        if (strpos($item, '.') !== FALSE)
+        {
+</codefragment>
+  </duplication>
+  <duplication lines="16" tokens="59">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/postgre/postgre_driver.php" line="588"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mssql/mssql_driver.php" line="555"/>
+    <codefragment>    function _update($table, $values, $where, $orderby = array(), $limit = FALSE)
+    {
+        foreach ($values as $key =&gt; $val)
+        {
+            $valstr[] = $key." = ".$val;
+        }
+
+        $limit = ( ! $limit) ? '' : ' LIMIT '.$limit;
+
+        $orderby = (count($orderby) &gt;= 1)?' ORDER BY '.implode(", ", $orderby):'';
+
+        $sql = "UPDATE ".$table." SET ".implode(', ', $valstr);
+
+        $sql .= ($where != '' AND count($where) &gt;=1) ? " WHERE ".implode(" ", $where) : '';
+
+        $sql .= $orderby.$limit;
+</codefragment>
+  </duplication>
+  <duplication lines="218" tokens="309">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlsrv/sqlsrv_forge.php" line="25"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mssql/mssql_forge.php" line="25"/>
+    <codefragment>class CI_DB_sqlsrv_forge extends CI_DB_forge {
+
+    /**
+     * Create database
+     *
+     * @access    private
+     * @param    string    the database name
+     * @return    bool
+     */
+    function _create_database($name)
+    {
+        return "CREATE DATABASE ".$name;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Drop database
+     *
+     * @access    private
+     * @param    string    the database name
+     * @return    bool
+     */
+    function _drop_database($name)
+    {
+        return "DROP DATABASE ".$name;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Drop Table
+     *
+     * @access    private
+     * @return    bool
+     */
+    function _drop_table($table)
+    {
+        return "DROP TABLE ".$this-&gt;db-&gt;_escape_identifiers($table);
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Create Table
+     *
+     * @access    private
+     * @param    string    the table name
+     * @param    array    the fields
+     * @param    mixed    primary key(s)
+     * @param    mixed    key(s)
+     * @param    boolean    should 'IF NOT EXISTS' be added to the SQL
+     * @return    bool
+     */
+    function _create_table($table, $fields, $primary_keys, $keys, $if_not_exists)
+    {
+        $sql = 'CREATE TABLE ';
+
+        if ($if_not_exists === TRUE)
+        {
+            $sql .= 'IF NOT EXISTS ';
+        }
+
+        $sql .= $this-&gt;db-&gt;_escape_identifiers($table)." (";
+        $current_field_count = 0;
+
+        foreach ($fields as $field=&gt;$attributes)
+        {
+            // Numeric field names aren't allowed in databases, so if the key is
+            // numeric, we know it was assigned by PHP and the developer manually
+            // entered the field information, so we'll simply add it to the list
+            if (is_numeric($field))
+            {
+                $sql .= "\n\t$attributes";
+            }
+            else
+            {
+                $attributes = array_change_key_case($attributes, CASE_UPPER);
+
+                $sql .= "\n\t".$this-&gt;db-&gt;_protect_identifiers($field);
+
+                $sql .=  ' '.$attributes['TYPE'];
+
+                if (array_key_exists('CONSTRAINT', $attributes))
+                {
+                    $sql .= '('.$attributes['CONSTRAINT'].')';
+                }
+
+                if (array_key_exists('UNSIGNED', $attributes) &amp;&amp; $attributes['UNSIGNED'] === TRUE)
+                {
+                    $sql .= ' UNSIGNED';
+                }
+
+                if (array_key_exists('DEFAULT', $attributes))
+                {
+                    $sql .= ' DEFAULT \''.$attributes['DEFAULT'].'\'';
+                }
+
+                if (array_key_exists('NULL', $attributes) &amp;&amp; $attributes['NULL'] === TRUE)
+                {
+                    $sql .= ' NULL';
+                }
+                else
+                {
+                    $sql .= ' NOT NULL';
+                }
+
+                if (array_key_exists('AUTO_INCREMENT', $attributes) &amp;&amp; $attributes['AUTO_INCREMENT'] === TRUE)
+                {
+                    $sql .= ' AUTO_INCREMENT';
+                }
+            }
+
+            // don't add a comma on the end of the last field
+            if (++$current_field_count &lt; count($fields))
+            {
+                $sql .= ',';
+            }
+        }
+
+        if (count($primary_keys) &gt; 0)
+        {
+            $primary_keys = $this-&gt;db-&gt;_protect_identifiers($primary_keys);
+            $sql .= ",\n\tPRIMARY KEY (" . implode(', ', $primary_keys) . ")";
+        }
+
+        if (is_array($keys) &amp;&amp; count($keys) &gt; 0)
+        {
+            foreach ($keys as $key)
+            {
+                if (is_array($key))
+                {
+                    $key = $this-&gt;db-&gt;_protect_identifiers($key);
+                }
+                else
+                {
+                    $key = array($this-&gt;db-&gt;_protect_identifiers($key));
+                }
+
+                $sql .= ",\n\tFOREIGN KEY (" . implode(', ', $key) . ")";
+            }
+        }
+
+        $sql .= "\n)";
+
+        return $sql;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Alter table query
+     *
+     * Generates a platform-specific query so that a table can be altered
+     * Called by add_column(), drop_column(), and column_alter(),
+     *
+     * @access    private
+     * @param    string    the ALTER type (ADD, DROP, CHANGE)
+     * @param    string    the column name
+     * @param    string    the table name
+     * @param    string    the column definition
+     * @param    string    the default value
+     * @param    boolean    should 'NOT NULL' be added
+     * @param    string    the field after which we should add the new field
+     * @return    object
+     */
+    function _alter_table($alter_type, $table, $column_name, $column_definition = '', $default_value = '', $null = '', $after_field = '')
+    {
+        $sql = 'ALTER TABLE '.$this-&gt;db-&gt;_protect_identifiers($table)." $alter_type ".$this-&gt;db-&gt;_protect_identifiers($column_name);
+
+        // DROP has everything it needs now.
+        if ($alter_type == 'DROP')
+        {
+            return $sql;
+        }
+
+        $sql .= " $column_definition";
+
+        if ($default_value != '')
+        {
+            $sql .= " DEFAULT \"$default_value\"";
+        }
+
+        if ($null === NULL)
+        {
+            $sql .= ' NULL';
+        }
+        else
+        {
+            $sql .= ' NOT NULL';
+        }
+
+        if ($after_field != '')
+        {
+            $sql .= ' AFTER ' . $this-&gt;db-&gt;_protect_identifiers($after_field);
+        }
+
+        return $sql;
+
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Rename a table
+     *
+     * Generates a platform-specific query so that a table can be renamed
+     *
+     * @access    private
+     * @param    string    the old table name
+     * @param    string    the new table name
+     * @return    string
+     */
+    function _rename_table($table_name, $new_table_name)
+    {
+        // I think this syntax will work, but can find little documentation on renaming tables in MSSQL
+        $sql = 'ALTER TABLE '.$this-&gt;db-&gt;_protect_identifiers($table_name)." RENAME TO ".$this-&gt;db-&gt;_protect_identifiers($new_table_name);
+        return $sql;
+</codefragment>
+  </duplication>
+  <duplication lines="8" tokens="20">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_driver.php" line="327"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/pdo/pdo_driver.php" line="408"/>
+    <codefragment>    function count_all($table = '')
+    {
+        if ($table == '')
+        {
+            return 0;
+        }
+
+        $query = $this-&gt;query($this-&gt;_count_string . $this-&gt;_protect_identifiers('numrows') . " FROM " . $this-&gt;_protect_identifiers($table, TRUE, NULL, FALSE));
+</codefragment>
+  </duplication>
+  <duplication lines="12" tokens="31">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_driver.php" line="439"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/pdo/pdo_driver.php" line="521"/>
+    <codefragment>    function _escape_identifiers($item)
+    {
+        if ($this-&gt;_escape_char == '')
+        {
+            return $item;
+        }
+
+        foreach ($this-&gt;_reserved_identifiers as $id)
+        {
+            if (strpos($item, '.'.$id) !== FALSE)
+            {
+                $str = $this-&gt;_escape_char. str_replace('.', $this-&gt;_escape_char.'.', $item);
+</codefragment>
+  </duplication>
+  <duplication lines="21" tokens="28">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/postgre/postgre_driver.php" line="550"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/pdo/pdo_driver.php" line="588"/>
+    <codefragment>    function _insert($table, $keys, $values)
+    {
+        return "INSERT INTO ".$table." (".implode(', ', $keys).") VALUES (".implode(', ', $values).")";
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Insert_batch statement
+     *
+     * Generates a platform-specific insert string from the supplied data
+     *
+     * @access  public
+     * @param   string  the table name
+     * @param   array   the insert keys
+     * @param   array   the insert values
+     * @return  string
+     */
+    function _insert_batch($table, $keys, $values)
+    {
+        return "INSERT INTO ".$table." (".implode(', ', $keys).") VALUES ".implode(', ', $values);
+</codefragment>
+  </duplication>
+  <duplication lines="43" tokens="97">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysqli/mysqli_driver.php" line="608"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/pdo/pdo_driver.php" line="626"/>
+    <codefragment>    function _update($table, $values, $where, $orderby = array(), $limit = FALSE)
+    {
+        foreach ($values as $key =&gt; $val)
+        {
+            $valstr[] = $key." = ".$val;
+        }
+
+        $limit = ( ! $limit) ? '' : ' LIMIT '.$limit;
+
+        $orderby = (count($orderby) &gt;= 1)?' ORDER BY '.implode(", ", $orderby):'';
+
+        $sql = "UPDATE ".$table." SET ".implode(', ', $valstr);
+
+        $sql .= ($where != '' AND count($where) &gt;=1) ? " WHERE ".implode(" ", $where) : '';
+
+        $sql .= $orderby.$limit;
+
+        return $sql;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Update_Batch statement
+     *
+     * Generates a platform-specific batch update string from the supplied data
+     *
+     * @access    public
+     * @param    string    the table name
+     * @param    array    the update data
+     * @param    array    the where clause
+     * @return    string
+     */
+    function _update_batch($table, $values, $index, $where = NULL)
+    {
+        $ids = array();
+        $where = ($where != '' AND count($where) &gt;=1) ? implode(" ", $where).' AND ' : '';
+
+        foreach ($values as $key =&gt; $val)
+        {
+            $ids[] = $val[$index];
+
+            foreach (array_keys($val) as $field)
+</codefragment>
+  </duplication>
+  <duplication lines="235" tokens="339">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_forge.php" line="25"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/pdo/pdo_forge.php" line="25"/>
+    <codefragment>class CI_DB_odbc_forge extends CI_DB_forge {
+
+    /**
+     * Create database
+     *
+     * @access    private
+     * @param    string    the database name
+     * @return    bool
+     */
+    function _create_database()
+    {
+        // ODBC has no "create database" command since it's
+        // designed to connect to an existing database
+        if ($this-&gt;db-&gt;db_debug)
+        {
+            return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+        }
+        return FALSE;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Drop database
+     *
+     * @access    private
+     * @param    string    the database name
+     * @return    bool
+     */
+    function _drop_database($name)
+    {
+        // ODBC has no "drop database" command since it's
+        // designed to connect to an existing database
+        if ($this-&gt;db-&gt;db_debug)
+        {
+            return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+        }
+        return FALSE;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Create Table
+     *
+     * @access    private
+     * @param    string    the table name
+     * @param    array    the fields
+     * @param    mixed    primary key(s)
+     * @param    mixed    key(s)
+     * @param    boolean    should 'IF NOT EXISTS' be added to the SQL
+     * @return    bool
+     */
+    function _create_table($table, $fields, $primary_keys, $keys, $if_not_exists)
+    {
+        $sql = 'CREATE TABLE ';
+
+        if ($if_not_exists === TRUE)
+        {
+            $sql .= 'IF NOT EXISTS ';
+        }
+
+        $sql .= $this-&gt;db-&gt;_escape_identifiers($table)." (";
+        $current_field_count = 0;
+
+        foreach ($fields as $field=&gt;$attributes)
+        {
+            // Numeric field names aren't allowed in databases, so if the key is
+            // numeric, we know it was assigned by PHP and the developer manually
+            // entered the field information, so we'll simply add it to the list
+            if (is_numeric($field))
+            {
+                $sql .= "\n\t$attributes";
+            }
+            else
+            {
+                $attributes = array_change_key_case($attributes, CASE_UPPER);
+
+                $sql .= "\n\t".$this-&gt;db-&gt;_protect_identifiers($field);
+
+                $sql .=  ' '.$attributes['TYPE'];
+
+                if (array_key_exists('CONSTRAINT', $attributes))
+                {
+                    $sql .= '('.$attributes['CONSTRAINT'].')';
+                }
+
+                if (array_key_exists('UNSIGNED', $attributes) &amp;&amp; $attributes['UNSIGNED'] === TRUE)
+                {
+                    $sql .= ' UNSIGNED';
+                }
+
+                if (array_key_exists('DEFAULT', $attributes))
+                {
+                    $sql .= ' DEFAULT \''.$attributes['DEFAULT'].'\'';
+                }
+
+                if (array_key_exists('NULL', $attributes) &amp;&amp; $attributes['NULL'] === TRUE)
+                {
+                    $sql .= ' NULL';
+                }
+                else
+                {
+                    $sql .= ' NOT NULL';
+                }
+
+                if (array_key_exists('AUTO_INCREMENT', $attributes) &amp;&amp; $attributes['AUTO_INCREMENT'] === TRUE)
+                {
+                    $sql .= ' AUTO_INCREMENT';
+                }
+            }
+
+            // don't add a comma on the end of the last field
+            if (++$current_field_count &lt; count($fields))
+            {
+                $sql .= ',';
+            }
+        }
+
+        if (count($primary_keys) &gt; 0)
+        {
+            $primary_keys = $this-&gt;db-&gt;_protect_identifiers($primary_keys);
+            $sql .= ",\n\tPRIMARY KEY (" . implode(', ', $primary_keys) . ")";
+        }
+
+        if (is_array($keys) &amp;&amp; count($keys) &gt; 0)
+        {
+            foreach ($keys as $key)
+            {
+                if (is_array($key))
+                {
+                    $key = $this-&gt;db-&gt;_protect_identifiers($key);
+                }
+                else
+                {
+                    $key = array($this-&gt;db-&gt;_protect_identifiers($key));
+                }
+
+                $sql .= ",\n\tFOREIGN KEY (" . implode(', ', $key) . ")";
+            }
+        }
+
+        $sql .= "\n)";
+
+        return $sql;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Drop Table
+     *
+     * @access    private
+     * @return    bool
+     */
+    function _drop_table($table)
+    {
+        // Not a supported ODBC feature
+        if ($this-&gt;db-&gt;db_debug)
+        {
+            return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+        }
+        return FALSE;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Alter table query
+     *
+     * Generates a platform-specific query so that a table can be altered
+     * Called by add_column(), drop_column(), and column_alter(),
+     *
+     * @access    private
+     * @param    string    the ALTER type (ADD, DROP, CHANGE)
+     * @param    string    the column name
+     * @param    string    the table name
+     * @param    string    the column definition
+     * @param    string    the default value
+     * @param    boolean    should 'NOT NULL' be added
+     * @param    string    the field after which we should add the new field
+     * @return    object
+     */
+    function _alter_table($alter_type, $table, $column_name, $column_definition = '', $default_value = '', $null = '', $after_field = '')
+    {
+        $sql = 'ALTER TABLE '.$this-&gt;db-&gt;_protect_identifiers($table)." $alter_type ".$this-&gt;db-&gt;_protect_identifiers($column_name);
+
+        // DROP has everything it needs now.
+        if ($alter_type == 'DROP')
+        {
+            return $sql;
+        }
+
+        $sql .= " $column_definition";
+
+        if ($default_value != '')
+        {
+            $sql .= " DEFAULT \"$default_value\"";
+        }
+
+        if ($null === NULL)
+        {
+            $sql .= ' NULL';
+        }
+        else
+        {
+            $sql .= ' NOT NULL';
+        }
+
+        if ($after_field != '')
+        {
+            $sql .= ' AFTER ' . $this-&gt;db-&gt;_protect_identifiers($after_field);
+        }
+
+        return $sql;
+
+    }
+
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Rename a table
+     *
+     * Generates a platform-specific query so that a table can be renamed
+     *
+     * @access    private
+     * @param    string    the old table name
+     * @param    string    the new table name
+     * @return    string
+     */
+    function _rename_table($table_name, $new_table_name)
+    {
+        $sql = 'ALTER TABLE '.$this-&gt;db-&gt;_protect_identifiers($table_name)." RENAME TO ".$this-&gt;db-&gt;_protect_identifiers($new_table_name);
+        return $sql;
+</codefragment>
+  </duplication>
+  <duplication lines="73" tokens="67">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_utility.php" line="25"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/pdo/pdo_utility.php" line="25"/>
+    <codefragment>class CI_DB_odbc_utility extends CI_DB_utility {
+
+    /**
+     * List databases
+     *
+     * @access    private
+     * @return    bool
+     */
+    function _list_databases()
+    {
+        // Not sure if ODBC lets you list all databases...
+        if ($this-&gt;db-&gt;db_debug)
+        {
+            return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+        }
+        return FALSE;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Optimize table query
+     *
+     * Generates a platform-specific query so that a table can be optimized
+     *
+     * @access    private
+     * @param    string    the table name
+     * @return    object
+     */
+    function _optimize_table($table)
+    {
+        // Not a supported ODBC feature
+        if ($this-&gt;db-&gt;db_debug)
+        {
+            return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+        }
+        return FALSE;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Repair table query
+     *
+     * Generates a platform-specific query so that a table can be repaired
+     *
+     * @access    private
+     * @param    string    the table name
+     * @return    object
+     */
+    function _repair_table($table)
+    {
+        // Not a supported ODBC feature
+        if ($this-&gt;db-&gt;db_debug)
+        {
+            return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+        }
+        return FALSE;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * ODBC Export
+     *
+     * @access    private
+     * @param    array    Preferences
+     * @return    mixed
+     */
+    function _backup($params = array())
+    {
+        // Currently unsupported
+        return $this-&gt;db-&gt;display_error('db_unsuported_feature');
+</codefragment>
+  </duplication>
+  <duplication lines="22" tokens="23">
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Trackback.php" line="520"/>
+    <file path="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Image_lib.php" line="1509"/>
+    <codefragment>        $this-&gt;error_msg[] = $msg;
+    }
+
+    // --------------------------------------------------------------------
+
+    /**
+     * Show error messages
+     *
+     * @access    public
+     * @param    string
+     * @param    string
+     * @return    string
+     */
+    function display_errors($open = '&lt;p&gt;', $close = '&lt;/p&gt;')
+    {
+        $str = '';
+        foreach ($this-&gt;error_msg as $val)
+        {
+            $str .= $open.$val.$close;
+        }
+
+        return $str;
+</codefragment>
+  </duplication>
+</pmd-cpd>

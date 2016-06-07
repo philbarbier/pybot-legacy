@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PDepend>
+  <Packages>
+    <Package name="+global">
+      <Stats>
+        <TotalClasses>17</TotalClasses>
+        <ConcreteClasses>17</ConcreteClasses>
+        <AbstractClasses>0</AbstractClasses>
+        <Ca>2</Ca>
+        <Ce>2</Ce>
+        <A>0</A>
+        <I>0.5</I>
+        <D>0.5</D>
+      </Stats>
+      <ConcreteClasses>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/application/controllers/app.php">App</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/application/models/graph.php">Graph</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/application/models/stats_read.php">Stats_read</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/application/models/stats_write.php">Stats_write</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Xmlrpc.php">XML_RPC_Client</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Xmlrpc.php">XML_RPC_Response</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Xmlrpc.php">XML_RPC_Message</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Xmlrpc.php">XML_RPC_Values</Class>
+      </ConcreteClasses>
+      <AbstractClasses/>
+      <DependsUpon>
+        <Package>+mongo</Package>
+        <Package>CodeIgniter\Libraries</Package>
+      </DependsUpon>
+      <UsedBy>
+        <Package>CodeIgniter\Drivers</Package>
+        <Package>CodeIgniter\Libraries</Package>
+      </UsedBy>
+    </Package>
+    <Package name="CodeIgniter">
+      <Stats>
+        <TotalClasses>36</TotalClasses>
+        <ConcreteClasses>36</ConcreteClasses>
+        <AbstractClasses>0</AbstractClasses>
+        <Ca>1</Ca>
+        <Ce>3</Ce>
+        <A>0</A>
+        <I>0.75</I>
+        <D>0.25</D>
+      </Stats>
+      <ConcreteClasses>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/application/libraries/Mongo_db.php">Mongo_db</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/DB_cache.php">CI_DB_Cache</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/DB_forge.php">CI_DB_forge</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/DB_result.php">CI_DB_result</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/DB_utility.php">CI_DB_utility</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/cubrid/cubrid_forge.php">CI_DB_cubrid_forge</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/cubrid/cubrid_result.php">CI_DB_cubrid_result</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/cubrid/cubrid_utility.php">CI_DB_cubrid_utility</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mssql/mssql_forge.php">CI_DB_mssql_forge</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mssql/mssql_result.php">CI_DB_mssql_result</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mssql/mssql_utility.php">CI_DB_mssql_utility</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysql/mysql_forge.php">CI_DB_mysql_forge</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysql/mysql_result.php">CI_DB_mysql_result</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysql/mysql_utility.php">CI_DB_mysql_utility</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysqli/mysqli_forge.php">CI_DB_mysqli_forge</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysqli/mysqli_result.php">CI_DB_mysqli_result</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysqli/mysqli_utility.php">CI_DB_mysqli_utility</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/oci8/oci8_forge.php">CI_DB_oci8_forge</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/oci8/oci8_result.php">CI_DB_oci8_result</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/oci8/oci8_utility.php">CI_DB_oci8_utility</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_forge.php">CI_DB_odbc_forge</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_result.php">CI_DB_odbc_result</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_utility.php">CI_DB_odbc_utility</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/pdo/pdo_forge.php">CI_DB_pdo_forge</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/pdo/pdo_result.php">CI_DB_pdo_result</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/pdo/pdo_utility.php">CI_DB_pdo_utility</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/postgre/postgre_forge.php">CI_DB_postgre_forge</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/postgre/postgre_result.php">CI_DB_postgre_result</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/postgre/postgre_utility.php">CI_DB_postgre_utility</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlite/sqlite_forge.php">CI_DB_sqlite_forge</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlite/sqlite_result.php">CI_DB_sqlite_result</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlite/sqlite_utility.php">CI_DB_sqlite_utility</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlsrv/sqlsrv_forge.php">CI_DB_sqlsrv_forge</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlsrv/sqlsrv_result.php">CI_DB_sqlsrv_result</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlsrv/sqlsrv_utility.php">CI_DB_sqlsrv_utility</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Typography.php">CI_Typography</Class>
+      </ConcreteClasses>
+      <AbstractClasses/>
+      <DependsUpon>
+        <Package>+core</Package>
+        <Package>+mongo</Package>
+        <Package>+pdo</Package>
+      </DependsUpon>
+      <UsedBy>
+        <Package>CodeIgniter\Drivers</Package>
+      </UsedBy>
+    </Package>
+    <Package name="CodeIgniter\Libraries">
+      <Stats>
+        <TotalClasses>45</TotalClasses>
+        <ConcreteClasses>45</ConcreteClasses>
+        <AbstractClasses>0</AbstractClasses>
+        <Ca>1</Ca>
+        <Ce>2</Ce>
+        <A>0</A>
+        <I>0.66666666666667</I>
+        <D>0.33333333333333</D>
+      </Stats>
+      <ConcreteClasses>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Benchmark.php">CI_Benchmark</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Config.php">CI_Config</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Controller.php">CI_Controller</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Exceptions.php">CI_Exceptions</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Hooks.php">CI_Hooks</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Input.php">CI_Input</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Lang.php">CI_Lang</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Loader.php">CI_Loader</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Model.php">CI_Model</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Output.php">CI_Output</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Router.php">CI_Router</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Security.php">CI_Security</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/URI.php">CI_URI</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/core/Utf8.php">CI_Utf8</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Cache/Cache.php">CI_Cache</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Cache/drivers/Cache_apc.php">CI_Cache_apc</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Cache/drivers/Cache_dummy.php">CI_Cache_dummy</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Cache/drivers/Cache_file.php">CI_Cache_file</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Cache/drivers/Cache_memcached.php">CI_Cache_memcached</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Calendar.php">CI_Calendar</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Cart.php">CI_Cart</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Driver.php">CI_Driver_Library</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Driver.php">CI_Driver</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Email.php">CI_Email</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Encrypt.php">CI_Encrypt</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Form_validation.php">CI_Form_validation</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Ftp.php">CI_FTP</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Image_lib.php">CI_Image_lib</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Javascript.php">CI_Javascript</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Log.php">CI_Log</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Migration.php">CI_Migration</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Pagination.php">CI_Pagination</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Parser.php">CI_Parser</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Profiler.php">CI_Profiler</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Session.php">CI_Session</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Sha1.php">CI_SHA1</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Table.php">CI_Table</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Trackback.php">CI_Trackback</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Unit_test.php">CI_Unit_test</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Upload.php">CI_Upload</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/User_agent.php">CI_User_agent</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Xmlrpc.php">CI_Xmlrpc</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Xmlrpcs.php">CI_Xmlrpcs</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/Zip.php">CI_Zip</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/libraries/javascript/Jquery.php">CI_Jquery</Class>
+      </ConcreteClasses>
+      <AbstractClasses/>
+      <DependsUpon>
+        <Package>+global</Package>
+        <Package>+reflection</Package>
+      </DependsUpon>
+      <UsedBy>
+        <Package>+global</Package>
+      </UsedBy>
+    </Package>
+    <Package name="CodeIgniter\Drivers">
+      <Stats>
+        <TotalClasses>12</TotalClasses>
+        <ConcreteClasses>12</ConcreteClasses>
+        <AbstractClasses>0</AbstractClasses>
+        <Ca>0</Ca>
+        <Ce>3</Ce>
+        <A>0</A>
+        <I>1</I>
+        <D>0</D>
+      </Stats>
+      <ConcreteClasses>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/DB_active_rec.php">CI_DB_active_record</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/DB_driver.php">CI_DB_driver</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/cubrid/cubrid_driver.php">CI_DB_cubrid_driver</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mssql/mssql_driver.php">CI_DB_mssql_driver</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysql/mysql_driver.php">CI_DB_mysql_driver</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/mysqli/mysqli_driver.php">CI_DB_mysqli_driver</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/oci8/oci8_driver.php">CI_DB_oci8_driver</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/odbc/odbc_driver.php">CI_DB_odbc_driver</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/pdo/pdo_driver.php">CI_DB_pdo_driver</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/postgre/postgre_driver.php">CI_DB_postgre_driver</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlite/sqlite_driver.php">CI_DB_sqlite_driver</Class>
+        <Class sourceFile="/var/www/sites/stats.dev.riboflav.in/public/system/database/drivers/sqlsrv/sqlsrv_driver.php">CI_DB_sqlsrv_driver</Class>
+      </ConcreteClasses>
+      <AbstractClasses/>
+      <DependsUpon>
+        <Package>+global</Package>
+        <Package>+pdo</Package>
+        <Package>CodeIgniter</Package>
+      </DependsUpon>
+      <UsedBy/>
+    </Package>
+  </Packages>
+  <Cycles>
+    <Package Name="+global">
+      <Package>+global</Package>
+      <Package>CodeIgniter\Libraries</Package>
+      <Package>+global</Package>
+    </Package>
+    <Package Name="CodeIgniter\Libraries">
+      <Package>CodeIgniter\Libraries</Package>
+      <Package>+global</Package>
+      <Package>CodeIgniter\Libraries</Package>
+    </Package>
+    <Package Name="CodeIgniter\Drivers">
+      <Package>CodeIgniter\Drivers</Package>
+      <Package>+global</Package>
+      <Package>CodeIgniter\Libraries</Package>
+      <Package>+global</Package>
+    </Package>
+  </Cycles>
+</PDepend>

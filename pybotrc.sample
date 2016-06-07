@@ -1,0 +1,22 @@
+<?php
+$config = array(
+    'logfile' => '/dev/null',
+    'mongodb' => 'mongodb://mongo0/pybot',
+    'irc_server' => 'riboflav.in',
+    'irc_port' => 6667,
+    'irc_handle' => 'smellybot',
+    'irc_channels' => array(
+        '#tmp',
+        '#linux',
+        '#chat'
+    ),
+    'default_chan' => '#bot_dev',
+    'admin_chan' => '#bot_ops',
+    'log_stats' => false,
+    'log_history' => false,
+    'debug' => false,
+    'banned_users' => array(
+        'igor'
+    )
+);
+

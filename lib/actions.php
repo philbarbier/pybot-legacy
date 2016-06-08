@@ -1409,6 +1409,7 @@ class actions
 
     public function hup()
     {
+        return;
         $this->write_channel('As you command, my lord.');
         @shell_exec('/usr/bin/git pull');
         $this->set_current_channel($this->config['default_chan']);
@@ -2083,10 +2084,10 @@ class actions
     {
         $data = json_decode(json_encode(simplexml_load_string(file_get_contents($url))), true);
         $i = 0;
-        foreach ($data['channel']['item'] as $item) {
+        foreach ($data['entry'] as $item) {
             if ($i <= $count - 1) {
                 $title = $item['title'];
-                $link = $this->_shorten($item['link']);
+                $link = $this->_shorten($item['link']['@attributes']['href']);
                 $message = "$title - $link";
                 $this->write_channel($message);
             }
@@ -2826,7 +2827,7 @@ class actions
     {
         $this->collection->trivia->drop();
         $data = json_decode(file_get_contents('http://jservice.io/api/random'));
-        print_r($data);
+        // print_r($data);
         $question = $data[0]->question;
         $category = $data[0]->category->title;
         $answer = $data[0]->answer;

@@ -2949,12 +2949,28 @@ class actions
     public function smoke($args)
     {
         $c = $this->collection->irc->smokecount;
-        $criteria = array('user' => $this->get_current_user());
-        $data = array('$inc' => array('smokes' => 1));
+        $criteria = array('user' => $this->get_current_user(), 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
+        $d = $c->findOne($criteria);
+        $newsmokes = 1;
+        $lastsmoke = false;
+        if (isset($d['smokes'])) {
+            $newsmokes = (int)$d['smokes'] + 1;
+            $lastsmoke = date('d-m-Y, H:i', $d['time']);
+        }
+        $data = array(
+            // '$inc' => array('smokes' => 1), 
+            'user' => $this->get_current_user(),
+            'smokes' => $newsmokes,
+            'day' => date('d'), 
+            'month' => date('m'), 
+            'year' => date('Y'),
+            'time' => time()
+        );
         $c->update($criteria, $data, array('upsert' => true));
         $d = $c->findOne($criteria);
-        $this->write_channel("That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far... keep up the cancer!");
-
+        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far... keep up the cancer!";
+        if ($lastsmoke) $response .= ' Your last smoke was at ' . $lastsmoke;
+        $this->write_channel($response);
     }
 }
 

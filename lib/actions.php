@@ -1982,7 +1982,8 @@ class actions
             realtime
             rant 
             you 
-            me';
+            me
+            smoke';
             foreach (explode("\n", $fns) as $fn) {
                 if (empty($fn)) {
                     continue;
@@ -2893,7 +2894,7 @@ class actions
             $string = $record['message'];
             preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $string, $match);
             $url = @$match[0][0];
-            print_r($match);
+            // print_r($match);
             $title = $this->get_site_title($url);
             $url = $this->_shorten($url);
             $when = gmdate('Y-m-d', (int) $record['time']);
@@ -2943,6 +2944,17 @@ class actions
         $arg = array('deflects ','attacks ','concedes to ','redirects to ', 'is cucked by ');
         $out = $arg[array_rand($arg)];
         $this->write_channel("Roman $out" . $this->randuser());
+    }
+
+    public function smoke($args)
+    {
+        $c = $this->collection->irc->smokecount;
+        $criteria = array('user' => $this->get_current_user());
+        $data = array('$inc' => array('smokes' => 1));
+        $c->update($criteria, $data, array('upsert' => true));
+        $d = $c->findOne($criteria);
+        $this->write_channel("That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far... keep up the cancer!");
+
     }
 }
 

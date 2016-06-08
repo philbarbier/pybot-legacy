@@ -2715,10 +2715,10 @@ class actions
             return;
         }
         $now = time();
-        $time = strtotime('4 PM', $now);
+        $time = strtotime('3 PM', $now);
         $delta = $time - $now;
         if ($delta < 0) {
-            $time = strtotime('tomorrow 4 PM', $now);
+            $time = strtotime('tomorrow 3 PM', $now);
         }
 
         $this->write_channel($this->_nicetime(date('Y-m-d H:i', $time)));

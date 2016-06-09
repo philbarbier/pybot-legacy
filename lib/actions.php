@@ -3007,6 +3007,11 @@ class actions
         if ($lastsmoke) $this->write_channel("Well " . $this->get_current_user() . ", this is when you last inhaled cancer " . $lastsmoke['time']); 
 
     }
+
+    function lenny($args)
+    {
+        $this->write_channel("(  ͡°   ͜ʖ  ͡° )");
+    }
 }
 
 

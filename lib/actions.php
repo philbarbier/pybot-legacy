@@ -2967,18 +2967,32 @@ class actions
         );
         $c->update($criteria, $data, array('upsert' => true));
         $d = $c->findOne($criteria);
-        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... keep up the cancer!";
-        if ($lastsmoke) $response .= ' Your last smoke was at ' . $lastsmoke;
+        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... This brings you to a grand total of " . $lastsmoke['totalsmokes'] . " smokes. Keep up killing yourself with cancer!";
+        if ($lastsmoke) $response .= ' Your last smoke was at ' . $lastsmoke['time'];
+        
         $this->write_channel($response);
     }
 
     function _getLastSmoke() {
-        $total = $this->collection->irc->smokecount->count();
-        $d2 = $this->collection->irc->smokecount->find(array('user' => $this->get_current_user()))->skip($total - 2)->limit(1);
+        $allrecords = $this->collection->irc->smokecount->find(array('user' => $this->get_current_user()));
+        // 1 because this value is used in the smoke() function, so this 
+        // accounts for that current smoke
+        $totalsmokes = 1;
+        foreach($allrecords as $record) {
+            if(isset($record['time'])) {
+                $totalsmokes = $totalsmokes + (int)$record['smokes'];
+            }
+        }
+        unset($record);
+        $total = $allrecords->count();
+        $d2 = $this->collection->irc->smokecount->find(array('user' => $this->get_current_user()))->sort(array('time' => -1))->limit(1);
         $lastsmoke = false;
         foreach($d2 as $record) {
             if (isset($record['time'])) {
-                $lastsmoke = date('d-m-Y, H:i', $record['time']);
+                $lastsmoke = array();
+                $lastsmoke['time'] = date('d-m-Y, H:i', $record['time']);
+                $lastsmoke['totalsmokes'] = $totalsmokes;
+
             }
         }
         return $lastsmoke;
@@ -2990,7 +3004,7 @@ class actions
         // $criteria = array('user' => $this->get_current_user(), 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
         // $d = $c->findOne($criteria);
         $lastsmoke = $this->_getLastSmoke();
-        if ($lastsmoke) $this->write_channel("Well " . $this->get_current_user() . ", this is when you last inhaled cancer " . $lastsmoke); 
+        if ($lastsmoke) $this->write_channel("Well " . $this->get_current_user() . ", this is when you last inhaled cancer " . $lastsmoke['time']); 
 
     }
 }

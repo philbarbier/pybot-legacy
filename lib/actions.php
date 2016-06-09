@@ -2952,10 +2952,9 @@ class actions
         $criteria = array('user' => $this->get_current_user(), 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
         $d = $c->findOne($criteria);
         $newsmokes = 1;
-        $lastsmoke = false;
+        $lastsmoke = $this->_getLastSmoke();
         if (isset($d['smokes'])) {
             $newsmokes = (int)$d['smokes'] + 1;
-            $lastsmoke = date('d-m-Y, H:i', $d['time']);
         }
         $data = array(
             // '$inc' => array('smokes' => 1), 
@@ -2973,15 +2972,24 @@ class actions
         $this->write_channel($response);
     }
 
+    function _getLastSmoke() {
+        $total = $this->collection->irc->smokecount->count();
+        $d2 = $this->collection->irc->smokecount->find(array('user' => $this->get_current_user()))->skip($total - 2)->limit(1);
+        $lastsmoke = false;
+        foreach($d2 as $record) {
+            if (isset($record['time'])) {
+                $lastsmoke = date('d-m-Y, H:i', $record['time']);
+            }
+        }
+        return $lastsmoke;
+    }
+
     function lastsmoke($args)
     {
-        $c = $this->collection->irc->smokecount;
-        $criteria = array('user' => $this->get_current_user(), 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
-        $d = $c->findOne($criteria);
         $lastsmoke = false;
-        if (isset($d['time'])) {
-            $lastsmoke = date('d-m-Y, H:i', $d['time']);
-        }
+        // $criteria = array('user' => $this->get_current_user(), 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
+        // $d = $c->findOne($criteria);
+        $lastsmoke = $this->_getLastSmoke();
         if ($lastsmoke) $this->write_channel("Well " . $this->get_current_user() . ", this is when you last inhaled cancer " . $lastsmoke); 
 
     }

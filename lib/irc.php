@@ -203,8 +203,7 @@ class irc
             $this->actions->set_current_channel(trim(@$matches[4]));
             $this->actions->set_message_data(trim(@$matches[5]));
         }
-
-        if (isset($parts[1]) && !empty($parts[1]) && (is_numeric($parts[1]) || $parts[1] == 'JOIN' || $parts[1] == 'PART' || $parts[1] == 'INVITE')) {
+        if (isset($parts[1]) && !empty($parts[1]) && (is_numeric($parts[1]) || $parts[1] == 'JOIN' || $parts[1] == 'PART' || $parts[1] == 'INVITE' || $parts[1] == 'KILL')) {
             // we should maybe parse for every code here, that way
             // we're able to tell the IRC state better
             switch (strtoupper($parts[1])) {
@@ -271,6 +270,11 @@ class irc
                     if (isset($parts[3])) {
                         $this->write('JOIN ' . $parts[3]);
                     }
+                break;
+                case "KILL":
+                    $this->destroy_socket();
+                    sleep(15);
+                    $this->__construct($this->config);
                 break;
 
             }

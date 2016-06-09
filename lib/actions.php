@@ -2972,6 +2972,19 @@ class actions
         if ($lastsmoke) $response .= ' Your last smoke was at ' . $lastsmoke;
         $this->write_channel($response);
     }
+
+    function lastsmoke($args)
+    {
+        $c = $this->collection->irc->smokecount;
+        $criteria = array('user' => $this->get_current_user(), 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
+        $d = $c->findOne($criteria);
+        $lastsmoke = false;
+        if (isset($d['time'])) {
+            $lastsmoke = date('d-m-Y, H:i', $d['time']);
+        }
+        if ($lastsmoke) $this->write_channel("Well " . $this->get_current_user() . ", this is when you last inhaled cancer " . $lastsmoke); 
+
+    }
 }
 
 

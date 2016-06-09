@@ -2967,7 +2967,7 @@ class actions
         );
         $c->update($criteria, $data, array('upsert' => true));
         $d = $c->findOne($criteria);
-        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far... keep up the cancer!";
+        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... keep up the cancer!";
         if ($lastsmoke) $response .= ' Your last smoke was at ' . $lastsmoke;
         $this->write_channel($response);
     }

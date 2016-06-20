@@ -33,8 +33,12 @@ class irc
             return false;
         }
         $this->Log->log("Connecting to $svr @ $port", 1);
-        $this->socket = fsockopen($svr, $port, $errno, $errmsg);
-        $this->Log->log('Socket connection: '.$errmsg, 3);
+        try {
+            $this->socket = fsockopen($svr, $port, $errno, $errmsg);
+            $this->Log->log('Socket connection: '.$errmsg, 3);
+        } catch (Exception $e) {
+            $this->Log->log("Connection error: " . $e->getMessage(), 2);
+        }
         if (!$this->socket) {
             $this->destroy_socket();
             sleep(60);
@@ -44,7 +48,9 @@ class irc
 
     private function destroy_socket()
     {
-        fclose($this->socket);
+        if ($this->socket) {
+            fclose($this->socket);
+        }
         $this->socket = false;
         $this->first_connect = true;
         $this->connect_complete = false;

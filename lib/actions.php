@@ -924,7 +924,7 @@ class actions
 
     public function checkvoter()
     {
-        if ($this->check_citizenship() == false) {
+        if (!$this->check_citizenship()) {
             return false;
         }
 
@@ -1388,8 +1388,8 @@ class actions
 
     public function cal()
     {
-        $output = explode("\n", shell_exec('/usr/bin/calendar'));
-        $this->write_channel($output[array_rand($output)]);
+        // $output = explode("\n", shell_exec('/usr/bin/calendar'));
+        // $this->write_channel($output[array_rand($output)]);
     }
     public function _get_git_revision()
     {
@@ -1398,6 +1398,7 @@ class actions
 
     public function sup()
     {
+        /*
         $res = shell_exec('cd /home/ircd/services/conf && /usr/bin/git pull');
         $lines = explode("\n", $res);
         foreach ($lines as $line) {
@@ -1405,6 +1406,7 @@ class actions
                 $this->write_channel($line);
             };
         }
+        */
     }
 
     public function hup()
@@ -1427,8 +1429,8 @@ class actions
     public function version()
     {
         $version = trim($this->version);
-        // $branch = trim(@shell_exec('/usr/bin/git rev-parse --abbrev-ref HEAD'));
-        $branch = 'no git right nao';
+        $branch = trim(@shell_exec('/usr/bin/git rev-parse --abbrev-ref HEAD'));
+        // $branch = 'no git right nao';
         $version_string = "pybot (" . $branch . ") version " . $version . " - 'Old Found Glory'";
         $this->write_channel($version_string);
 
@@ -1437,6 +1439,7 @@ class actions
     # HOLY FUCK THIS WAS INSECURE
     private function _git($args)
     {
+        return;
         $command = trim(@$args['uargs'][0]);
         $origin = trim(@$args['uargs'][1]);
         $branch = trim(@$args['uargs'][2]);
@@ -1470,10 +1473,10 @@ class actions
 
     private function _htmldoit($input)
     {
-        $tmp = html_entity_decode(strip_tags($input));
-        $re = preg_replace_callback('/(&#[0-9]+;)/', function ($m) { return mb_convert_encoding($m[1], 'UTF-8', 'HTML-ENTITIES'); }, $tmp);
+            $tmp = html_entity_decode(strip_tags($input));
+            $re = preg_replace_callback('/(&#[0-9]+;)/', function ($m) { return mb_convert_encoding($m[1], 'UTF-8', 'HTML-ENTITIES'); }, $tmp);
 
-        return str_replace('3text', '', $re);
+            return str_replace('3text', '', $re);
     }
 
     public function define($args)
@@ -1664,7 +1667,6 @@ class actions
         return true;
     }
 
-/*
     public function linkhistory($args) {
         // $output .= "$data->username : $data->title - $data->url - $data->created\n";
         try {
@@ -1683,7 +1685,7 @@ class actions
         }
         return true;
     }
-
+/*
     public function tstat() {
         return;
         $trans = new TransmissionRPC();
@@ -1796,7 +1798,6 @@ class actions
         $this->write_channel("Speed : {$speed}B/s");
     }
 
-*/
     private function _parse_nzb($title)
     {
         return;
@@ -1808,6 +1809,7 @@ class actions
         return implode(' ', $p);
     }
 
+*/
     public function e164($args)
     {
         $arg = implode('.', array_reverse(str_split(preg_replace('/[^0-9]/', '', $args['arg1'])))).'.in-addr.arpa';
@@ -1866,7 +1868,7 @@ class actions
     {
         $this->write_channel('nupogodi is a fucking cuntbag');
     }
-
+/*
     public function rfr()
     {
         $track = file_get_contents('https://riboflav.in/rfr/api/ices_current');
@@ -1880,7 +1882,7 @@ class actions
         $track = file_get_contents('https://riboflav.in/rfr/api/ices_current');
         $this->write_channel("Skipped, now playing : $track");
     }
-
+*/
     public function configure()
     {
         $base = 'checking for ';
@@ -1910,7 +1912,7 @@ class actions
         $anotherword = $this->linguo->get_word('hole');
         $this->write_channel("ERROR: '/tmp/{$word['word']}/{$anotherword['word']}.c' failed on line $rand near '/* {$otherword['word']}' */");
     }
-
+/*
     public function godmode($args)
     {
         $user = trim(@$args['uargs'][0]);
@@ -2002,7 +2004,7 @@ class actions
             $this->write_channel("$user achieved God Mode!");
         }
     }
-
+*/
     /* Checks all words for valid url, retreives title ad shortens link */
     public function check_url($words, $channel)
     {
@@ -2057,7 +2059,11 @@ class actions
     private function _shorten($url)
     {
         $encoded = urlencode($url);
-        $result = file_get_contents("http://is.gd/create.php?format=simple&url=$encoded");
+        try {
+            $result = file_get_contents("http://is.gd/create.php?format=simple&url=$encoded");
+        } catch (Exception $e) {
+            $result = '';
+        }
 
         return $result;
     }
@@ -2198,7 +2204,7 @@ class actions
 
         return $str;
     }
-
+/*
     public function clrsite()
     {
         $path = '/var/www/p.5kb.us/public/index.html';
@@ -2232,8 +2238,8 @@ class actions
         $url = "http://p.5kb.us/$user.html";
         $this->write_channel($url);
     }
-
-    public function generateName($args = null)
+*/
+    private function generateName($args = null)
     {
         $race = $args['arg1'];
         $races = array('asian', 'black', 'brit', 'indian', 'irish');
@@ -2695,6 +2701,7 @@ class actions
         $this->write_channel($this->_nicetime(date('Y-m-d H:i', $time)));
     }
 
+    /*
     public function w()
     {
         $data = shell_exec('/usr/bin/w');
@@ -2702,12 +2709,13 @@ class actions
             $this->write_channel($line);
         }
     }
+
     public function fortune()
     {
         $out = implode(' ', explode("\n", shell_exec('/usr/games/fortune')));
         $this->write_channel($out);
     }
-
+    */
     public function beer()
     {
         $hour = date('H');
@@ -2820,15 +2828,16 @@ class actions
 
     public function then($args)
     {
-        $text = gmdate("Y-m-d\TH:i:s\Z", $args['arg1']);
-        $this->write_channel($text);
+        if (is_long($args['arg1'])) {
+            $text = gmdate("Y-m-d\TH:i:s\Z", $args['arg1']);
+            $this->write_channel($text);
+        }
     }
 
     public function trebek()
     {
         $this->collection->trivia->drop();
         $data = json_decode(file_get_contents('http://jservice.io/api/random'));
-        // print_r($data);
         $question = $data[0]->question;
         $category = $data[0]->category->title;
         $answer = $data[0]->answer;
@@ -2839,6 +2848,9 @@ class actions
             'answer' => strip_tags($answer),
             'value' => $value,
         );
+        foreach($nice as $key => $item) {
+            $this->write('PRIVMSG', $this->config['admin_chan'], $key . ' => ' . $item); 
+        }
         $this->collection->trivia->insert($nice);
         $this->write_channel($question." ($category)");
     }
@@ -2856,12 +2868,15 @@ class actions
 
     public function answer($args)
     {
-        $answer = strtolower(@$args['arg1']);
+        if (!isset($args['arg1'])) return $this->write_channel('Incorrect');
+        
+        $answer = strtolower($args['arg1']);
         $data = $this->collection->trivia->findOne();
         $question = $data['question'];
         $value = $data['value'];
         $canswer = strtolower($data['answer']);
         $who = $this->get_current_user();
+        
         if ($answer == $canswer) {
             $this->write_channel("Correct $who, $value points");
             $this->write_channel('Next question :');
@@ -2908,6 +2923,7 @@ class actions
     {
         $this->write_channel('What the fuck did you just fucking say about me, you little bitch? I’ll have you know I graduated top of my class in the Navy Seals, and I’ve been involved in numerous secret raids on Al-Quaeda, and I have over 300 confirmed kills. I am trained in gorilla warfare and I’m the top sniper in the entire US armed forces. You are nothing to me but just another target. I will wipe you the fuck out with precision the likes of which has never been seen before on this Earth, mark my fucking words. You think you can get away with saying that shit to me over the Internet? Think again, fucker. As we speak I am contacting my secret network of spies across the USA and your IP is being traced right now so you better prepare for the storm, maggot. The storm that wipes out the pathetic little thing you call your life. You’re fucking dead, kid. I can be anywhere, anytime, and I can kill you in over seven hundred ways, and that’s just with my bare hands. Not only am I extensively trained in unarmed combat, but I have access to the entire arsenal of the United States Marine Corps and I will use it to its full extent to wipe your miserable ass off the face of the continent, you little shit. If only you could have known what unholy retribution your little “clever” comment was about to bring down upon you, maybe you would have held your fucking tongue. But you couldn’t, you didn’t, and now you’re paying the price, you goddamn idiot. I will shit fury all over you and you will drown in it. You’re fucking dead, kiddo.');
     }
+    /*
     public function lightson($args)
     {
         $this->write_channel(shell_exec('/usr/local/bin/lightson'));
@@ -2916,7 +2932,7 @@ class actions
     {
         $this->write_channel(shell_exec('/usr/local/bin/lightsoff'));
     }
-
+    */
     public function said($args)
     {
         $criteria = array();
@@ -2967,19 +2983,27 @@ class actions
         );
         $c->update($criteria, $data, array('upsert' => true));
         $d = $c->findOne($criteria);
-        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... This brings you to a grand total of " . $lastsmoke['totalsmokes'] . " smokes. Keep up killing yourself with cancer!";
+        $firstsmoke = '';
+        if ($lastsmoke && isset($lastsmoke['firstsmoke'])) {
+            $firstsmoke = ' since ' . date('d-m-Y H:i', $lastsmoke['firstsmoke']); 
+        }
+        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... This brings you to a grand total of " . $lastsmoke['totalsmokes'] . " smokes" . $firstsmoke . ". Keep up killing yourself with cancer!";
         if ($lastsmoke) $response .= ' Your last smoke was at ' . $lastsmoke['time'];
         
         $this->write_channel($response);
     }
 
-    function _getLastSmoke() {
+    private function _getLastSmoke() {
         $allrecords = $this->collection->irc->smokecount->find(array('user' => $this->get_current_user()));
         // 1 because this value is used in the smoke() function, so this 
         // accounts for that current smoke
         $totalsmokes = 1;
+        $firstsmoke = false;
         foreach($allrecords as $record) {
             if(isset($record['time'])) {
+                $smoketime = (int)$record['time'];
+                if (!$firstsmoke) $firstsmoke = $smoketime;
+                if ($firstsmoke > $smoketime) $firstsmoke = $smoketime;
                 $totalsmokes = $totalsmokes + (int)$record['smokes'];
             }
         }
@@ -2995,10 +3019,11 @@ class actions
 
             }
         }
+        $lastsmoke['firstsmoke'] = $firstsmoke;
         return $lastsmoke;
     }
 
-    function lastsmoke($args)
+    public function lastsmoke($args)
     {
         $lastsmoke = false;
         // $criteria = array('user' => $this->get_current_user(), 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
@@ -3008,9 +3033,9 @@ class actions
 
     }
 
-    function lenny($args)
+    public function lenny($args)
     {
-        $this->write_channel("(  ͡°   ͜ʖ  ͡° )");
+        $this->write_channel("( ͡° ͜ʖ ͡°)");
     }
 }
 

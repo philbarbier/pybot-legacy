@@ -3037,6 +3037,13 @@ class actions
     {
         $this->write_channel("( ͡° ͜ʖ ͡°)");
     }
+
+    public function bart($args)
+    {
+        $things = array('Go to hell!', 'Kiss my butt!', 'Shut up!');
+        $thing = rand(0,count($things)-1);
+        $this->write_channel($things[$thing]);
+    }
 }
 
 

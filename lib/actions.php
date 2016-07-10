@@ -1473,10 +1473,12 @@ class actions
 
     private function _htmldoit($input)
     {
-            $tmp = html_entity_decode(strip_tags($input));
-            $re = preg_replace_callback('/(&#[0-9]+;)/', function ($m) { return mb_convert_encoding($m[1], 'UTF-8', 'HTML-ENTITIES'); }, $tmp);
+            if (is_string($input)) {
+                $tmp = html_entity_decode(strip_tags($input));
+                $re = preg_replace_callback('/(&#[0-9]+;)/', function ($m) { return mb_convert_encoding($m[1], 'UTF-8', 'HTML-ENTITIES'); }, $tmp);
 
-            return str_replace('3text', '', $re);
+                return str_replace('3text', '', $re);
+            }
     }
 
     public function define($args)
@@ -1499,7 +1501,9 @@ class actions
                 $this->write_channel('Definition: '.$definition);
             }
             $exresult = $html->find('div[class=example]');
-            #$ex = $exresult[0]->nodes[0]->_;
+            if (!isset($exresult[0]) && !isset($exresult[0]->nodes[0])) {
+                return;
+            }
             $ex = $exresult[0]->nodes[0];
             if (!empty($ex)) {
                 foreach ($ex as $key => $val) {
@@ -2848,6 +2852,9 @@ class actions
             'answer' => strip_tags($answer),
             'value' => $value,
         );
+        if (!$nice['question'] || empty($nice['question'])) {
+            return $this->trebek();
+        }
         foreach($nice as $key => $item) {
             $this->write('PRIVMSG', $this->config['admin_chan'], $key . ' => ' . $item); 
         }
@@ -2861,7 +2868,7 @@ class actions
         $question = $data['question'];
         $answer = strtolower($data['answer']);
         $this->write_channel($question);
-        $this->write_channel('Answer : '.$answer);
+        $this->write_channel('Answer : '.stripslashes($answer));
         $this->write_channel('Next question :');
         $this->trebek();
     }
@@ -2871,13 +2878,17 @@ class actions
         if (!isset($args['arg1'])) return $this->write_channel('Incorrect');
         
         $answer = strtolower($args['arg1']);
+        // $this->write_channel($answer);
         $data = $this->collection->trivia->findOne();
         $question = $data['question'];
         $value = $data['value'];
-        $canswer = strtolower($data['answer']);
+        $canswer = strtolower(stripslashes($data['answer']));
+        $pattern = '/[^a-z][^A-Z][^0-9]/';
+        preg_replace($pattern, '', $canswer);
+        // $this->write_channel('ANS: ' . $canswer);
         $who = $this->get_current_user();
         
-        if ($answer == $canswer) {
+        if (stristr($canswer,$answer)) {
             $this->write_channel("Correct $who, $value points");
             $this->write_channel('Next question :');
 

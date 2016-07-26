@@ -2856,7 +2856,7 @@ class actions
             return $this->trebek();
         }
         foreach($nice as $key => $item) {
-            $this->write('PRIVMSG', $this->config['admin_chan'], $key . ' => ' . $item); 
+            //$this->write('PRIVMSG', $this->config['admin_chan'], $key . ' => ' . $item); 
         }
         $this->collection->trivia->insert($nice);
         $this->write_channel($question." ($category)");

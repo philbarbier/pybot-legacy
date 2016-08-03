@@ -417,17 +417,15 @@ class irc
 
             return false;
         }
-        $res = fwrite($this->socket, $message."\r\n\r\n", strlen($message."\r\n\r\n"));
-        if (!$res) {
+        
+        try {
+            $res = fwrite($this->socket, $message."\r\n\r\n", strlen($message."\r\n\r\n"));
+        } catch (Exception $e) {
+            $res = false;
             $this->Log->log("Couldn't write to the socket", 3);
+            $this->Log->log($e->getMessage());
         }
-        /* not sure if I want this if -> recursion here
-        if (!$res) {
-            $this->destroy_socket();
-            $this->set_socket($this->server, $this->port);
-            $this->main();
-        }
-        */
+
         return $res;
     }
 

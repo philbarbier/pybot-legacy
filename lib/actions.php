@@ -524,7 +524,8 @@ class actions
     public function get_site_title($url)
     {
         try {
-            $urlContents = file_get_contents($url);
+            //$urlContents = file_get_contents($url);
+            $urlContents = $this->curl->simple_get($url);
         } catch (Exception $e) {
             return "Couldn't find the title";
         }
@@ -2068,7 +2069,8 @@ class actions
     {
         $encoded = urlencode($url);
         try {
-            $result = file_get_contents("http://is.gd/create.php?format=simple&url=$encoded");
+            // $result = file_get_contents(;
+            $result = $this->curl->simple_get("http://is.gd/create.php?format=simple&url=$encoded");
         } catch (Exception $e) {
             $result = '';
         }

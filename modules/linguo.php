@@ -48,6 +48,7 @@ class linguo
     public function get_rant($params = array())
     {
         $in_tpl = (isset($params['tpl'])) ? $params['tpl'] : false;
+        $in_who = (isset($params['arg1'])) ? $params['arg1'] : false;
         $template = $this->_get_template($in_tpl);
         if ($in_tpl === false) {
             while (strpos($template, '$who') !== false) { // dont use a tpl with who, unless we specified it

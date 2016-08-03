@@ -523,7 +523,11 @@ class actions
     /* Returns <title> of webpage. */
     public function get_site_title($url)
     {
-        $urlContents = file_get_contents($url);
+        try {
+            $urlContents = file_get_contents($url);
+        } catch (Exception $e) {
+            return "Couldn't find the title";
+        }
         $dom = new DOMDocument();
         @$dom->loadHTML($urlContents);
         $title = $dom->getElementsByTagName('title');

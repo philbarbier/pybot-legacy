@@ -1495,8 +1495,8 @@ class actions
             $output = '';
             $html = file_get_html('http://www.urbandictionary.com/define.php?term='.$q);
             $result = $html->find('div[class=meaning]');
-            #$def = $result[0]->nodes[0]->_;
-            $def = $result[0]->nodes[0];
+            $def = $result[0]->nodes[0]->_;
+            // $def = $result[0]->nodes[0];
             $definition = '';
             $example = '';
             if (!empty($def)) {

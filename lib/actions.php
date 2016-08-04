@@ -228,7 +228,7 @@ class actions
             $abuse_tpls = array(
                                 840, // Oh great that guy is back or whatever
                                 1068, // Why do you even bother, guy?
-                                1081, // Fabulous, guy is here
+                                // 1081, // Fabulous, guy is here
                             );
 
             $this->abuse(array('arg1' => $data['user'], 'tpl' => $abuse_tpls[rand(0, count($abuse_tpls) - 1)]));

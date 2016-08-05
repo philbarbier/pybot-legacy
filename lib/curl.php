@@ -219,7 +219,7 @@ class curl
 
         // If no a protocol in URL, assume its a CI link
         if (!preg_match('!^\w+://! i', $url)) {
-            $url = site_url($url);
+            // $url = site_url($url);
         }
 
         $this->url = $url;

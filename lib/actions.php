@@ -2099,7 +2099,12 @@ class actions
 
     private function top_rss($url, $count)
     {
-        $data = json_decode(json_encode(simplexml_load_string(file_get_contents($url))), true);
+        try {
+            $data = json_decode(json_encode(simplexml_load_string(file_get_contents($url))), true);
+        } catch (Exception $e) {
+            $data = array();
+            $data['entry'] = array();
+        }
         $i = 0;
         foreach ($data['entry'] as $item) {
             if ($i <= $count - 1) {

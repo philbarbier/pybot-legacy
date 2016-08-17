@@ -2900,7 +2900,7 @@ class actions
         $who = $this->get_current_user();
         
         if (stristr($canswer,$answer)) {
-            $this->write_channel("Correct $who, $value points");
+            $this->write_channel("Correct $who, $value points (" . $canswer . ")");
             $this->write_channel('Next question :');
 
             return $this->trebek();

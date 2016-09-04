@@ -2909,6 +2909,16 @@ class actions
         return $this->write_channel('Incorrect');
     }
 
+    public function remind($args)
+    {
+        $data = $this->collection->trivia->findOne();
+        if (!isset($data) || !isset($data['question'])) {
+            return $this->trebek();
+        }
+        $this->write_channel('Last question was:');
+        $this->write_channel($data['question'] . ' (' . $data['category'] . ')');
+
+    }
     public function yt($args)
     {
         $criteria = array(
@@ -3006,11 +3016,12 @@ class actions
         $c->update($criteria, $data, array('upsert' => true));
         $d = $c->findOne($criteria);
         $firstsmoke = '';
+        $totalsmokes = isset($lastsmoke['totalsmokes']) ? $lastsmoke['totalsmokes'] : '0'; 
         if ($lastsmoke && isset($lastsmoke['firstsmoke'])) {
             $firstsmoke = ' since ' . date('d-m-Y H:i', $lastsmoke['firstsmoke']); 
         }
-        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... This brings you to a grand total of " . $lastsmoke['totalsmokes'] . " smokes" . $firstsmoke . ". Keep up killing yourself with cancer!";
-        if ($lastsmoke) $response .= ' Your last smoke was at ' . $lastsmoke['time'];
+        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... This brings you to a grand total of " . $totalsmokes . " smokes" . $firstsmoke . ". Keep up killing yourself with cancer!";
+        if ($lastsmoke && isset($lastsmoke['time'])) $response .= ' Your last smoke was at ' . $lastsmoke['time'];
         
         $this->write_channel($response);
     }

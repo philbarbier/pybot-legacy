@@ -1493,7 +1493,10 @@ class actions
             $q = rawurlencode($word);
             $this->write_channel("Looking up definition for $word ...\n");
             $output = '';
-            $html = file_get_html('http://www.urbandictionary.com/define.php?term='.$q);
+            $url = 'http://www.urbandictionary.com/define.php?term='.$q;
+            // $html = file_get_html($url);
+            $html = $this->curl->simple_get($url);
+
             $result = $html->find('div[class=meaning]');
             $def = $result[0]->nodes[0]->_;
             // $def = $result[0]->nodes[0];

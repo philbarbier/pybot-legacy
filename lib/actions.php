@@ -236,6 +236,11 @@ class actions
             $this->abuse(array('arg1' => $data['user'], 'tpl' => $abuse_tpls[rand(0, count($abuse_tpls) - 1)]));
         }
 
+        // check for a $word in the text
+        if ($data['command'] == 'PRIVMSG') {
+            $this->_checkForWord($data);
+        }
+
         // only run check_url if we actually see a URL
         // *** can be expanded to look for 'www.' as well
         if (preg_match('/http[s]?:\/\//', $data['message']) > 0) {
@@ -245,6 +250,17 @@ class actions
             }
             $url = $this->check_url(explode(' ', $data['message']), $this->get_current_channel());
         }
+    }
+
+    private function _checkForWord($data = false)
+    {
+        if (!$data) return;
+        
+        $pr = preg_match('/\$[a-zA-Z]/', $data['message']);
+        if ($pr == 0) return;
+
+        $this->write_channel($this->linguo->testtpl(array('arg1' => $data['message'])));
+
     }
 
     public function set_arraykey($parts = array())

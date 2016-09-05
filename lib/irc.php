@@ -69,6 +69,7 @@ class irc
         }
         $this->Log->log("Setting nick to '$nick'", 3);
         $this->write("NICK $nick");
+        $this->actions->bothandle = $nick;
     }
 
     private function get_newnick()
@@ -102,17 +103,23 @@ class irc
 
                 // Print message debug to stdout
                 if ($this->config['debug']) {
-                    if (@$msg['message']) {
-                        $this->Log->log(@$msg['user'].'@'.str_replace('#', '', @$msg['channel']).' : '.@$msg['message']);
+                    if (isset($msg['message']) && isset($msg['channel']) && isset($msg['user'])) {
+                        $this->Log->log($msg['user'].'@'.str_replace('#', '', $msg['channel']).' : '.$msg['message']);
                     }
                 }
 
                 $this->actions->catchall($msg);
-                $params = @$this->parse_command($msg['message']);
+                $params = false;
+                if (isset($msg['message'])) {
+                    $params = @$this->parse_command($msg['message']);
+                }
                 if (!$params) {
                     continue;
                 }
-                $a = @$params['command'];
+                $a = false;
+                if (isset($params['command'])) {
+                    $a = $params['command'];
+                }
                 if (!$a) {
                     continue;
                 }

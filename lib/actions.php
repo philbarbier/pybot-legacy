@@ -21,6 +21,7 @@ class actions
         $this->txlimit = 256; // transmission length limit in bytes (chars)
         $this->userCache = array();
         $this->array_key = '';
+        $this->bothandle = false;
         $this->myparts = array();
         $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'you', 'me', 'uptime');
 
@@ -210,7 +211,7 @@ class actions
 
         // make sure we have text content, that it's a message of some sort and make sure we're not logging ourself
         if (!empty($data['message']) && ($data['command'] == 'PRIVMSG') && ($data['user'] != $this->config['irc_handle'])) {
-            if (@$this->config['log_history']) {
+            if (isset($this->config['log_history']) && $this->config['log_history']) {
                 try {
                     $this->collection->log->insert($data);
                 } catch (Exception $e) {
@@ -221,8 +222,9 @@ class actions
         if ($this->config['log_stats']) {
             $this->stats($data);
         }
-        if (@$data['command'] == 'JOIN' && $data['user'] != $this->config['irc_handle']) {
+        if (isset($data['command']) && $data['command'] == 'JOIN' && $data['user'] != $this->bothandle) {
             // abuse new user
+
             sleep(2);
 
             $abuse_tpls = array(

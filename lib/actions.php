@@ -1493,32 +1493,55 @@ class actions
             $q = rawurlencode($word);
             $this->write_channel("Looking up definition for $word ...\n");
             $output = '';
-            $html = file_get_html('http://www.urbandictionary.com/define.php?term='.$q);
+            $url = 'http://www.urbandictionary.com/define.php?term='.$q;
+            $html = file_get_html($url);
+            //$html = $this->curl->simple_get($url);
             $result = $html->find('div[class=meaning]');
+            // print_r($result[0]->nodes[0]->_);
             $def = $result[0]->nodes[0]->_;
             // $def = $result[0]->nodes[0];
             $definition = '';
             $example = '';
             if (!empty($def)) {
-                foreach ($def as $key => $val) {
-                    $definition .= $this->_htmldoit($val);
-                }
+                $definition = $this->_getHtmlText($result[0]->nodes);
                 $this->write_channel('Definition: '.$definition);
             }
             $exresult = $html->find('div[class=example]');
             if (!isset($exresult[0]) && !isset($exresult[0]->nodes[0])) {
                 return;
             }
-            $ex = $exresult[0]->nodes[0];
+            $ex = $exresult[0]->nodes[0]->_;
             if (!empty($ex)) {
-                foreach ($ex as $key => $val) {
-                    $example .= $this->_htmldoit($val);
-                }
+                $example = $this->_getHtmlText($exresult[0]->nodes);
                 $this->write_channel('Example: '.$example);
             }
         } else {
             $this->write_channel('Please specify a search query.');
         }
+    }
+
+    private function _getHtmlText($nodes) {
+        $definition = '';
+        foreach ($nodes as $idx => $node) {
+            foreach ($node->_ as $key => $val) {
+                if (!is_numeric($val)) {
+                    if (is_string($val)) {
+                        $definition .= $this->_htmldoit($val);
+                    }
+                }
+            }
+
+            if (is_array($node->find('text'))) {
+                foreach($node->find('text') as $num => $textnode) {
+                    foreach($textnode->_ as $key => $val) {
+                        $definition .= $this->_htmldoit($val);
+                    }
+                }
+            }
+        }
+
+        return $definition;
+
     }
 
     public function reverse($args)

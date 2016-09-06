@@ -1366,7 +1366,7 @@ class actions
     public function types($args)
     {
         try {
-            $this->write_channel($this->linguo->get_word_types());
+            $this->write_user($this->linguo->get_word_types());
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
         }

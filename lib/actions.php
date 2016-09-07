@@ -2833,7 +2833,7 @@ class actions
     {
         $uargs = $args['uargs'];
         $who = trim(array_pop($uargs));
-        $word = trim(implode(' ', $uargs));
+        $word = (implode(' ', $uargs));
         $get_insult = $this->linguo->get_word('insult');
         $insult = $get_insult['word'];
         if (!$word && !$who) {
@@ -2870,9 +2870,9 @@ class actions
 
                 return;
             }
-            $this->write_channel("Could not find '$word'.");
+            $this->write_channel("Could not find word."); 
         } catch (Exception $e) {
-            $this->write_channel("Could not find '$word'.");
+            $this->write_channel("Could not find word");
             $this->Log->log('DB Error', 2);
         }
     }

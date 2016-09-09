@@ -16,6 +16,7 @@ class linguo
     {
         // do some stuff
         $this->config = $options;
+        $this->abuse_requester = false;
         try {
             error_log('attempting connection');
             $this->connection = new Mongo($this->config['mongodb']);
@@ -67,6 +68,7 @@ class linguo
     private function _get_template($id = 0)
     {
         $template_string = '';
+        $tpl_id = $id;
         if ($id > 0) {
             $criteria = array('id' => (int) $id);
             $template = $this->collection->templates->findOne($criteria);
@@ -81,8 +83,11 @@ class linguo
             $result = $this->collection->templates->find()->skip($rand)->limit(1);
             foreach ($result as $data) {
                 $template_string = $data['template'];
+                $tpl_id = $data['id'];
             }
         }
+        
+        $this->setLastTpl($tpl_id);
 
         return $template_string;
     }
@@ -143,7 +148,7 @@ class linguo
         return $types;
     }
 
-    public function _generate_phrase($template_string, $who, $letter = null)
+    private function _generate_phrase($template_string, $who, $letter = null)
     {
         $words = explode(' ', $template_string);
         $phrase = '';
@@ -275,5 +280,60 @@ class linguo
         $types = $this->_get_word_types();
 
         return $types[rand(0, count($types))];
+    }
+
+    private function setLastTpl($data = false)
+    {
+        if (!$data || !is_numeric($data)) return;
+
+        $requester = $this->abuse_requester;
+
+        $c = $this->collection->abuse->lasttpl;
+        $criteria = array('user' => $requester);
+        $data = array(
+            'user' => $requester,
+            'tpl_id' => $data,
+            'timestamp' => date('U')
+        );
+
+        $c->update($criteria, $data, array('upsert' => true));
+    }
+
+    public function getLastTpl($args = false) 
+    {
+        $user = !$args ? false : $args['arg1'];
+        $c = $this->collection->abuse->lasttpl;
+        $criteria = false; 
+        if ($user) {
+            $criteria = array('user' => $user);
+        }
+        
+
+        if ($criteria) {
+            $data = $c->findOne($criteria);
+        } else {
+            $result = $c->find()->sort(array('timestamp' => -1))->limit(1);
+            foreach($result as $row) {
+                $data = $row;
+            }
+        }
+
+        if (isset($data['tpl_id'])) {
+            if (!$user) {
+                return 'Last template used was ID ' . $data['tpl_id'] . ' used by ' . $data['user'] . ' on ' . date('d-m-Y H:i', ($data['timestamp']));
+            } else {
+                return 'The last template ' . $user . ' used was ID ' . $data['tpl_id'] . ' on ' . date('d-m-Y H:i', ($data['timestamp']));
+            }
+        }
+    }
+
+    /*
+        sets the last user who requested an abuse
+        so we can log this isht
+    */
+    public function setLastRequester($handle = false)
+    {
+        if (!$handle) return false;
+        $this->abuse_requester = $handle;
     }
 }

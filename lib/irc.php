@@ -24,6 +24,7 @@ class irc
         $this->in_whois = false;
         $this->is_oper = false;
         $this->is_connected = false;
+        $this->nick_change = null;
         $this->main();
     }
 
@@ -69,7 +70,7 @@ class irc
         }
         $this->Log->log("Setting nick to '$nick'", 3);
         $this->write("NICK $nick");
-        $this->actions->bothandle = $nick;
+        $this->actions->setBotHandle($nick);
     }
 
     private function get_newnick()
@@ -216,6 +217,7 @@ class irc
             $this->actions->set_current_channel(trim(@$matches[4]));
             $this->actions->set_message_data(trim(@$matches[5]));
         }
+        
         if (isset($parts[1]) && !empty($parts[1]) && (is_numeric($parts[1]) || $parts[1] == 'JOIN' || $parts[1] == 'PART' || $parts[1] == 'INVITE' || $parts[1] == 'KILL')) {
             // we should maybe parse for every code here, that way
             // we're able to tell the IRC state better
@@ -257,8 +259,11 @@ class irc
                 case 433:
                     $this->retrieve_nick = true;
                     if ($this->first_connect) {
-                        $this->set_nickname($this->get_newnick());
+                        $newnick = $this->get_newnick();
+                        $this->set_nickname($newnick);
                     }
+                    $this->actions->setBotHandle($parts[2]);
+                    $this->nick_change = false;
                 break;
 
                 // we check here for MOTD/end of MOTD on join
@@ -327,6 +332,7 @@ class irc
             $this->retrieve_nick = false;
         }
 
+        
         ++$this->arb_counter;
 
         // arbitrary counter used to do above modulus, resets to ensure bot longevity (<3 pybot)

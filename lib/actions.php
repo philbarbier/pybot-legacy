@@ -233,7 +233,7 @@ class actions
                                 // 1081, // Fabulous, guy is here
                             );
 
-            $this->abuse(array('arg1' => $data['user'], 'tpl' => $abuse_tpls[rand(0, count($abuse_tpls) - 1)]));
+            $this->abuse(array('arg1' => $data['user'], 'tpl' => $abuse_tpls[rand(0, count($abuse_tpls) - 1)], 'joinabuse' => true));
         }
 
         // check for a $word in the text
@@ -261,6 +261,12 @@ class actions
 
         $this->write_channel($this->linguo->testtpl(array('arg1' => $data['message'])));
 
+    }
+
+    public function setBotHandle($nick = false)
+    {
+        if (!$nick) return;
+        $this->bothandle = $nick;
     }
 
     public function set_arraykey($parts = array())
@@ -1335,6 +1341,11 @@ class actions
 
                 return;
             }
+            $requester = $this->get_current_user();
+            if (isset($args['joinabuse'])) {
+                $requester = $this->bothandle;
+            }
+            $this->linguo->setLastRequester($requester);
             $abuse = $this->linguo->get_abuse($args);
             $this->write_channel($abuse);
         } catch (Exception $e) {
@@ -3117,6 +3128,11 @@ class actions
         $things = array('Go to hell!', 'Kiss my butt!', 'Shut up!');
         $thing = rand(0,count($things)-1);
         $this->write_channel($things[$thing]);
+    }
+
+    public function lasttpl($args)
+    {
+        $this->write_channel($this->linguo->getLastTpl($args));
     }
 }
 

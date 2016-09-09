@@ -69,11 +69,13 @@ class linguo
     {
         $template_string = '';
         $tpl_id = $id;
+        $tpl_user = false;
         if ($id > 0) {
             $criteria = array('id' => (int) $id);
             $template = $this->collection->templates->findOne($criteria);
             if ($template) {
                 $template_string = $template['template'];
+                $tpl_user = $template['user'];
             }
         }
         // we do this here in case the ID supplied doesn't yield a result
@@ -84,10 +86,11 @@ class linguo
             foreach ($result as $data) {
                 $template_string = $data['template'];
                 $tpl_id = $data['id'];
+                $tpl_user = $data['user'];
             }
         }
         
-        $this->setLastTpl($tpl_id);
+        $this->setLastTpl($tpl_id, $tpl_user);
 
         return $template_string;
     }
@@ -282,9 +285,9 @@ class linguo
         return $types[rand(0, count($types))];
     }
 
-    private function setLastTpl($data = false)
+    private function setLastTpl($tpl_id = false, $tpl_user = false)
     {
-        if (!$data || !is_numeric($data)) return;
+        if (!$tpl_id || !$tpl_user || !is_numeric($tpl_id)) return;
 
         $requester = $this->abuse_requester;
 
@@ -292,7 +295,8 @@ class linguo
         $criteria = array('user' => $requester);
         $data = array(
             'user' => $requester,
-            'tpl_id' => $data,
+            'tpl_id' => $tpl_id,
+            'tpl_user' => $tpl_user,
             'timestamp' => date('U')
         );
 
@@ -320,9 +324,9 @@ class linguo
 
         if (isset($data['tpl_id'])) {
             if (!$user) {
-                return 'Last template used was ID ' . $data['tpl_id'] . ' used by ' . $data['user'] . ' on ' . date('d-m-Y H:i', ($data['timestamp']));
+                return 'Last template used was ID ' . $data['tpl_id'] . '(Created by ' . $data['tpl_user'] . ') used by ' . $data['user'] . ' on ' . date('d-m-Y H:i', ($data['timestamp']));
             } else {
-                return 'The last template ' . $user . ' used was ID ' . $data['tpl_id'] . ' on ' . date('d-m-Y H:i', ($data['timestamp']));
+                return 'The last template ' . $user . ' used was ID ' . $data['tpl_id'] . '(Created by ' . $data['tpl_user'] . ') on ' . date('d-m-Y H:i', ($data['timestamp']));
             }
         }
     }

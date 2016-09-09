@@ -321,14 +321,18 @@ class linguo
                 $data = $row;
             }
         }
+        
+        $return = array();
 
         if (isset($data['tpl_id'])) {
+            $return = $data;
             if (!$user) {
-                return 'Last template used was ID ' . $data['tpl_id'] . '(Created by ' . $data['tpl_user'] . ') used by ' . $data['user'] . ' on ' . date('d-m-Y H:i', ($data['timestamp']));
+                $return['no_user'] = true;
             } else {
-                return 'The last template ' . $user . ' used was ID ' . $data['tpl_id'] . '(Created by ' . $data['tpl_user'] . ') on ' . date('d-m-Y H:i', ($data['timestamp']));
+                $return['user'] = $user;
             }
         }
+        return $return;
     }
 
     /*

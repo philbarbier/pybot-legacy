@@ -3132,7 +3132,14 @@ class actions
 
     public function lasttpl($args)
     {
-        $this->write_channel($this->linguo->getLastTpl($args));
+        $data = $this->linguo->getLastTpl($args);
+
+        if (isset($data['no_user'])) {
+                $this->write_channel('Last template used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ') used by ' . $data['user'] . ' on ' . date('d-m-Y H:i', ($data['timestamp'])));
+                return;
+        }
+        
+        $this->write_channel('The last template ' . $data['user'] . ' used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ') on ' . date('d-m-Y H:i', ($data['timestamp'])));
     }
 }
 

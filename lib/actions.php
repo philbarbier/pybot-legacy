@@ -3141,6 +3141,14 @@ class actions
         
         $this->write_channel('The last template ' . $data['user'] . ' used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ') on ' . date('d-m-Y H:i', ($data['timestamp'])));
     }
+
+    public function babuse($args)
+    {
+        // see if there're any arguments passed, if numeric use a max of 5 last abuses 
+        // private message the IDs to the requesting user
+        // if non-numeric (an ID) is passed, try to mark that as best
+        // store tpl_id and counter
+    }
 }
 
 

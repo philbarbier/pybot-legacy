@@ -3146,7 +3146,17 @@ class actions
 
     public function mlb($args) {
         $data = json_decode(file_get_contents("http://www.sportsnet.ca/wp-content/themes/sportsnet/zones/ajax-scoreboard.php"));
-        $mlb = $data->data->mlb;
+        
+        try {
+            $mlb = $data->data->mlb;
+        } catch (Exception $e) {
+            return;
+        }
+
+        if (!isset($mlb) || !isset($mlb->{'In-Progress'})) {
+            return;
+        }
+
         foreach ($mlb->{'In-Progress'} as $game) {
             $stat = $game->period_status;
             $ht = $game->home_team_city." ".$game->home_team;

@@ -3157,13 +3157,27 @@ class actions
             return;
         }
 
+        $c = 0;
+        $inprog = array();
+
         foreach ($mlb->{'In-Progress'} as $game) {
             $stat = $game->period_status;
             $ht = $game->home_team_city." ".$game->home_team;
             $vt = $game->visiting_team_city." ".$game->visiting_team;
             $vs = $game->visiting_score;
             $hs = $game->home_score;
-            $this->write_channel("In progress : $vt @ $ht $vs-$hs, $stat");
+            $inprog[] = "In progress : $vt @ $ht $vs-$hs, $stat";
+            $c++;
+        }
+
+        if ($c > 3) {
+            foreach ($inprog as $k => $v) {
+                $this->write_user($v);
+            }
+        } else {
+            foreach ($inprog as $k => $v) {
+                $this->write_channel($v);
+            }
         }
 
         

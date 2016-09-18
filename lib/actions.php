@@ -3170,13 +3170,15 @@ class actions
             return;
         }
 
-        foreach ($mlb->{'Final'} as $game) {
-            $stat = $game->period_status;
-            $ht = $game->home_team_city." ".$game->home_team;
-            $vt = $game->visiting_team_city." ".$game->visiting_team;
-            $vs = $game->visiting_score;
-            $hs = $game->home_score;
-            $this->write_user("Final : $vt @ $ht $vs-$hs, $stat");
+        if (isset($args['arg1']) && $arg1 == 'final') {
+            foreach ($mlb->{'Final'} as $game) {
+                $stat = $game->period_status;
+                $ht = $game->home_team_city." ".$game->home_team;
+                $vt = $game->visiting_team_city." ".$game->visiting_team;
+                $vs = $game->visiting_score;
+                $hs = $game->home_score;
+                $this->write_user("Final : $vt @ $ht $vs-$hs, $stat");
+            }
         }
     }
 }

@@ -3143,6 +3143,19 @@ class actions
         
         $this->write_channel('The last template ' . $data['user'] . ' used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ') on ' . date('d-m-Y H:i', ($data['timestamp'])));
     }
+
+    public function mlb($args) {
+        $data = json_decode(file_get_contents("http://www.sportsnet.ca/wp-content/themes/sportsnet/zones/ajax-scoreboard.php"));
+        $mlb = $data->data->mlb;
+        foreach ($mlb->{'In-Progress'} as $game) {
+            $stat = $game->period_status;
+            $ht = $game->home_team_city." ".$game->home_team;
+            $vt = $game->visiting_team_city." ".$game->visiting_team;
+            $vs = $game->visiting_score;
+            $hs = $game->home_score;
+            $this->write_channel("$vt @ $ht $vs-$hs, $stat");
+        }
+    }
 }
 
 

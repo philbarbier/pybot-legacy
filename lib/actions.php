@@ -3166,11 +3166,13 @@ class actions
             $this->write_channel("In progress : $vt @ $ht $vs-$hs, $stat");
         }
 
+        
+
         if (!isset($mlb->{'Final'})) {
             return;
         }
 
-        if (isset($args['arg1']) && $arg1 == 'final') {
+        if (isset($args['arg1']) && $args['arg1'] == 'final') {
             foreach ($mlb->{'Final'} as $game) {
                 $stat = $game->period_status;
                 $ht = $game->home_team_city." ".$game->home_team;
@@ -3179,6 +3181,8 @@ class actions
                 $hs = $game->home_score;
                 $this->write_user("Final : $vt @ $ht $vs-$hs, $stat");
             }
+        } else {
+            $this->write_user("You can add 'final' to this command to get all final results");
         }
     }
 }

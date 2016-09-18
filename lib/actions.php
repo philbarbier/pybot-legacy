@@ -3176,7 +3176,7 @@ class actions
             $vt = $game->visiting_team_city." ".$game->visiting_team;
             $vs = $game->visiting_score;
             $hs = $game->home_score;
-            $this->write_channel("Final : $vt @ $ht $vs-$hs, $stat");
+            $this->write_user("Final : $vt @ $ht $vs-$hs, $stat");
         }
     }
 }

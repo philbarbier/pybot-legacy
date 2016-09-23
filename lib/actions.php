@@ -2559,7 +2559,7 @@ class actions
         $this->write_channel("          `^*&&&&&&&&&                      '          ");
     }
 
-    public function cc()
+    public function getcc()
     {
         $arr1 = array(
             'ass',
@@ -2692,7 +2692,13 @@ class actions
             'bandit',
             'gargler',
         );
-        $this->write_channel($arr1[array_rand($arr1)].' '.$arr2[array_rand($arr2)]);
+        return $arr1[array_rand($arr1)].' '.$arr2[array_rand($arr2)];
+    }
+
+    public function cc()
+    {
+        
+        $this->write_channel($this->getcc());
     }
 
     public function The_Hatta()

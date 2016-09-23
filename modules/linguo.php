@@ -193,10 +193,12 @@ class linguo
                     $command = 'who';
                 } elseif (strstr($word, '$rand')) {
                     $command = 'rand';
-                }
-                if (strstr($word, '$dice')) {
+                } elseif (strstr($word, '$dice')) {
                     $command = 'dice';
+                } elseif (strstr($word, '$cc')) {
+                    $command = 'cc';
                 }
+
                 switch ($command) {
                     case 'ip':
                         $wd = rand(1, 254).'.'.rand(1, 254).'.'.rand(1, 254).'.'.rand(1, 254);
@@ -234,7 +236,10 @@ class linguo
                         $wd = rand(10000000, 99999999);
                         $suffix = Strings::suffix('$highrand', $word);
                     break;
-
+                    case 'cc':
+                        $suffix = Strings::suffix('$highrand', $word);
+                        $wd = Actions::getcc();
+                    break;
                     default:
                         foreach ($this->_get_word_types() as $type) {
                             if (strstr($word, '$'.$type)) {

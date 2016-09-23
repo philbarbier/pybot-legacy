@@ -237,7 +237,7 @@ class linguo
                         $suffix = Strings::suffix('$highrand', $word);
                     break;
                     case 'cc':
-                        $suffix = Strings::suffix('$highrand', $word);
+                        $suffix = Strings::suffix('$cc', $word);
                         $wd = Actions::getcc();
                     break;
                     default:

@@ -23,7 +23,7 @@ class actions
         $this->array_key = '';
         $this->bothandle = false;
         $this->myparts = array();
-        $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'you', 'me', 'uptime');
+        $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'you', 'me', 'uptime', 'cc');
 
         if ($this->_check_permissions($this->get_current_user())) {
             $this->write_user('GTFO');
@@ -255,9 +255,12 @@ class actions
     private function _checkForWord($data = false)
     {
         if (!$data) return;
-        
+       
         $pr = preg_match('/\$[a-zA-Z]/', $data['message']);
         if ($pr == 0) return;
+        foreach(explode(' ', $data['message']) as $word) {
+            if (in_array($word, $this->public_commands)) return;
+        }
 
         $this->write_channel($this->linguo->testtpl(array('arg1' => $data['message'])));
 

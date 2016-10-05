@@ -23,7 +23,7 @@ class actions
         $this->array_key = '';
         $this->bothandle = false;
         $this->myparts = array();
-        $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'you', 'me', 'uptime', 'cc');
+        $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'me', 'uptime', 'cc');
 
         if ($this->_check_permissions($this->get_current_user())) {
             $this->write_user('GTFO');
@@ -1915,11 +1915,6 @@ class actions
         $twitter = new Twitter();
         $count = $twitter->tweet($message);
         $this->write_channel("HTTP $count");
-    }
-
-    public function you()
-    {
-        // $this->write_channel('NO U!');
     }
 
     public function me($args)

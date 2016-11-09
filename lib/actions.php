@@ -907,12 +907,14 @@ class actions
 
     public function radio($args)
     {
+        return;
         $abuse = $this->linguo->get_abuse($args);
         $this->collection->radio->insert(array('text' => $abuse));
     }
 
     public function sayradio($args)
     {
+        return;
         $message = @$args['arg1'];
         $this->collection->radio->insert(array('text' => $message));
     }
@@ -1107,6 +1109,7 @@ class actions
     */
     public function say($args)
     {
+        return;
         $chan = @$args['chan'];
         if (!$chan) {
             $chan = $this->get_current_channel();
@@ -1122,11 +1125,11 @@ class actions
     /* Tell pybot to /join a $chan */
     public function join($args)
     {
-        if (@$args['arg1']) {
+        $chan = false;
+        if (@$args['arg1'] && strstr($args['arg1'], '#')) {
             $chan = $args['arg1'];
-        } else {
-            $chan = $this->config['default_chan'];
         }
+        if (!$chan) return;
         $this->write_channel("I'll be over in $chan");
         $this->write('JOIN', $chan);
     }
@@ -1134,8 +1137,12 @@ class actions
     /* Tell pybot to leave a $chan */
     public function part($args)
     {
-        if ($args['arg1']) {
+        $chan = false;
+        if (isset($args['arg1']) && strstr($args['arg1'], '#')) {
             $chan = $args['arg1'];
+        }
+        if (!$chan) {
+            $chan = $this->get_current_channel();
         }
         $oldchan = $this->get_current_channel();
         $this->set_current_channel($chan);

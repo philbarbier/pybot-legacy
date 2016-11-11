@@ -143,9 +143,13 @@ class actions
         if (strlen($message) > $this->txlimit) {
             // @TODO gots to make this substr nicely (look for the last space)
             $message_parts = $this->_split_message($message);
+            $count = count($message_parts);
             foreach ($message_parts as $message_part) {
                 $msg = "$type $channel :$message_part\r\n\r\n";
                 Irc::write($msg); //fwrite($this->socket, $msg, strlen($msg));
+                if ($count > 20) {
+                    sleep(1);
+                }
             }
 
             return true;
@@ -1575,7 +1579,7 @@ class actions
             if (is_array($node->find('text'))) {
                 foreach($node->find('text') as $num => $textnode) {
                     foreach($textnode->_ as $key => $val) {
-                        $definition .= $this->_htmldoit($val);
+                        //$definition .= $this->_htmldoit($val);
                     }
                 }
             }

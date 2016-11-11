@@ -145,6 +145,8 @@ class actions
             $message_parts = $this->_split_message($message);
             $count = count($message_parts);
             foreach ($message_parts as $message_part) {
+                // just in case!
+                $message_part = preg_replace('/\\r\\n/', ' ', $message_part);
                 $msg = "$type $channel :$message_part\r\n\r\n";
                 Irc::write($msg); //fwrite($this->socket, $msg, strlen($msg));
                 if ($count > 20) {
@@ -162,19 +164,31 @@ class actions
 
     // uses class variable "txlimit" to split the message string up
     // in order to ensure the IRC server receives the full message
+    // and doesn't flood the server
 
-    private function _split_message($message = '')
+    private function _split_message($full_message = '')
     {
-        if (empty($message)) {
+        if (empty($full_message)) {
             return false;
         }
+        
         $parts = array();
-        $i = 0;
-        $prevpos = false;
-        for ($i = 0; $i < strlen($message); $i = $i + $this->txlimit) {
-            $start = (!$prevpos) ? $i : ($start + $prevpos);
-            $prevpos = $this->txlimit - strpos(strrev(substr($message, $start, $this->txlimit)), ' ');
-            $parts[] = substr($message, $start, $prevpos);
+        $j = 0;
+
+        $message_parts = preg_split('/\\r\\n/', $full_message);
+        foreach($message_parts as $part) {
+            if (strlen($part) > $this->txlimit) {
+                $prevpos = false;
+                for ($i = 0; $i < strlen($part); $i = $i + $this->txlimit) {
+                    $start = (!$prevpos) ? $i : ($start + $prevpos);
+                    $prevpos = $this->txlimit - strpos(strrev(substr($part, $start, $this->txlimit)), ' ');
+                    $parts[$j] = substr($part, $start, $prevpos);
+                    $j++;
+                }
+            } else {
+                $parts[$j] = $part;
+                $j++;
+            }
         }
 
         return $parts;
@@ -1536,29 +1550,18 @@ class actions
             $q = rawurlencode($word);
             $this->write_channel("Looking up definition for $word ...\n");
             $output = '';
-            $url = 'http://www.urbandictionary.com/define.php?term='.$q;
+            // $url = 'http://www.urbandictionary.com/define.php?term='.$q;
+            $url = 'http://api.urbandictionary.com/v0/define?term=' . $q;
             $html = file_get_html($url);
-            //$html = $this->curl->simple_get($url);
             if ($html) {
-                $result = $html->find('div[class=meaning]');
-                // print_r($result[0]->nodes[0]->_);
-                $def = $result[0]->nodes[0]->_;
-            }
-            // $def = $result[0]->nodes[0];
-            $definition = '';
-            $example = '';
-            if (!empty($def)) {
-                $definition = $this->_getHtmlText($result[0]->nodes);
-                $this->write_channel('Definition: '.$definition);
-            }
-            $exresult = $html->find('div[class=example]');
-            if (!isset($exresult[0]) && !isset($exresult[0]->nodes[0])) {
-                return;
-            }
-            $ex = $exresult[0]->nodes[0]->_;
-            if (!empty($ex)) {
-                $example = $this->_getHtmlText($exresult[0]->nodes);
-                $this->write_channel('Example: '.$example);
+                $html = json_decode($html);
+                if (isset($html->list[0])) {
+                    $definition = $html->list[0]->definition; //preg_replace('/\\r\\n/', ' ', $html->list[0]->definition);
+                    $example = preg_replace('/\\r\\n/', ' ', $html->list[0]->example);
+                    $this->write_channel('Definition: ' . $definition);
+                    $this->write_channel('Example: ' . $example);
+                    return;
+                }
             }
         } else {
             $this->write_channel('Please specify a search query.');
@@ -3010,7 +3013,6 @@ class actions
             $string = $record['message'];
             preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $string, $match);
             $url = @$match[0][0];
-            // print_r($match);
             $title = $this->get_site_title($url);
             $url = $this->_shorten($url);
             $when = gmdate('Y-m-d', (int) $record['time']);

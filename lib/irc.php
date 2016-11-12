@@ -1,14 +1,17 @@
 <?php
 
-include $_cwd.'/lib/actions.php';
-include $_cwd.'/lib/bleacher.php';
-
 class irc
 {
     public function __construct($config)
     {
-        $this->Log = new Log($config);
+        $this->_classes = false;
         $this->config = $config;
+        // lib/
+        $this->_loadModules($this->config['_cwd'] . '/lib');
+        // modules/
+        $this->_loadModules($this->config['_cwd'] . '/modules');
+
+        $this->Log = new Log($config);
         $this->server = $config['irc_server'];
         $this->version = $config['version'];
         $this->port = $config['irc_port'];
@@ -26,6 +29,84 @@ class irc
         $this->is_connected = false;
         $this->nick_change = null;
         $this->main();
+    }
+
+    public function __destruct()
+    {
+        return 'destructing class';
+    }
+
+    private function _loadModules($_module_path = false)
+    {
+        if (!$_module_path) {
+            die("Something bad happened -EPATHNOTSET");
+        }
+
+        $mod_files = scandir($_module_path);
+
+        if (!$mod_files) {
+            die("Something bad happened -ENOFILES");
+        }
+
+        print_r($mod_files);
+        print_r($this->config['_classes']);
+        exit;
+
+        foreach($mod_files as $file) {
+            switch ($file) {
+                case '.':
+                case '..':
+                    break;
+                default:
+                    // reading is good
+                    if (is_readable($_module_path . $file)) {
+                        $pathinfo = pathinfo($_module_path . $file);
+
+                        if (strtolower($pathinfo['extension']) == 'php') {
+                            $expected_class = ucfirst(substr($file, 0, strpos($file, '.')));
+                            $sample = file_get_contents($_module_path . $file, NULL, NULL, 0, 1024);
+
+                            if ($this->_checkIfModuleLoaded($_module_path . $file)) {
+                                continue;
+                            }
+                        
+                            $res = false;
+                            if (substr($sample, 0, 5) === '<?php') {
+                                if (stristr($sample, 'class ' . $expected_class)) {
+                                    $res = include $_module_path . $file;
+                                    array_push($config['_classes'], $expected_class);
+                                    if (!isset($config['_methods'][$expected_class])) $config['_methods'][$expected_class] = array();
+                                    $config['_methods'][$expected_class] = get_class_methods($expected_class);
+                                }                    
+                            }
+
+                            // here's where we can log a success or not
+                            if ($res && class_exists($expected_class)) {
+                                echo "Loading module " . $file . " (class " . $expected_class . ") was a success!\n";
+                            }
+                        }
+                        
+                    }
+
+            }
+        }
+
+        foreach($config['_methods'] as $classname => $classes) {
+            foreach($classes as $index => $value) {
+                if (substr($value, 0, 1) === '_') {
+                    unset($config['_methods'][$classname][$index]);
+                }
+            }
+            $config['_methods'][$classname] = array_values($config['_methods'][$classname]);
+        }
+
+
+    }
+
+    private function _checkIfModuleLoaded($_module_path = '', $file = '')
+    {
+        // check if this file exists in config classes, if so, compare md5sum
+        // call the destructor and reload the class
     }
 
     private function set_socket($svr = '', $port = 0)
@@ -124,6 +205,12 @@ class irc
                 if (!$a) {
                     continue;
                 }
+
+                // handle reloads
+                if ($a === 'reload') {
+                    return 'destruct';
+                }
+
                 // $this->Log->log("Params: " . json_encode($params, true), 3);
 
                 if (method_exists($this->actions, $a)) {

@@ -37,6 +37,11 @@ class actions
         }
     }
 
+    public function __destruct()
+    {
+        // unload
+    }
+
     private function _check_permissions($nick = '')
     {
         return in_array($nick, $this->config['banned_users']);

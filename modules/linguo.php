@@ -1,4 +1,6 @@
 <?php
+class Linguo
+{
 
 /*
     Class Linguo:
@@ -8,24 +10,25 @@
 
 */
 
-require_once $_cwd.'/lib/strings.php';
-
-class linguo
-{
     public function __construct($options = array())
     {
         // do some stuff
         $this->config = $options;
+        echo "\nLinguo classes:\n";
+        print_r($this->config['_classes']);
         $this->abuse_requester = false;
         try {
-            error_log('attempting connection');
             $this->connection = new Mongo($this->config['mongodb']);
         } catch (Exception $e) {
-            error_log('Could not connect');
             sleep(1);
             $this->connection = new Mongo($this->config['mongodb']);
         }
         $this->collection = $this->connection->pybot;
+    }
+
+    public function __destruct()
+    {
+        echo "destructing class " . __CLASS__ . "\n";
     }
 
     public function get_abuse($params = array())

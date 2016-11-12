@@ -1,6 +1,6 @@
 <?php
 
-class actions
+class Actions
 {
     public function __construct($config)
     {
@@ -40,6 +40,40 @@ class actions
     public function __destruct()
     {
         // unload
+        echo "destructing class " . __CLASS__ . "\n";
+    }
+
+    public function reloadtest()
+    {
+        $id = date('U');
+        $file = $this->config['_cwd'] . '/modules/linguo.php'; 
+        $pathinfo = pathinfo($file);
+        $md5 = md5_file($file);
+        $className = 'Linguo';
+        $newClassName = $className . $id;
+        if (!array_key_exists($className, $this->config['_classes'])) {
+            // just include it?
+        } else {
+            if ($md5 != $this->config['_classes'][$className]['md5sum']) {
+                // changed, reload
+                // read file and change class definition to have temp $id
+                $fileStr = file_get_contents($file);
+                //echo "orig:\n" . $fileStr . "\n";
+                $fileStr = str_replace('class ' . $className, 'class ' . $newClassName, $fileStr);
+                //echo "\nnew:\n".$fileStr."\n";
+                // write to temp file
+                $newFileName = $pathinfo['dirname'] . '/' . $pathinfo['filename'] . $id . '.' . $pathinfo['extension'];
+                $fh = fopen($newFileName, 'w');
+                if (fwrite($fh, $fileStr)) {
+                    include $newFileName;
+                    unlink($newFileName);
+                    unset($this->linguo);
+                    $this->config['_classes'][$className]['classname'] = $newClassName;
+                    $this->config['_classes'][$className]['md5sum'] = $md5;
+                    $this->linguo = new $newClassName($this->config);
+                }
+            }
+        }
     }
 
     private function _check_permissions($nick = '')
@@ -165,7 +199,8 @@ class actions
             $msg = "$type $channel :$message\r\n\r\n";
         }
 
-        return Irc::write($msg); //fwrite($this->socket, $msg, strlen($msg));
+        $ircLib = 'Irc';
+        return $ircLib::write($msg); //fwrite($this->socket, $msg, strlen($msg));
     }
 
     // uses class variable "txlimit" to split the message string up

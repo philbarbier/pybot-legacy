@@ -20,8 +20,10 @@ include $_cwd . '/lib/simple_html_dom.php';
 
 $ircClass = array(
                 'filename'  => 'irc.php',
+                'origclass' => 'Irc',
                 'classname' => 'Irc',
-                'md5sum'    => md5_file($_cwd . '/lib/irc.php')
+                'md5sum'    => md5_file($_cwd . '/lib/irc.php'),
+                'directory' => $_cwd . '/lib'
             );
 
 $config['_classes'] = array('Irc' => $ircClass);
@@ -38,6 +40,16 @@ require $_cwd . '/oauth/tmhOAuth.php';
 // and to avoid having to change config files every iteration
 
 $config['version'] = '4.1.'.file_get_contents('VERSION');
+
+$actionClass = array(
+                'filename'  => 'actions.php',
+                'origclass' => 'Actions',
+                'classname' => 'Actions',
+                'md5sum'    => md5_file($_cwd . '/lib/actions.php'),
+                'directory' => $_cwd . '/lib'
+            );
+
+$config['_classes']['Actions'] = $actionClass;
 
 include $_cwd.'/lib/actions.php';
 include $_cwd.'/lib/bleacher.php';

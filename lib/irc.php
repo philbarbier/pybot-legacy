@@ -2,14 +2,17 @@
 
 class Irc 
 {
+
+    public static $config;
+
     public function __construct($config)
     {
         $this->_classes = false;
-        $this->config = $config;
+        self::$config = $config;
         // lib/
-        // $this->_loadModules($this->config['_cwd'] . '/lib');
+        // $this->_loadModules(self::$config['_cwd'] . '/lib');
         // modules/
-        $this->_loadModules($this->config['_cwd'] . '/modules');
+        $this->_loadModules(self::$config['_cwd'] . '/modules');
         $this->Log = new Log($config);
         $this->server = $config['irc_server'];
         $this->version = $config['version'];
@@ -18,7 +21,9 @@ class Irc
         $this->handle = $config['irc_handle'];
         $this->first_connect = true;
         $this->set_socket($this->server, $this->port);
-        $this->actions = new Actions($this->config);
+        self::$config['_ircClassName'] = __CLASS__;
+        self::$config['_callee'] = array(__CLASS__);
+        $this->actions = new Actions(self::$config);
         $this->_methods = $config['_methods'];
         $this->connect_complete = false;
         $this->retrieve_nick = false;
@@ -34,6 +39,19 @@ class Irc
     {
         echo 'destructing class ' . __CLASS__ . "\n";
     }
+
+    public static function setCallList($className = false, $list = false)
+    {
+        if (!$list || !$className) return;
+        self::$config['_classes'][$className]['calllist'] = $list;
+    }
+
+    public function initActions($className = false, $config = false)
+    {
+        if (!$className || !$config) return;
+        $this->actions = new $className($config);
+    }
+
 
     private function _loadModules($_module_path = false)
     {
@@ -72,10 +90,12 @@ class Irc
                                     $newClass = array(
                                         'filename'  => $file, 
                                         'classname' => $expected_class,
-                                        'md5sum'    => md5_file($_module_path . '/' . $file)
+                                        'origclass' => $expected_class,
+                                        'md5sum'    => md5_file($_module_path . '/' . $file),
+                                        'directory' => $_module_path
                                     );
 
-                                    $this->config['_classes'][$expected_class] = $newClass; 
+                                    self::$config['_classes'][$expected_class] = $newClass; 
                                     // array_push($config['_classes'], $expected_class);
                                     // if (!isset($config['_methods'][$expected_class])) $config['_methods'][$expected_class] = array();
                                     // $config['_methods'][$expected_class] = get_class_methods($expected_class);
@@ -102,6 +122,63 @@ class Irc
         // check if this file exists in config classes, if so, compare md5sum
         // call the destructor and reload the class
         return false;
+    }
+
+    private function _reloadModules()
+    {
+        $id = date('U');
+        $classes = self::$config['_classes'];
+        foreach ($classes as $className => $classData) {
+            if (!in_array($className, array('Linguo', 'Actions'))) {
+                continue;
+            }
+            $file = $classData['directory'] . '/' . $classData['filename'];
+            $md5 = md5_file($file);
+            echo "checking " . $file . "\n";
+            if (!array_key_exists($className, self::$config['_classes'])) {
+                // just include it?
+            } else {
+                if ($md5 != self::$config['_classes'][$className]['md5sum']) {
+                    // changed, reload
+                    $pathinfo = pathinfo($file);
+                    $newClassName = $className . $id;
+                    echo "changed, reloading " . $className . "\n";
+                    // read file and change class definition to have temp $id
+                    $fileStr = file_get_contents($file);
+                    //echo "orig:\n" . $fileStr . "\n";
+                    $fileStr = str_replace('class ' . $className, 'class ' . $newClassName, $fileStr);
+                    //echo "\nnew:\n".$fileStr."\n";
+                    // write to temp file
+                    $newFileName = $pathinfo['dirname'] . '/' . $pathinfo['filename'] . $id . '.' . $pathinfo['extension'];
+                    $fh = fopen($newFileName, 'w');
+                    if (fwrite($fh, $fileStr)) {
+                        include $newFileName;
+                        unlink($newFileName);
+                        
+                        self::$config['_classes'][$className]['classname'] = $newClassName;
+                        self::$config['_classes'][$className]['md5sum'] = $md5;
+                        self::$config['_origclass'] = $className;
+                        
+                        $calllist = self::$config['_classes'][$className]['calllist'];
+                        print_r($calllist);
+                        $localRef = strtolower($calllist[count($calllist)-1]);
+                        $theirRef = strtolower($classData['origclass']);
+                        $initFnName = 'init' . $theirRef;
+                        echo $localRef . "->" . $theirRef . "\n";
+                        if (count($calllist) > 1) {
+                            unset($this->$localRef->$theirRef);
+                            $this->$localRef->$initFnName($newClassName, self::$config);
+                        } else {
+                            unset($this->$theirRef);
+                            $this->$initFnName($newClassName, self::$config);
+                        }
+                                                
+                        //$this->$localRef->$theirRef = new $newClassName(self::$config);
+                    }
+                }
+            }
+        }
+
     }
 
     private function set_socket($svr = '', $port = 0)
@@ -179,7 +256,7 @@ class Irc
                 $msg = $this->parse_raw($raw);
 
                 // Print message debug to stdout
-                if ($this->config['debug']) {
+                if (self::$config['debug']) {
                     if (isset($msg['message']) && isset($msg['channel']) && isset($msg['user'])) {
                         $this->Log->log($msg['user'].'@'.str_replace('#', '', $msg['channel']).' : '.$msg['message']);
                     }
@@ -203,7 +280,7 @@ class Irc
 
                 // handle reloads
                 if ($a === 'reload') {
-                    return 'destruct';
+                    $this->_reloadModules();
                 }
 
                 // $this->Log->log("Params: " . json_encode($params, true), 3);
@@ -280,7 +357,7 @@ class Irc
         if ($parts[0] == 'ERROR') {
             $this->destroy_socket();
             sleep(120);
-            $this->__construct($this->config);
+            $this->__construct(self::$config);
         }
 
         $this->actions->set_parts($parts);
@@ -374,7 +451,7 @@ class Irc
                 case "KILL":
                     $this->destroy_socket();
                     sleep(15);
-                    $this->__construct($this->config);
+                    $this->__construct(self::$config);
                 break;
 
             }
@@ -389,12 +466,12 @@ class Irc
                 $this->write("JOIN $channel");
             }
             // ensure we're in the default channel
-            if (!in_array($this->config['default_chan'], $this->channels)) {
-                $this->write('JOIN '.$this->config['default_chan']);
+            if (!in_array(self::$config['default_chan'], $this->channels)) {
+                $this->write('JOIN '.self::$config['default_chan']);
             }
             // ensure we're in the admin channel
-            if (!in_array($this->config['admin_chan'], $this->channels)) {
-                $this->write('JOIN '.$this->config['admin_chan']);
+            if (!in_array(self::$config['admin_chan'], $this->channels)) {
+                $this->write('JOIN '.self::$config['admin_chan']);
             }
 
             // print out current revision
@@ -469,7 +546,7 @@ class Irc
         if (empty($message)) {
             return false;
         }
-        $this->write('PRIVMSG '.$this->config['admin_chan'].' :'.$message);
+        $this->write('PRIVMSG '.self::$config['admin_chan'].' :'.$message);
     }
 
     // re-read config file
@@ -508,7 +585,7 @@ class Irc
             $this->Log->log('Socket error', 2);
             $this->destroy_socket();
             sleep(60);
-            $this->__construct($this->config);
+            $this->__construct(self::$config);
 
             return false;
         }

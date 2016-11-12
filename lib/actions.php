@@ -5,6 +5,7 @@ class Actions
     public function __construct($config)
     {
         $this->config = $config;
+        echo __CLASS__ . " construct\n";
         $this->Log = new Log($this->config);
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
@@ -17,7 +18,21 @@ class Actions
         $this->isIRCOper = false;
         // seperate config array incase we need to override anything(?)
         $linguo_config = $this->config;
-        $this->linguo = new Linguo($linguo_config);
+        if (!isset($linguo_config['_origclass'])) {
+            $linguo_config['_origclass'] = __CLASS__;
+        }
+        echo "origclass: " . $linguo_config['_origclass'] . "\n";
+        if (isset($linguo_config['_callee'])) {
+            $linguo_config['_callee'][] = $linguo_config['_origclass'];
+        }
+        
+        $ircClass = $linguo_config['_ircClassName'];
+        $ircClass::setCallList($linguo_config['_origclass'], $this->config['_callee']);
+
+        print_r($this->config['_classes']);
+
+        $class = $this->config['_classes']['Linguo']['classname'];
+        $this->linguo = new $class($linguo_config);
         $this->txlimit = 256; // transmission length limit in bytes (chars)
         $this->userCache = array();
         $this->array_key = '';
@@ -43,37 +58,10 @@ class Actions
         echo "destructing class " . __CLASS__ . "\n";
     }
 
-    public function reloadtest()
+    public function initLinguo($className = false, $config = false)
     {
-        $id = date('U');
-        $file = $this->config['_cwd'] . '/modules/linguo.php'; 
-        $pathinfo = pathinfo($file);
-        $md5 = md5_file($file);
-        $className = 'Linguo';
-        $newClassName = $className . $id;
-        if (!array_key_exists($className, $this->config['_classes'])) {
-            // just include it?
-        } else {
-            if ($md5 != $this->config['_classes'][$className]['md5sum']) {
-                // changed, reload
-                // read file and change class definition to have temp $id
-                $fileStr = file_get_contents($file);
-                //echo "orig:\n" . $fileStr . "\n";
-                $fileStr = str_replace('class ' . $className, 'class ' . $newClassName, $fileStr);
-                //echo "\nnew:\n".$fileStr."\n";
-                // write to temp file
-                $newFileName = $pathinfo['dirname'] . '/' . $pathinfo['filename'] . $id . '.' . $pathinfo['extension'];
-                $fh = fopen($newFileName, 'w');
-                if (fwrite($fh, $fileStr)) {
-                    include $newFileName;
-                    unlink($newFileName);
-                    unset($this->linguo);
-                    $this->config['_classes'][$className]['classname'] = $newClassName;
-                    $this->config['_classes'][$className]['md5sum'] = $md5;
-                    $this->linguo = new $newClassName($this->config);
-                }
-            }
-        }
+        if (!$className || !$config) return;
+        $this->linguo = new $className($config);
     }
 
     private function _check_permissions($nick = '')

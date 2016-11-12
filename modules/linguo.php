@@ -14,8 +14,9 @@ class Linguo
     {
         // do some stuff
         $this->config = $options;
-        echo "\nLinguo classes:\n";
-        print_r($this->config['_classes']);
+        $ircClass = $this->config['_ircClassName'];
+        $ircClass::setCallList(__CLASS__, $this->config['_callee']);
+        echo __CLASS__ . " construct\n";
         $this->abuse_requester = false;
         try {
             $this->connection = new Mongo($this->config['mongodb']);

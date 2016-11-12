@@ -1,6 +1,5 @@
 <?php
-
-class bleacher
+class Bleacher
 {
     private static $_patterns = array(
         'int' => "/[^0-9\-]+/",

@@ -279,7 +279,7 @@ class Irc
                 }
 
                 // handle reloads
-                if ($a === 'reload') {
+                if ($a === 'reload' && in_array($msg['user'], array('Flimflam'))) {
                     $this->_reloadModules();
                 }
 

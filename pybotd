@@ -14,9 +14,6 @@ $_cwd = $pi['dirname'];
 
 include $config_path;
 include $_cwd . '/lib/irc.php';
-include $_cwd . '/lib/log.php';
-include $_cwd . '/lib/curl.php';
-include $_cwd . '/lib/simple_html_dom.php';
 
 $ircClass = array(
                 'filename'  => 'irc.php',
@@ -32,9 +29,6 @@ $config['_cwd'] = $_cwd;
 
 unset($pi, $config_path, $ircClass);
 // include $_cwd . '/lib/transmissionrpc.php';
-# Required for twitter
-require $_cwd . '/oauth/tmhOAuth.php';
-#require $_cwd . '/oauth/tmhUtilities.php';
 
 // We keep this here because it's not user configurable
 // and to avoid having to change config files every iteration
@@ -51,13 +45,7 @@ $actionClass = array(
 
 $config['_classes']['Actions'] = $actionClass;
 
-include $_cwd.'/lib/actions.php';
-include $_cwd.'/lib/bleacher.php';
-include $_cwd.'/lib/strings.php';
+require_once $_cwd . '/oauth/tmhOAuth.php';
 
 $pybs = new Irc($config);
-unset($pybs);
-$namespace = 'Pybot0';
-include $_cwd.'/lib/tttttt.php';
-$pybs = new Irc();
 exit;

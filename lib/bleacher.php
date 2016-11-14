@@ -1,6 +1,20 @@
 <?php
 class Bleacher
 {
+    public function __construct($config = array())
+    {
+        if (array_key_exists(__CLASS__, $this->config['_classes'])) {
+            $ircClass = $this->config['_ircClassName'];
+            $ircClass::setCallList(__CLASS__, $this->config['_callee']);
+        }
+        echo __CLASS__ . " construct\n";
+    }
+
+    public function __destruct()
+    {
+
+    }
+
     private static $_patterns = array(
         'int' => "/[^0-9\-]+/",
         'float' => "/[^0-9\.\,\-]+/",

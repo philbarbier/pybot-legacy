@@ -9,11 +9,13 @@ class Irc
     {
         $this->_classes = false;
         self::$config = $config;
+        self::$config['_ircClassName'] = __CLASS__;
+        self::$config['_callee'] = array(__CLASS__);
         // lib/
-        // $this->_loadModules(self::$config['_cwd'] . '/lib');
+        $this->_loadModules(self::$config['_cwd'] . '/lib');
         // modules/
         $this->_loadModules(self::$config['_cwd'] . '/modules');
-        $this->Log = new Log($config);
+        $this->Log = new Log(self::$config);
         $this->server = $config['irc_server'];
         $this->version = $config['version'];
         $this->port = $config['irc_port'];
@@ -21,8 +23,6 @@ class Irc
         $this->handle = $config['irc_handle'];
         $this->first_connect = true;
         $this->set_socket($this->server, $this->port);
-        self::$config['_ircClassName'] = __CLASS__;
-        self::$config['_callee'] = array(__CLASS__);
         $this->actions = new Actions(self::$config);
         $this->_methods = $config['_methods'];
         $this->connect_complete = false;
@@ -43,6 +43,7 @@ class Irc
     public static function setCallList($className = false, $list = false)
     {
         if (!$list || !$className) return;
+        echo "SETTING CALLLIST FOR " . $className . "\n";
         self::$config['_classes'][$className]['calllist'] = $list;
     }
 
@@ -69,6 +70,7 @@ class Irc
             switch ($file) {
                 case '.':
                 case '..':
+                case 'irc.php':
                     break;
                 default:
                     // reading is good
@@ -128,10 +130,18 @@ class Irc
     {
         $id = date('U');
         $classes = self::$config['_classes'];
+        print_r($classes);
         foreach ($classes as $className => $classData) {
+            // if Irc is changed, we'll restart the whole lot
+            // it's in the class list because of the reason
+            if ($className == 'Irc') continue;
+            
+            /*
             if (!in_array($className, array('Linguo', 'Actions'))) {
                 continue;
             }
+            */
+
             $file = $classData['directory'] . '/' . $classData['filename'];
             $md5 = md5_file($file);
             echo "checking " . $file . "\n";
@@ -167,7 +177,7 @@ class Irc
                         echo $localRef . "->" . $theirRef . "\n";
                         if (count($calllist) > 1) {
                             unset($this->$localRef->$theirRef);
-                            $this->$localRef->$initFnName($newClassName, self::$config);
+                            $this->$localRef->initModule($newClassName, self::$config);
                         } else {
                             unset($this->$theirRef);
                             $this->$initFnName($newClassName, self::$config);

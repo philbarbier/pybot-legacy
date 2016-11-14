@@ -14,8 +14,10 @@ class Linguo
     {
         // do some stuff
         $this->config = $options;
-        $ircClass = $this->config['_ircClassName'];
-        $ircClass::setCallList(__CLASS__, $this->config['_callee']);
+        if (array_key_exists(__CLASS__, $this->config['_classes'])) {
+            $ircClass = $this->config['_ircClassName'];
+            $ircClass::setCallList(__CLASS__, $this->config['_callee']);
+        }
         echo __CLASS__ . " construct\n";
         $this->abuse_requester = false;
         try {

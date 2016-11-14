@@ -25,14 +25,15 @@ class Actions
         if (isset($linguo_config['_callee'])) {
             $linguo_config['_callee'][] = $linguo_config['_origclass'];
         }
-        
-        $ircClass = $linguo_config['_ircClassName'];
-        $ircClass::setCallList($linguo_config['_origclass'], $this->config['_callee']);
-
-        print_r($this->config['_classes']);
+        if (array_key_exists(__CLASS__, $this->config['_classes'])) {
+            $ircClass = $this->config['_ircClassName'];
+            $ircClass::setCallList(__CLASS__, $this->config['_callee']);
+        }
 
         $class = $this->config['_classes']['Linguo']['classname'];
         $this->linguo = new $class($linguo_config);
+        $class = $this->config['_classes']['Twitter']['classname']; 
+        $this->twitter = new $class($linguo_config);
         $this->txlimit = 256; // transmission length limit in bytes (chars)
         $this->userCache = array();
         $this->array_key = '';
@@ -58,10 +59,11 @@ class Actions
         echo "destructing class " . __CLASS__ . "\n";
     }
 
-    public function initLinguo($className = false, $config = false)
+    public function initModule($className = false, $config = false)
     {
         if (!$className || !$config) return;
-        $this->linguo = new $className($config);
+        $selfRef = strtolower($config['_origclass']);
+        $this->$selfRef = new $className($config);
     }
 
     private function _check_permissions($nick = '')
@@ -1367,8 +1369,7 @@ class Actions
         $imagedata = file_get_contents($image);
         $filename = '/tmp/'.time().'.jpg';
         file_put_contents($filename, $imagedata);
-        $twitter = new Twitter();
-        $count = $twitter->upload($image);
+        $count = $this->twitter->upload($image);
         $this->write_channel("HTTP $count");
         $this->write_channel($short);
     }
@@ -1940,8 +1941,7 @@ class Actions
     public function follow($args)
     {
         $message = $args['arg1'];
-        $twitter = new Twitter();
-        $count = $twitter->follow($message);
+        $count = $this->twitter->follow($message);
         $this->write_channel("HTTP $count");
     }
 
@@ -1955,8 +1955,7 @@ class Actions
 
             return;
         };
-        $twitter = new Twitter();
-        $count = $twitter->tweet($message);
+        $count = $this->twitter->tweet($message);
         $this->write_channel("HTTP $count");
     }
 

@@ -1557,7 +1557,7 @@ class actions
                 $html = json_decode($html);
                 if (isset($html->list[0])) {
                     $definition = $html->list[0]->definition; //preg_replace('/\\r\\n/', ' ', $html->list[0]->definition);
-                    $example = preg_replace('/\\r\\n/', ' ', $html->list[0]->example);
+                    $example = preg_replace('/\\n/', ' ', $html->list[0]->example);
                     $this->write_channel('Definition: ' . $definition);
                     $this->write_channel('Example: ' . $example);
                     return;

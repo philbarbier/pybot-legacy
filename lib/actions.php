@@ -1,11 +1,11 @@
 <?php
 
-class actions
+class Actions
 {
     public function __construct($config)
     {
         $this->config = $config;
-        $this->Log = new Log($this->config);
+        echo __CLASS__ . " construct\n";
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
         $this->curl = new Curl();
@@ -13,11 +13,30 @@ class actions
         $this->version = $config['version'];
         $this->currentuser = '';
         $this->currentchannel = false;
+        $this->channellist = array();
         $this->message_data = '';
         $this->isIRCOper = false;
         // seperate config array incase we need to override anything(?)
         $linguo_config = $this->config;
-        $this->linguo = new Linguo($linguo_config);
+        if (!isset($linguo_config['_origclass'])) {
+            $linguo_config['_origclass'] = __CLASS__;
+        }
+        echo "origclass: " . $linguo_config['_origclass'] . "\n";
+        if (isset($linguo_config['_callee'])) {
+            $linguo_config['_callee'][] = $linguo_config['_origclass'];
+        }
+        if (array_key_exists(__CLASS__, $this->config['_classes'])) {
+            $ircClass = $this->config['_ircClassName'];
+            $ircClass::setCallList(__CLASS__, $this->config['_callee']);
+        }
+
+        $class = $this->config['_classes']['Linguo']['classname'];
+        $this->linguo = new $class($linguo_config);
+        $class = $this->config['_classes']['Twitter']['classname']; 
+        $this->twitter = new $class($linguo_config);
+        $class = $this->config['_classes']['Log']['classname']; 
+        $this->Log = new $class($linguo_config);
+
         $this->txlimit = 256; // transmission length limit in bytes (chars)
         $this->userCache = array();
         $this->array_key = '';
@@ -25,16 +44,24 @@ class actions
         $this->myparts = array();
         $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'me', 'uptime', 'cc');
 
-        if ($this->_check_permissions($this->get_current_user())) {
-            $this->write_user('GTFO');
-
-            return false;
-        }
         if (!$this->connection) {
             sleep(60);
             // try again
             $this->connection = new Mongo($this->config['mongodb']);
         }
+    }
+
+    public function __destruct()
+    {
+        // unload
+        echo "destructing class " . __CLASS__ . "\n";
+    }
+
+    public function initModule($className = false, $config = false)
+    {
+        if (!$className || !$config) return;
+        $selfRef = strtolower($config['_origclass']);
+        $this->$selfRef = new $className($config);
     }
 
     private function _check_permissions($nick = '')
@@ -155,12 +182,15 @@ class actions
             }
 
             return true;
+        } elseif (!$message) {
+            $msg = "$type $channel\r\n\r\n";
         } else {
             $message = preg_replace('/\\r\\n/', ' ', $message);
             $msg = "$type $channel :$message\r\n\r\n";
         }
 
-        return Irc::write($msg); //fwrite($this->socket, $msg, strlen($msg));
+        $ircLib = 'Irc';
+        return $ircLib::write($msg); //fwrite($this->socket, $msg, strlen($msg));
     }
 
     // uses class variable "txlimit" to split the message string up
@@ -1145,10 +1175,20 @@ class actions
     public function join($args)
     {
         $chan = false;
-        if (@$args['arg1'] && strstr($args['arg1'], '#')) {
+        if (isset($args['arg1']) && substr(trim($args['arg1']), 0, 1) === '#') {
             $chan = $args['arg1'];
         }
         if (!$chan) return;
+        // check if we're here or not
+        if (array_key_exists($chan, $this->channellist)) {
+            $word = 'there';
+            if ($chan == $this->get_current_channel()) $word = 'here';
+            $get_insult = $this->linguo->get_word('insult');
+            $insult = $get_insult['word'];
+
+            $this->write_channel("I'm " . $word . " already, " . $insult . "!");
+            return;
+        }
         $this->write_channel("I'll be over in $chan");
         $this->write('JOIN', $chan);
     }
@@ -1167,8 +1207,25 @@ class actions
         $this->set_current_channel($chan);
         $this->write_channel("I'm the fuck outta here");
         $this->write('PART', $chan);
+        $this->removeChannel($chan);
         if ($oldchan !== $chan) {
             $this->set_current_channel($oldchan);
+        }
+    }
+
+    public function addChannel($channel = false)
+    {
+        if (!$channel) return;
+        if (!array_key_exists($channel, $this->channellist)) {
+            $this->channellist[$channel] = 1;
+        }
+    }
+
+    public function removeChannel($channel = false)
+    {
+        if (!$channel) return;
+        if (array_key_exists($channel, $this->channellist)) {
+            unset($this->channellist[$channel]);
         }
     }
 
@@ -1339,8 +1396,7 @@ class actions
         $imagedata = file_get_contents($image);
         $filename = '/tmp/'.time().'.jpg';
         file_put_contents($filename, $imagedata);
-        $twitter = new Twitter();
-        $count = $twitter->upload($image);
+        $count = $this->twitter->upload($image);
         $this->write_channel("HTTP $count");
         $this->write_channel($short);
     }
@@ -1912,8 +1968,7 @@ class actions
     public function follow($args)
     {
         $message = $args['arg1'];
-        $twitter = new Twitter();
-        $count = $twitter->follow($message);
+        $count = $this->twitter->follow($message);
         $this->write_channel("HTTP $count");
     }
 
@@ -1927,8 +1982,7 @@ class actions
 
             return;
         };
-        $twitter = new Twitter();
-        $count = $twitter->tweet($message);
+        $count = $this->twitter->tweet($message);
         $this->write_channel("HTTP $count");
     }
 

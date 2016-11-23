@@ -418,6 +418,7 @@ class Irc
                             }
                         }
                     }
+                    $this->actions->addChannel($parts[4]);
                 break;
                 // end of names list
                 case 366:

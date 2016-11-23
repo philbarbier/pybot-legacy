@@ -35,16 +35,6 @@ unset($pi, $config_path, $ircClass);
 
 $config['version'] = '4.1.'.file_get_contents('VERSION');
 
-$actionClass = array(
-                'filename'  => 'actions.php',
-                'origclass' => 'Actions',
-                'classname' => 'Actions',
-                'md5sum'    => md5_file($_cwd . '/lib/actions.php'),
-                'directory' => $_cwd . '/lib'
-            );
-
-$config['_classes']['Actions'] = $actionClass;
-
 require_once $_cwd . '/oauth/tmhOAuth.php';
 
 $pybs = new Irc($config);

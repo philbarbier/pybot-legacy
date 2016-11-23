@@ -6,7 +6,6 @@ class Actions
     {
         $this->config = $config;
         echo __CLASS__ . " construct\n";
-        $this->Log = new Log($this->config);
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
         $this->curl = new Curl();
@@ -14,6 +13,7 @@ class Actions
         $this->version = $config['version'];
         $this->currentuser = '';
         $this->currentchannel = false;
+        $this->channellist = array();
         $this->message_data = '';
         $this->isIRCOper = false;
         // seperate config array incase we need to override anything(?)
@@ -34,6 +34,9 @@ class Actions
         $this->linguo = new $class($linguo_config);
         $class = $this->config['_classes']['Twitter']['classname']; 
         $this->twitter = new $class($linguo_config);
+        $class = $this->config['_classes']['Log']['classname']; 
+        $this->Log = new $class($linguo_config);
+
         $this->txlimit = 256; // transmission length limit in bytes (chars)
         $this->userCache = array();
         $this->array_key = '';
@@ -41,11 +44,6 @@ class Actions
         $this->myparts = array();
         $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'me', 'uptime', 'cc');
 
-        if ($this->_check_permissions($this->get_current_user())) {
-            $this->write_user('GTFO');
-
-            return false;
-        }
         if (!$this->connection) {
             sleep(60);
             // try again
@@ -184,6 +182,8 @@ class Actions
             }
 
             return true;
+        } elseif (!$message) {
+            $msg = "$type $channel\r\n\r\n";
         } else {
             $message = preg_replace('/\\r\\n/', ' ', $message);
             $msg = "$type $channel :$message\r\n\r\n";
@@ -1175,10 +1175,14 @@ class Actions
     public function join($args)
     {
         $chan = false;
-        if (@$args['arg1'] && strstr($args['arg1'], '#')) {
+        if (isset($args['arg1']) && substr(trim($args['arg1']), 0, 1) === '#') {
             $chan = $args['arg1'];
         }
         if (!$chan) return;
+        // check if we're here or not
+        if (array_key_exists($chan, $this->channellist)) {
+            return;
+        }
         $this->write_channel("I'll be over in $chan");
         $this->write('JOIN', $chan);
     }
@@ -1197,8 +1201,25 @@ class Actions
         $this->set_current_channel($chan);
         $this->write_channel("I'm the fuck outta here");
         $this->write('PART', $chan);
+        $this->removeChannel($chan);
         if ($oldchan !== $chan) {
             $this->set_current_channel($oldchan);
+        }
+    }
+
+    public function addChannel($channel = false)
+    {
+        if (!$channel) return;
+        if (!array_key_exists($channel, $this->channellist)) {
+            $this->channellist[$channel] = 1;
+        }
+    }
+
+    public function removeChannel($channel = false)
+    {
+        if (!$channel) return;
+        if (array_key_exists($channel, $this->channellist)) {
+            unset($this->channellist[$channel]);
         }
     }
 

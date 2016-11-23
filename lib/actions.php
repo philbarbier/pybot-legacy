@@ -156,6 +156,7 @@ class actions
 
             return true;
         } else {
+            $message = preg_replace('/\\r\\n/', ' ', $message);
             $msg = "$type $channel :$message\r\n\r\n";
         }
 
@@ -1556,8 +1557,8 @@ class actions
             if ($html) {
                 $html = json_decode($html);
                 if (isset($html->list[0])) {
-                    $definition = preg_replace('/\\n/', ' ', $html->list[0]->definition);
-                    $example = preg_replace('/\\n/', ' ', $html->list[0]->example);
+                    $definition = $html->list[0]->definition;
+                    $example = $html->list[0]->example;
                     $this->write_channel('Definition: ' . $definition);
                     $this->write_channel('Example: ' . $example);
                     return;

@@ -7,7 +7,6 @@ class Bleacher
             $ircClass = $this->config['_ircClassName'];
             $ircClass::setCallList(__CLASS__, $this->config['_callee']);
         }
-        echo __CLASS__ . " construct\n";
     }
 
     public function __destruct()

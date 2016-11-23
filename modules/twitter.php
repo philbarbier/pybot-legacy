@@ -4,7 +4,6 @@ class Twitter
 {
     public function __construct($config = array()) 
     {
-        echo __CLASS__ . " construct\n";
         $this->config = $config;
         if (array_key_exists(__CLASS__, $this->config['_classes'])) {
             $ircClass = $this->config['_ircClassName'];
@@ -14,7 +13,6 @@ class Twitter
 
     public function __destruct() 
     {
-        echo __CLASS__ . " destruct\n";
     }
 
     public function upload($path)

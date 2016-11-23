@@ -5,7 +5,6 @@ class Actions
     public function __construct($config)
     {
         $this->config = $config;
-        echo __CLASS__ . " construct\n";
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
         $this->curl = new Curl();
@@ -21,7 +20,6 @@ class Actions
         if (!isset($linguo_config['_origclass'])) {
             $linguo_config['_origclass'] = __CLASS__;
         }
-        echo "origclass: " . $linguo_config['_origclass'] . "\n";
         if (isset($linguo_config['_callee'])) {
             $linguo_config['_callee'][] = $linguo_config['_origclass'];
         }
@@ -54,7 +52,6 @@ class Actions
     public function __destruct()
     {
         // unload
-        echo "destructing class " . __CLASS__ . "\n";
     }
 
     public function initModule($className = false, $config = false)

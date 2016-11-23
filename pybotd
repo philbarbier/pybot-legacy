@@ -13,6 +13,7 @@ $pi = pathinfo(__FILE__);
 $_cwd = $pi['dirname'];
 
 include $config_path;
+include $_cwd . '/lib/simple_html_dom.php';
 include $_cwd . '/lib/irc.php';
 
 $ircClass = array(

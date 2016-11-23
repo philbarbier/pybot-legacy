@@ -1181,6 +1181,12 @@ class Actions
         if (!$chan) return;
         // check if we're here or not
         if (array_key_exists($chan, $this->channellist)) {
+            $word = 'there';
+            if ($chan == $this->get_current_channel()) $word = 'here';
+            $get_insult = $this->linguo->get_word('insult');
+            $insult = $get_insult['word'];
+
+            $this->write_channel("I'm " . $word . " already, " . $insult . "!");
             return;
         }
         $this->write_channel("I'll be over in $chan");

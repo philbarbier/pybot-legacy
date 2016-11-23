@@ -18,7 +18,6 @@ class Linguo
             $ircClass = $this->config['_ircClassName'];
             $ircClass::setCallList(__CLASS__, $this->config['_callee']);
         }
-        echo __CLASS__ . " construct\n";
         $this->abuse_requester = false;
         try {
             $this->connection = new Mongo($this->config['mongodb']);
@@ -31,7 +30,6 @@ class Linguo
 
     public function __destruct()
     {
-        echo "destructing class " . __CLASS__ . "\n";
     }
 
     public function get_abuse($params = array())

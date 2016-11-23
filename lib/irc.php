@@ -37,13 +37,13 @@ class Irc
 
     public function __destruct()
     {
-        echo 'destructing class ' . __CLASS__ . "\n";
+        // echo 'destructing class ' . __CLASS__ . "\n";
     }
 
     public static function setCallList($className = false, $list = false)
     {
         if (!$list || !$className) return;
-        echo "SETTING CALLLIST FOR " . $className . "\n";
+        //echo "SETTING CALLLIST FOR " . $className . "\n";
         self::$config['_classes'][$className]['calllist'] = $list;
     }
 
@@ -144,7 +144,7 @@ class Irc
 
             $file = $classData['directory'] . '/' . $classData['filename'];
             $md5 = md5_file($file);
-            echo "checking " . $file . "\n";
+            // echo "checking " . $file . "\n";
             if (!array_key_exists($className, self::$config['_classes'])) {
                 // just include it?
             } else {
@@ -152,7 +152,7 @@ class Irc
                     // changed, reload
                     $pathinfo = pathinfo($file);
                     $newClassName = $className . $id;
-                    echo "changed, reloading " . $className . "\n";
+                    // echo "changed, reloading " . $className . "\n";
                     // read file and change class definition to have temp $id
                     $fileStr = file_get_contents($file);
                     //echo "orig:\n" . $fileStr . "\n";
@@ -174,7 +174,7 @@ class Irc
                         $localRef = strtolower($calllist[count($calllist)-1]);
                         $theirRef = strtolower($classData['origclass']);
                         $initFnName = 'init' . $theirRef;
-                        echo $localRef . "->" . $theirRef . "\n";
+                        //echo $localRef . "->" . $theirRef . "\n";
                         if (count($calllist) > 1) {
                             unset($this->$localRef->$theirRef);
                             $this->$localRef->initModule($newClassName, self::$config);

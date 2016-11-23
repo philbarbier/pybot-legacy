@@ -10,7 +10,6 @@ class Log
         if (!isset($this->config['_origclass'])) {
             $this->config['_origclass'] = __CLASS__;
         }
-        echo "origclass: " . $this->config['_origclass'] . "\n";
         if (isset($this->config['_callee'])) {
             $this->config['_callee'][] = $this->config['_origclass'];
         }
@@ -22,7 +21,6 @@ class Log
         $class = $this->config['_classes']['Colours']['classname'];
         $this->colours = new $class($this->config);
 
-        echo __CLASS__ . " construct\n";
 
     }
 

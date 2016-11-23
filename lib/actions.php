@@ -1546,8 +1546,9 @@ class Actions
     {
         $version = trim($this->version);
         $branch = trim(@shell_exec('/usr/bin/git rev-parse --abbrev-ref HEAD'));
-        // $branch = 'no git right nao';
-        $version_string = "pybot (" . $branch . ") version " . $version . " - 'Old Found Glory'";
+        $get_insult = $this->linguo->get_word('insult');
+        $insult = $get_insult['word'];
+        $version_string = "pybot (" . $insult . ") version " . $version . " - 'Old Found Glory'";
         $this->write_channel($version_string);
 
         return;

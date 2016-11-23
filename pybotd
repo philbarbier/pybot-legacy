@@ -33,7 +33,7 @@ unset($pi, $config_path, $ircClass);
 // We keep this here because it's not user configurable
 // and to avoid having to change config files every iteration
 
-$config['version'] = '4.1.'.file_get_contents('VERSION');
+$config['version'] = '42.'.file_get_contents('VERSION');
 
 require_once $_cwd . '/tmhoauth/tmhOAuth.php';
 

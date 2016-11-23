@@ -35,7 +35,7 @@ unset($pi, $config_path, $ircClass);
 
 $config['version'] = '4.1.'.file_get_contents('VERSION');
 
-require_once $_cwd . '/oauth/tmhOAuth.php';
+require_once $_cwd . '/tmhoauth/tmhOAuth.php';
 
 $pybs = new Irc($config);
 exit;

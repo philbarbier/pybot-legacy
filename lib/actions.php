@@ -12,7 +12,7 @@ class Actions
         $this->version = $config['version'];
         $this->currentuser = '';
         $this->currentchannel = false;
-        $this->channellist = array();
+        if (!isset($this->config['channellist'])) $this->config['channellist'] = array();
         $this->message_data = '';
         $this->isIRCOper = false;
         // seperate config array incase we need to override anything(?)
@@ -38,7 +38,7 @@ class Actions
         $this->txlimit = 256; // transmission length limit in bytes (chars)
         $this->userCache = array();
         $this->array_key = '';
-        $this->bothandle = false;
+        if (!isset($this->config['bothandle'])) $this->config['bothandle'] = false;
         $this->myparts = array();
         $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'me', 'uptime', 'cc');
 
@@ -52,6 +52,11 @@ class Actions
     public function __destruct()
     {
         // unload
+    }
+
+    public function getConfig()
+    {
+        return $this->config;
     }
 
     public function initModule($className = false, $config = false)
@@ -268,9 +273,8 @@ class Actions
         if ($this->config['log_stats']) {
             $this->stats($data);
         }
-        if (isset($data['command']) && $data['command'] == 'JOIN' && $data['user'] != $this->bothandle) {
+        if (isset($data['command']) && $data['command'] == 'JOIN' && $data['user'] != $this->config['bothandle']) {
             // abuse new user
-
             sleep(2);
 
             $abuse_tpls = array(
@@ -315,7 +319,7 @@ class Actions
     public function setBotHandle($nick = false)
     {
         if (!$nick) return;
-        $this->bothandle = $nick;
+        $this->config['bothandle'] = $nick;
     }
 
     public function set_arraykey($parts = array())
@@ -1177,7 +1181,7 @@ class Actions
         }
         if (!$chan) return;
         // check if we're here or not
-        if (array_key_exists($chan, $this->channellist)) {
+        if (array_key_exists($chan, $this->config['channellist'])) {
             $word = 'there';
             if ($chan == $this->get_current_channel()) $word = 'here';
             $get_insult = $this->linguo->get_word('insult');
@@ -1190,6 +1194,18 @@ class Actions
         $this->write('JOIN', $chan);
     }
 
+    public function cycle($args)
+    {
+        return; // disabling this as it's only useful for testing
+        if (strlen($args['arg1']) > 0) return;
+
+        // part
+        $this->part(array('arg1' => $this->get_current_channel()));
+        sleep(1);
+        // join
+        $this->join(array('arg1' => $this->get_current_channel()));
+    }
+
     /* Tell pybot to leave a $chan */
     public function part($args)
     {
@@ -1198,7 +1214,11 @@ class Actions
             $chan = $args['arg1'];
         }
         if (!$chan) {
+            if (strlen($args['arg1']) > 1) return;
             $chan = $this->get_current_channel();
+        }
+        if (!array_key_exists($chan, $this->config['channellist'])) {
+            return;
         }
         $oldchan = $this->get_current_channel();
         $this->set_current_channel($chan);
@@ -1213,16 +1233,16 @@ class Actions
     public function addChannel($channel = false)
     {
         if (!$channel) return;
-        if (!array_key_exists($channel, $this->channellist)) {
-            $this->channellist[$channel] = 1;
+        if (!array_key_exists($channel, $this->config['channellist'])) {
+            $this->config['channellist'][$channel] = 1;
         }
     }
 
     public function removeChannel($channel = false)
     {
         if (!$channel) return;
-        if (array_key_exists($channel, $this->channellist)) {
-            unset($this->channellist[$channel]);
+        if (array_key_exists($channel, $this->config['channellist'])) {
+            unset($this->config['channellist'][$channel]);
         }
     }
 
@@ -1425,7 +1445,7 @@ class Actions
             }
             $requester = $this->get_current_user();
             if (isset($args['joinabuse'])) {
-                $requester = $this->bothandle;
+                $requester = $this->config['bothandle'];
             }
             $this->linguo->setLastRequester($requester);
             $abuse = $this->linguo->get_abuse($args);
@@ -2213,18 +2233,20 @@ class Actions
             $args['arg1'] = 'toronto';
         }
 
+        if (strstr($args['arg1'], ' ')) return;
         $this->top_rss('http://www.reddit.com/r/'.$args['arg1'].'.rss', 3);
     }
 
     private function top_rss($url, $count)
     {
+        $data = array();
+        
         try {
             $data = json_decode(json_encode(simplexml_load_string(file_get_contents($url))), true);
         } catch (Exception $e) {
-            $data = array();
-            $data['entry'] = array();
         }
         $i = 0;
+        if (!isset($data['entry'])) return;
         foreach ($data['entry'] as $item) {
             if ($i <= $count - 1) {
                 $title = $item['title'];
@@ -2592,7 +2614,7 @@ class Actions
         $this->write_channel('Lisa needs braces');
     }
 
-    public function MORTAL_KOMBAT()
+    public function MORTAL_KOMBAT($args)
     {
         $this->write_channel('                        ..sex..                        ');
         $this->write_channel("                     uuuueeeeeu..^'*&e.                ");
@@ -2766,21 +2788,24 @@ class Actions
         $this->write_channel($this->getcc());
     }
 
-    public function The_Hatta()
+    public function The_Hatta($args)
     {
+        if (strlen($args['arg1']) >= 2) return;
         $this->write_channel('      _____');
         $this->write_channel(' _____|LI|_\\__');
         $this->write_channel('[    _  [^   _ `)     The_Hatta');
         $this->write_channel('`"""(_)"""""(_)~');
     }
-    public function flimflam()
+    public function flimflam($args)
     {
+        if (strlen($args['arg1']) >= 2) return;
         $this->write_channel('     __o');
         $this->write_channel("   _ \<,_");
         $this->write_channel('  (_)/ (_) flimflam');
     }
-    public function blafunke()
+    public function blafunke($args)
     {
+        if (strlen($args['arg1']) >= 2) return;
         $this->write_channel('                                                               /|');
         $this->write_channel("                    XYX XYX XYX  ,-.                         .' |");
         $this->write_channel(",-.__________________H___H___H__(___)_____________________,-'   |");
@@ -2793,8 +2818,9 @@ class Actions
         $this->write_channel("       `------------|_| |_| |_|-----------------'J `-'    blafunke");
     }
 
-    public function gorf()
+    public function gorf($args)
     {
+        if (strlen($args['arg1']) >= 2) return;
         $this->write_channel('   (o)--(o) ');
         $this->write_channel("  /.______.\ ");
         $this->write_channel("  \________/ ");
@@ -2804,8 +2830,9 @@ class Actions
         $this->write_channel('  ~~  ~~  ~~ ');
     }
 
-    public function sunshine()
+    public function sunshine($args)
     {
+        if (strlen($args['arg1']) >= 2) return;
         $this->write_channel("                        \     (      /");
         $this->write_channel("                   `.    \     )    /    .'");
         $this->write_channel("                     `.   \   (    /   .'");

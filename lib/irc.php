@@ -32,6 +32,7 @@ class Irc
         $this->is_oper = false;
         $this->is_connected = false;
         $this->nick_change = null;
+        $this->current_nick = '';
         $this->main();
     }
 
@@ -81,10 +82,6 @@ class Irc
                             $expected_class = ucfirst(substr($file, 0, strpos($file, '.')));
                             $sample = file_get_contents($_module_path . '/' . $file, NULL, NULL, 0, 1024);
 
-                            if ($this->_checkIfModuleLoaded($_module_path . '/' . $file)) {
-                                continue;
-                            }
-                        
                             $res = false;
                             if (substr($sample, 0, 5) === '<?php') {
                                 if (stristr($sample, 'class ' . $expected_class)) {
@@ -119,29 +116,15 @@ class Irc
 
     }
 
-    private function _checkIfModuleLoaded($_module_path = '', $file = '')
-    {
-        // check if this file exists in config classes, if so, compare md5sum
-        // call the destructor and reload the class
-        return false;
-    }
-
     private function _reloadModules()
     {
         $id = date('U');
         $classes = self::$config['_classes'];
-        print_r($classes);
         foreach ($classes as $className => $classData) {
             // if Irc is changed, we'll restart the whole lot
             // it's in the class list because of the reason
             if ($className == 'Irc') continue;
             
-            /*
-            if (!in_array($className, array('Linguo', 'Actions'))) {
-                continue;
-            }
-            */
-
             $file = $classData['directory'] . '/' . $classData['filename'];
             $md5 = md5_file($file);
             // echo "checking " . $file . "\n";
@@ -170,20 +153,26 @@ class Irc
                         self::$config['_origclass'] = $className;
                         
                         $calllist = self::$config['_classes'][$className]['calllist'];
-                        print_r($calllist);
                         $localRef = strtolower($calllist[count($calllist)-1]);
                         $theirRef = strtolower($classData['origclass']);
                         $initFnName = 'init' . $theirRef;
-                        //echo $localRef . "->" . $theirRef . "\n";
+                        $classconfig = self::$config;
                         if (count($calllist) > 1) {
                             unset($this->$localRef->$theirRef);
-                            $this->$localRef->initModule($newClassName, self::$config);
+                            $this->$localRef->initModule($newClassName, $classconfig);
                         } else {
+                            if (method_exists($this->$theirRef, 'getConfig')) {
+                                $oldconfig = $this->$theirRef->getConfig();
+                                if (isset($oldconfig['channellist'])) {
+                                    $classconfig['channellist'] = $oldconfig['channellist'];
+                                }
+                                if (isset($oldconfig['bothandle'])) {
+                                    $classconfig['bothandle'] = $oldconfig['bothandle'];
+                                }
+                            }
                             unset($this->$theirRef);
-                            $this->$initFnName($newClassName, self::$config);
+                            $this->$initFnName($newClassName, $classconfig);
                         }
-                                                
-                        //$this->$localRef->$theirRef = new $newClassName(self::$config);
                     }
                 }
             }
@@ -234,6 +223,7 @@ class Irc
         $this->Log->log("Setting nick to '$nick'", 3);
         $this->write("NICK $nick");
         $this->actions->setBotHandle($nick);
+        $this->current_nick = $nick;
     }
 
     private function get_newnick()
@@ -432,7 +422,6 @@ class Irc
                         $newnick = $this->get_newnick();
                         $this->set_nickname($newnick);
                     }
-                    $this->actions->setBotHandle($parts[2]);
                     $this->nick_change = false;
                 break;
 
@@ -442,6 +431,9 @@ class Irc
                     //ready to join
                     $this->first_connect = false;
                     $this->connect_complete = true;
+                break;
+                case 473:
+                    // invite only channel - remove channel from list?
                 break;
                 // non-numerics
 

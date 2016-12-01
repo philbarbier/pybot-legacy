@@ -1222,7 +1222,9 @@ class Actions
         }
         $oldchan = $this->get_current_channel();
         $this->set_current_channel($chan);
-        $this->write_channel("I'm the fuck outta here");
+        $get_insult = $this->linguo->get_word('insult');
+        $insult = $get_insult['word'];
+        $this->write_channel("So long, " . $insult . "s!");
         $this->write('PART', $chan);
         $this->removeChannel($chan);
         if ($oldchan !== $chan) {

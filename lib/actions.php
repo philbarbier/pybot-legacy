@@ -2792,7 +2792,7 @@ class Actions
 
     public function The_Hatta($args)
     {
-        if (strlen($args['arg1']) >= 2) return;
+        if (strlen($args['arg1']) >= 0) return;
         $this->write_channel('      _____');
         $this->write_channel(' _____|LI|_\\__');
         $this->write_channel('[    _  [^   _ `)     The_Hatta');
@@ -2800,14 +2800,14 @@ class Actions
     }
     public function flimflam($args)
     {
-        if (strlen($args['arg1']) >= 2) return;
+        if (strlen($args['arg1']) >= 0) return;
         $this->write_channel('     __o');
         $this->write_channel("   _ \<,_");
         $this->write_channel('  (_)/ (_) flimflam');
     }
     public function blafunke($args)
     {
-        if (strlen($args['arg1']) >= 2) return;
+        if (strlen($args['arg1']) >= 0) return;
         $this->write_channel('                                                               /|');
         $this->write_channel("                    XYX XYX XYX  ,-.                         .' |");
         $this->write_channel(",-.__________________H___H___H__(___)_____________________,-'   |");
@@ -2822,7 +2822,7 @@ class Actions
 
     public function gorf($args)
     {
-        if (strlen($args['arg1']) >= 2) return;
+        if (strlen($args['arg1']) >= 0) return;
         $this->write_channel('   (o)--(o) ');
         $this->write_channel("  /.______.\ ");
         $this->write_channel("  \________/ ");
@@ -2834,7 +2834,7 @@ class Actions
 
     public function sunshine($args)
     {
-        if (strlen($args['arg1']) >= 2) return;
+        if (strlen($args['arg1']) >= 0) return;
         $this->write_channel("                        \     (      /");
         $this->write_channel("                   `.    \     )    /    .'");
         $this->write_channel("                     `.   \   (    /   .'");

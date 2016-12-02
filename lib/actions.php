@@ -2169,7 +2169,8 @@ class Actions
                 if (empty($title)) {
                     $title = 'Untitled ';
                 }
-                if ($this->get_current_user() == 'pybot') return;
+                // find a better way to ignore other bots?
+                // if ($this->get_current_user() == 'pybot') return;
                 $url = $this->_shorten($word);
                 //   $this->db->insert('package__pybot_link_history', array('username' => $this->user, 'title' => $title, 'url' => $url, 'created' => date('d-m-Y g:i A')));
                 $criteria = array();

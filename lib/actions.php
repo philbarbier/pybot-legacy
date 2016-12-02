@@ -2158,7 +2158,7 @@ class Actions
     /* Checks all words for valid url, retreives title ad shortens link */
     public function check_url($words, $channel)
     {
-        $url = false;
+                $url = false;
         foreach ($words as $word) {
             $word = trim($word);
             if (filter_var($word, FILTER_VALIDATE_URL)) {
@@ -2208,6 +2208,7 @@ class Actions
 
     private function _shorten($url)
     {
+        if ($this->get_current_user() == 'pybot') return;
         $encoded = urlencode($url);
         try {
             // $result = file_get_contents(;

@@ -298,7 +298,7 @@ class Actions
             if (strstr($data['message'], '5kb.us')) {
                 return;
             }
-            $url = $this->check_url(explode(' ', $data['message']), $this->get_current_channel());
+            $this->check_url(explode(' ', $data['message']), $this->get_current_channel());
         }
     }
 
@@ -2169,6 +2169,7 @@ class Actions
                 if (empty($title)) {
                     $title = 'Untitled ';
                 }
+                if ($this->get_current_user() == 'pybot') return;
                 $url = $this->_shorten($word);
                 //   $this->db->insert('package__pybot_link_history', array('username' => $this->user, 'title' => $title, 'url' => $url, 'created' => date('d-m-Y g:i A')));
                 $criteria = array();
@@ -2208,8 +2209,7 @@ class Actions
 
     private function _shorten($url)
     {
-        if ($this->get_current_user() == 'pybot') return;
-        $encoded = urlencode($url);
+                $encoded = urlencode($url);
         try {
             // $result = file_get_contents(;
             $result = $this->curl->simple_get("http://is.gd/create.php?format=simple&url=$encoded");

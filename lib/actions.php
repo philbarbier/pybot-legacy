@@ -98,7 +98,7 @@ class Actions
         $years = floor($seconds / 31536000);
 
         if ($years > 0) {
-            $str .= $years.' '.(($years > 1) ? 'Years' : 'Year').', ';
+            $str .= $years.' '.(($years > 1) ? 'years' : 'year').', ';
         }
 
         $seconds -= $years * 31536000;
@@ -106,7 +106,7 @@ class Actions
 
         if ($years > 0 or $months > 0) {
             if ($months > 0) {
-                $str .= $months.' '.(($months   > 1) ? 'Months' : 'Month').', ';
+                $str .= $months.' '.(($months   > 1) ? 'months' : 'month').', ';
             }
             $seconds -= $months * 2628000;
         }
@@ -115,7 +115,7 @@ class Actions
 
         if ($years > 0 or $months > 0 or $weeks > 0) {
             if ($weeks > 0) {
-                $str .= $weeks.' '.(($weeks > 1) ? 'Weeks' : 'Week').', ';
+                $str .= $weeks.' '.(($weeks > 1) ? 'weeks' : 'week').', ';
             }
 
             $seconds -= $weeks * 604800;
@@ -125,7 +125,7 @@ class Actions
 
         if ($months > 0 or $weeks > 0 or $days > 0) {
             if ($days > 0) {
-                $str .= $days.' '.(($days   > 1) ? 'Days' : 'Day').', ';
+                $str .= $days.' '.(($days   > 1) ? 'days' : 'day').', ';
             }
             $seconds -= $days * 86400;
         }
@@ -134,7 +134,7 @@ class Actions
 
         if ($days > 0 or $hours > 0) {
             if ($hours > 0) {
-                $str .= $hours.' '.(($hours > 1) ? 'Hours' : 'Hour').', ';
+                $str .= $hours.' '.(($hours > 1) ? 'hours' : 'hour').', ';
             }
             $seconds -= $hours * 3600;
         }
@@ -145,13 +145,13 @@ class Actions
             $minutes = floor($seconds / 60);
             if ($days > 0 or $hours > 0 or $minutes > 0) {
                 if ($minutes > 0) {
-                    $str .= $minutes.' '.(($minutes > 1) ? 'Minutes' : 'Minute').', ';
+                    $str .= $minutes.' '.(($minutes > 1) ? 'minutes' : 'minute').', ';
                 }
                 $seconds -= $minutes * 60;
             }
 
             if ($str == '') {
-                $str .= $seconds.' '.(($seconds > 1) ? 'Seconds' : 'Second').', ';
+                $str .= $seconds.' '.(($seconds > 1) ? 'seconds' : 'second').', ';
             }
         }
 
@@ -504,7 +504,7 @@ class Actions
     {
         unset($data['_id']);
         // Increment user message count
-        $criteria = array('date' => date('Y-m-d'), 'user' => $data['user']);
+        $criteria = array('date' => date('Y-m-d'), 'user' => (isset($data['user']) ? $data['user'] : ''));
         if ($data['command'] != 'PRIVMSG') {
             return;
         }
@@ -2170,7 +2170,7 @@ class Actions
                     $title = 'Untitled ';
                 }
                 // find a better way to ignore other bots?
-                // if ($this->get_current_user() == 'pybot') return;
+                if ($this->get_current_user() == 'pybot') return;
                 $url = $this->_shorten($word);
                 //   $this->db->insert('package__pybot_link_history', array('username' => $this->user, 'title' => $title, 'url' => $url, 'created' => date('d-m-Y g:i A')));
                 $criteria = array();
@@ -3176,7 +3176,7 @@ class Actions
             $firstsmoke = ' since ' . date('d-m-Y H:i', $lastsmoke['firstsmoke']); 
         }
         $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... This brings you to a grand total of " . $totalsmokes . " smokes" . $firstsmoke . ". Keep up killing yourself with cancer!";
-        if ($lastsmoke && isset($lastsmoke['time'])) $response .= ' Your last smoke was at ' . $lastsmoke['time'];
+        if ($lastsmoke && isset($lastsmoke['time'])) $response .= ' Your last smoke was at ' . $lastsmoke['time'] . " - about " . $lastsmoke['ago'] . " ago";
         
         $this->write_channel($response);
     }
@@ -3204,7 +3204,7 @@ class Actions
                 $lastsmoke = array();
                 $lastsmoke['time'] = date('d-m-Y, H:i', $record['time']);
                 $lastsmoke['totalsmokes'] = $totalsmokes;
-
+                $lastsmoke['ago'] = $this->calculate_timespan($record['time']);
             }
         }
         $lastsmoke['firstsmoke'] = $firstsmoke;
@@ -3217,7 +3217,7 @@ class Actions
         // $criteria = array('user' => $this->get_current_user(), 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
         // $d = $c->findOne($criteria);
         $lastsmoke = $this->_getLastSmoke();
-        if ($lastsmoke) $this->write_channel("Well " . $this->get_current_user() . ", this is when you last inhaled cancer " . $lastsmoke['time']); 
+        if ($lastsmoke) $this->write_channel("Well " . $this->get_current_user() . ", this is when you last inhaled cancer " . $lastsmoke['time'] . " - about " . $lastsmoke['ago'] . " ago"); 
 
     }
 

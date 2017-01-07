@@ -3125,7 +3125,9 @@ class Actions
             $url = @$match[0][0];
             $title = $this->get_site_title($url);
             if (empty($url)) $this->_getYoutube($args);
-            if ($title == 'YouTube') $this->_getYoutube($args);
+            if ($title == 'YouTube') {
+                return $this->_getYoutube($args);
+            }
             $origurl = $url;
             $url = $this->_shorten($url);
             $when = gmdate('Y-m-d', (int) $record['time']);

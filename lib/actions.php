@@ -1445,7 +1445,8 @@ class Actions
     public function rabuse($args)
     {
         $abuse = $this->_getAbuse($args);
-        $thing = file_get_contents("https://radio.riboflav.in/?text=" . urlencode($abuse));
+        $thing = file_get_contents("http://radio.riboflav.in:10010/?text=" . urlencode($abuse));
+        print_r($thing);
     }
 
     private function _getAbuse($args)
@@ -2307,11 +2308,14 @@ class Actions
 
     public function randabuse($args)
     {
+        $abuse = false;
         if (isset($args['tpl'])) {
-            $this->abuse(array('arg1' => $this->randuser(), 'tpl' => $args['tpl']));
+            $abuse = $this->_getAbuse(array('arg1' => $this->randuser(), 'tpl' => $args['tpl']));
         } else {
-            $this->abuse(array('arg1' => $this->randuser()));
+            $abuse = $this->_getAbuse(array('arg1' => $this->randuser()));
         }
+        if ($abuse)
+            $this->write_channel($abuse);
     }
 
     public function metar($args)

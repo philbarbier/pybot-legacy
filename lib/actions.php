@@ -1452,7 +1452,11 @@ class Actions
     {
         try {
             if (!isset($args['arg1']) || strlen(trim($args['arg1'])) == 0) {
-                $this->randabuse($args);
+                if (isset($args['tpl'])) {
+                    $args = array('arg1' => $this->randuser(), 'tpl' => $args['tpl']);
+                } else {
+                    $args = array('arg1' => $this->randuser());
+                }
             }
             $requester = $this->get_current_user();
             if (isset($args['joinabuse'])) {
@@ -1464,6 +1468,11 @@ class Actions
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
         }
+    }
+
+    private function randuser()
+    {
+        return array_rand($this->userCache);
     }
 
     public function rant($args)
@@ -2298,23 +2307,6 @@ class Actions
         }
 
         $this->write_channel('Symbol not found. Check http://bitcoincharts.com/markets/ for a list of symbol names.');
-    }
-
-    private function randuser()
-    {
-        return array_rand($this->userCache);
-    }
-
-    public function randabuse($args)
-    {
-        $abuse = false;
-        if (isset($args['tpl'])) {
-            $abuse = $this->_getAbuse(array('arg1' => $this->randuser(), 'tpl' => $args['tpl']));
-        } else {
-            $abuse = $this->_getAbuse(array('arg1' => $this->randuser()));
-        }
-        if ($abuse)
-            $this->write_channel($abuse);
     }
 
     public function metar($args)

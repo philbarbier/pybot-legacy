@@ -3010,8 +3010,7 @@ class Actions
         $dateFmt = 'l jS \of F Y';
         if (empty($args['arg1'])) {
             $data = $this->_getYoutube($args);
-            $url = $data['url'];
-            $origurl = $data['origurl'];
+            $url = $origurl = $data['origurl'];
             $who = $data['who'];
             $what = $data['title'];
             $when = date($dateFmt, strtotime($data['when']));

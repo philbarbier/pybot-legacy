@@ -1443,22 +1443,20 @@ class Actions
         $this->write_channel($this->_getAbuse($args));
     }
 
-    private function _sendRadio($text = false, $type = 'text')
+    private function _sendRadio($data = array())
     {
-        if (!$text) return;
-
-        if ($type == 'text') {
-            $text = preg_replace('/\\r\\n/', ' ', $text);
-            $text = preg_replace('/\\n/', ' ', $text);
-        }
-        $thing = file_get_contents("http://radio.riboflav.in:10010/?" . $type . "=" . urlencode($text));
+        $radioUrl = "http://radio.riboflav.in:10010/";
+        $thing = $this->curl->simple_post($radioUrl, $data);
         if (!empty($thing)) $this->write_channel($thing);
     }
 
     public function rabuse($args)
     {
         $abuse = $this->_getAbuse($args);
-        $this->_sendRadio($abuse);
+        $abuse = preg_replace('/\\r\\n/', ' ', $abuse);
+        $abuse = preg_replace('/\\n/', ' ', $abuse);
+        $data = array('text' => $abuse);
+        $this->_sendRadio($data);
     }
 
     private function _getAbuse($args)
@@ -1689,9 +1687,16 @@ class Actions
         $def = $this->_getDefinition($args);
         if (isset($def['definition'])) {
             if (strlen($def['definition']) > 512 || strlen($def['example']) > 512) return;
-            $this->_sendRadio('Looking up definition for ' . $args['arg1']);
-            $this->_sendRadio($def['definition']);
-            $this->_sendRadio($def['example']);
+            $this->_sendRadio(array('text' => 'Looking up definition for ' . $args['arg1']));
+            
+            $definition = preg_replace('/\\r\\n/', ' ', $def['definition']);
+            $definition = preg_replace('/\\n/', ' ', $definition);
+
+            $example = preg_replace('/\\r\\n/', ' ', $def['example']);
+            $example = preg_replace('/\\n/', ' ', $example);
+
+            $this->_sendRadio(array('text' => $definition));
+            $this->_sendRadio(array('text' => $example));
         }
         
     }
@@ -3058,8 +3063,9 @@ class Actions
         $what = str_ireplace('youtube', '', $what);
         $songAnnounce = "And next up from " . $who . " is " . $what; // . " which was played on " . $when;
         $this->write_channel($songAnnounce);
-        $this->_sendRadio($songAnnounce);
-        $thing = $this->_sendRadio($url, 'url');
+        $this->_sendRadio(array('text' => $songAnnounce));
+        $extras = array('url' => urlencode($origurl), 'user' => urlencode($who), 'token' => urlencode(md5($origurl)));
+        $thing = $this->_sendRadio($extras);
     }
 
     private function _checkUrlHistory($url, $now)

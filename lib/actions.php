@@ -1443,13 +1443,15 @@ class Actions
         $this->write_channel($this->_getAbuse($args));
     }
 
-    private function _sendRadio($text = false)
+    private function _sendRadio($text = false, $type = 'text')
     {
         if (!$text) return;
 
-        $text = preg_replace('/\\r\\n/', ' ', $text);
-        $text = preg_replace('/\\n/', ' ', $text);
-        $thing = file_get_contents("http://radio.riboflav.in:10010/?text=" . urlencode($text));
+        if ($type == 'text') {
+            $text = preg_replace('/\\r\\n/', ' ', $text);
+            $text = preg_replace('/\\n/', ' ', $text);
+        }
+        $thing = file_get_contents("http://radio.riboflav.in:10010/?" . $type . "=" . urlencode($text));
     }
 
     public function rabuse($args)
@@ -3010,7 +3012,7 @@ class Actions
         } else {
             $url = $args['arg1'];
         }
-        $thing = file_get_contents("http://radio.riboflav.in:10010/?url=" . urlencode($url));
+        $thing = $this->_sendRadio($url, 'url');
     }
 
     public function yt($args)

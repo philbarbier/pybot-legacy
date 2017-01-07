@@ -1640,12 +1640,12 @@ class Actions
 
     private function _htmldoit($input)
     {
-            if (is_string($input)) {
-                $tmp = html_entity_decode(strip_tags($input));
-                $re = preg_replace_callback('/(&#[0-9]+;)/', function ($m) { return mb_convert_encoding($m[1], 'UTF-8', 'HTML-ENTITIES'); }, $tmp);
+        if (is_string($input)) {
+            $tmp = html_entity_decode(strip_tags($input));
+            $re = preg_replace_callback('/(&#[0-9]+;)/', function ($m) { return mb_convert_encoding($m[1], 'UTF-8', 'HTML-ENTITIES'); }, $tmp);
 
-                return str_replace('3text', '', $re);
-            }
+            return str_replace('3text', '', $re);
+        }
     }
 
     private function _getDefinition($args)
@@ -1906,131 +1906,7 @@ class Actions
         }
         return true;
     }
-/*
-    public function tstat() {
-        return;
-        $trans = new TransmissionRPC();
-        $r = $trans->get();
-        $active = 0;
-        $pending = 0;
-        foreach ($r->arguments->torrents as $t) {
-            $have = @$t->haveValid;
-            $size = @$t->totalSize;
-            $complete = round(($have / $size) * 100, 2);
-            if ($complete > 0)  {
-                $active++;
-                $this->write_channel($t->name.' - '.$complete." %");
-            } else {
-                $pending++;
-            }
-            if ($t->status == 6) {
-                $trans->remove($t->id);
-            }
-        }
-        $this->write_channel("Active : $active Pending : $pending");
-    }
-    public function tsearch($args) {
-        return;
-        $arg = $args['arg1'];
-        $results = json_decode(file_get_contents("http://isohunt.com/js/json.php?ihq=".urlencode($arg)."&rows=5&sort=seeds"));
-        $output = null;
-        foreach ($results->items->list as $file) {
-            try {
-                $this->collection->torrents->update($file, $file, array('upsert' => true));
-                $r = $this->collection->torrents->findOne($file);
-                $this->write_channel(strip_tags($file->title).' - '.$r['_id']);
-            } catch (Exception $e) {
-                $this->Log->log("DB Error", 2);
-            }
-        }
-        return;
-    }
 
-    public function tget($args) {
-        return;
-        $trans = new TransmissionRPC();
-        $id = trim($args['arg1']);
-        try {
-            $r = $this->collection->torrents->findOne(array('_id' => new MongoId($id)));
-            $url = $r['enclosure_url'];
-            $this->write_channel("Added ".strip_tags($r['title']));
-            $trans->add_file($url);
-        } catch (Exception $e) {
-            $this->Log->log("DB Error", 2);
-        }
-    }
-
-    function ssearch($args) {
-        return;
-        $q = $args['arg1'];
-        $query = urlencode($q);
-        $url = "http://nzbindex.com/rss/?q=$query&max=5&hidespam=1&complete=1&sort=sizedesc&minsize=80&maxsize=500";
-        $string = file_get_contents($url);
-        $xml = simplexml_load_string($string);
-        $output = null;
-        foreach ($xml->channel->item as $item) {
-            $s = $item->enclosure->attributes()->length[0];
-            $size = $s;
-            $title = $this->_parse_nzb($item->title);
-            $link = $item->link;
-            $id = new MongoId();
-            $str_id = (string) $id;
-            try {
-                $this->collection->usenet->insert(array('_id' => $id, 'title' => $title, 'link' => $link, 'size' => $size));
-                $this->write_channel("$size : $title : $str_id");
-            } catch (Exception $e) {
-                $this->Log->log("DB Error", 2);
-            }
-        }
-        return $output;
-    }
-
-    function sget($args) {
-        return;
-        $id = $args['arg1'];
-        $id = new MongoId($id);
-        try {
-            $result = $this->collection->usenet->findOne(array('_id' => $id));
-            $link = str_replace('/release/', '/download/', @$result['link'][0]);
-            $clean = @$result['title'];
-            $title = urlencode(@$result['title']);
-            if (!$link) { return "ID Not Found"; }
-            $r = file_get_contents("http://media.dev.riboflav.in:5000/api?mode=addurl&name=$link&nzbname=$title&cat=music");
-            $this->write_channel("Downloading $clean");
-        } catch (Exception $e) {
-            $this->Log->log("DB Error", 2);
-        }
-    }
-
-    function sstat() {
-        $r = file_get_contents("http://media:5000/api?mode=qstatus&output=json");
-        $data = json_decode($r);
-        $output = null;
-        $speed = $data->speed;
-        foreach ($data->jobs as $result) {
-            $eta = $result->timeleft;
-            $name = $result->filename;
-            $size = round($result->mb);
-            $left = round($result->mbleft);
-            $complete = round($size-$left);
-            $percent = round($complete/$size*100);
-            $this->write_channel("$name - Complete :  {$percent}% - Size : $size M");
-        }
-        $this->write_channel("Speed : {$speed}B/s");
-    }
-
-    private function _parse_nzb($title)
-    {
-        return;
-        $search = array('-', '_', '.', 'nfo', 'par2', 'flac', 'mp3');
-        $parts = explode('"', $title);
-        $new = str_replace($search, ' ', $parts[1]);
-        $p = array_map('ucfirst', explode(' ', $new));
-
-        return implode(' ', $p);
-    }
-
-*/
     public function e164($args)
     {
         $arg = implode('.', array_reverse(str_split(preg_replace('/[^0-9]/', '', $args['arg1'])))).'.in-addr.arpa';
@@ -3125,7 +3001,26 @@ class Actions
         $this->write_channel($data['question'] . ' (' . $data['category'] . ')');
 
     }
+
+    public function ryt($args)
+    {
+        if (empty($args['arg1'])) {
+            $data = $this->_getYoutube($args);
+            $url = $data['url'];
+        } else {
+            $url = $args['arg1'];
+        }
+        $this->write_channel("This would request " . $url); 
+    }
+
     public function yt($args)
+    {
+        $data = $this->_getYoutube($args);
+        $msg = $data['title'] . " | " . $data['url'] . " | " . $data['who'] . " on " . $data['when'];
+        $this->write_channel($msg);
+    }
+
+    private function _getYoutube($args)
     {
         $criteria = array(
             'message' => array(
@@ -3151,8 +3046,7 @@ class Actions
             $url = $this->_shorten($url);
             $when = gmdate('Y-m-d', (int) $record['time']);
             $who = $record['user'];
-            $msg = "$title | $url | $who on $when";
-            $this->write_channel($msg);
+            return array('url' => $url, 'title' => $title, 'when' => $when, 'who' => $who);
         }
     }
 

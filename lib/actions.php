@@ -1439,11 +1439,20 @@ class Actions
 
     public function abuse($args)
     {
+        $this->write_channel($this->_getAbuse($args));
+    }
+
+    public function rabuse($args)
+    {
+        $abuse = $this->_getAbuse($args);
+        $thing = file_get_contents("https://radio.riboflav.in/?text=" . urlencode($abuse));
+    }
+
+    private function _getAbuse($args)
+    {
         try {
             if (!isset($args['arg1']) || strlen(trim($args['arg1'])) == 0) {
                 $this->randabuse($args);
-
-                return;
             }
             $requester = $this->get_current_user();
             if (isset($args['joinabuse'])) {
@@ -1451,7 +1460,7 @@ class Actions
             }
             $this->linguo->setLastRequester($requester);
             $abuse = $this->linguo->get_abuse($args);
-            $this->write_channel($abuse);
+            return $abuse;
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
         }
@@ -3247,9 +3256,9 @@ class Actions
 
     public function mlb($args) {
         $data = json_decode(file_get_contents("http://www.sportsnet.ca/wp-content/themes/sportsnet/zones/ajax-scoreboard.php"));
-        
+        $mlb = false; 
         try {
-            $mlb = $data->data->mlb;
+            $mlb = isset($data->data->mlb) ? $data->data->mlb : false;
         } catch (Exception $e) {
             return;
         }

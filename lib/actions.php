@@ -1682,6 +1682,7 @@ class Actions
 
         $def = $this->_getDefinition($args);
         if (isset($def['definition'])) {
+            if (strlen($def['definition']) > 512 || strlen($def['example']) > 512) return;
             $this->_sendRadio($def['definition']);
             $this->_sendRadio($def['example']);
         }

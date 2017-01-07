@@ -1446,6 +1446,9 @@ class Actions
     private function _sendRadio($text = false)
     {
         if (!$text) return;
+
+        $text = preg_replace('/\\r\\n/', ' ', $text);
+        $text = preg_replace('/\\n/', ' ', $text);
         $thing = file_get_contents("http://radio.riboflav.in:10010/?text=" . urlencode($text));
     }
 

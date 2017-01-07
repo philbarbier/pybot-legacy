@@ -1384,6 +1384,7 @@ class Actions
 
     public function imgbuse($args, $image = '')
     {
+        return;
         $last_param = end(explode(' ', $args['arg1']));
 
         // If image provided, remove it from the args
@@ -1442,10 +1443,16 @@ class Actions
         $this->write_channel($this->_getAbuse($args));
     }
 
+    private function _sendRadio($text = false)
+    {
+        if (!$text) return;
+        $thing = file_get_contents("http://radio.riboflav.in:10010/?text=" . urlencode($text));
+    }
+
     public function rabuse($args)
     {
         $abuse = $this->_getAbuse($args);
-        $thing = file_get_contents("http://radio.riboflav.in:10010/?text=" . urlencode($abuse));
+        $this->_sendRadio($abuse);
     }
 
     private function _getAbuse($args)
@@ -1638,25 +1645,59 @@ class Actions
             }
     }
 
+    private function _getDefinition($args)
+    {
+        if (!$args['arg1']) return array();
+        $word = trim((string) $args['arg1']);
+        $q = rawurlencode($word);
+        $output = array();
+        $url = 'http://api.urbandictionary.com/v0/define?term=' . $q;
+        $html = file_get_html($url);
+        if ($html) {
+            $html = json_decode($html);
+            if (isset($html->list[0])) {
+                $output['definition'] = $html->list[0]->definition;
+                $output['example'] = $html->list[0]->example;
+            }
+        }
+
+        return $output;
+
+    }
+
+    public function rdefine($args)
+    {
+        $types = explode(', ', $this->linguo->get_word_types());
+
+        if (isset($args['arg1']) && in_array($args['arg1'], $types)) {
+            $word = $this->linguo->get_word($args['arg1']);
+            $args['arg1'] = $word['word'];
+        }
+
+        if (empty($args['arg1'])) {
+            $type = $this->linguo->get_random_word_type();
+            $word = $this->linguo->get_word($type);
+            $args['arg1'] = $word['word'];
+        }
+
+        $def = $this->_getDefinition($args);
+        if (isset($def['definition'])) {
+            $this->_sendRadio($def['definition']);
+            $this->_sendRadio($def['example']);
+        }
+        
+    }
+
     public function define($args)
     {
         if (!empty($args['arg1'])) {
             $word = trim((string) $args['arg1']);
-            $q = rawurlencode($word);
             $this->write_channel("Looking up definition for $word ...\n");
-            $output = '';
-            // $url = 'http://www.urbandictionary.com/define.php?term='.$q;
-            $url = 'http://api.urbandictionary.com/v0/define?term=' . $q;
-            $html = file_get_html($url);
-            if ($html) {
-                $html = json_decode($html);
-                if (isset($html->list[0])) {
-                    $definition = $html->list[0]->definition;
-                    $example = $html->list[0]->example;
-                    $this->write_channel('Definition: ' . $definition);
-                    $this->write_channel('Example: ' . $example);
-                    return;
-                }
+            $def = $this->_getDefinition($args);
+            if (isset($def['definition'])) {
+                $this->write_channel('Definition: ' . $def['definition']);
+                $this->write_channel('Example: ' . $def['example']);
+                return;
             }
         } else {
             $this->write_channel('Please specify a search query.');

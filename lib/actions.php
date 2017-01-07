@@ -3020,10 +3020,18 @@ class Actions
             $who = $this->get_current_user();
             $when = date($dateFmt);
             $what = $this->get_site_title($url);
+            if ($what == 'YouTube') {
+                $data = $this->_getYoutube();
+                $url = $data['origurl'];
+                $origurl = $data['origurl'];
+                $who = $data['who'];
+                $what = $data['title'];
+                $when = date($dateFmt, strtotime($data['when']));
+            }
         }
 
         $now = date('U');
-               
+
         $urlData = $this->_checkUrlHistory($origurl, $now);
 
         if ($url != $urlData['url']) {
@@ -3112,6 +3120,7 @@ class Actions
             $url = @$match[0][0];
             $title = $this->get_site_title($url);
             if (empty($url)) $this->_getYoutube($args);
+            if ($title == 'YouTube') $this->_getYoutube($args);
             $origurl = $url;
             $url = $this->_shorten($url);
             $when = gmdate('Y-m-d', (int) $record['time']);

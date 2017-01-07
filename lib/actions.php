@@ -1452,6 +1452,7 @@ class Actions
             $text = preg_replace('/\\n/', ' ', $text);
         }
         $thing = file_get_contents("http://radio.riboflav.in:10010/?" . $type . "=" . urlencode($text));
+        if (!empty($thing)) $this->write_channel($thing);
     }
 
     public function rabuse($args)
@@ -3006,13 +3007,78 @@ class Actions
 
     public function ryt($args)
     {
+        $dateFmt = 'l jS \of F Y';
         if (empty($args['arg1'])) {
             $data = $this->_getYoutube($args);
             $url = $data['url'];
+            $origurl = $data['origurl'];
+            $who = $data['who'];
+            $what = $data['title'];
+            $when = date($dateFmt, strtotime($data['when']));
         } else {
-            $url = $args['arg1'];
+            $url = $origurl = $args['arg1'];
+            $who = $this->get_current_user();
+            $when = date($dateFmt);
+            $what = $this->get_site_title($url);
         }
+
+        $now = date('U');
+               
+        $urlData = $this->_checkUrlHistory($origurl, $now);
+
+        if ($url != $urlData['url']) {
+            $url = $urlData['url'];
+            $origurl = $urlData['origurl'];
+            $who = $urlData['who'];
+            $what = $urlData['title'];
+            $when = date($dateFmt, strtotime($urlData['when']));
+        }
+
+        // log history
+        $data = array(
+                'url' => $origurl,
+                'who' => $who,
+                'when' => $when,
+                'title' => $what,
+                'timestamp' => $now
+            );
+
+        $col = $this->collection->radio->songhistory;
+        $criteria = array('url' => $url);
+
+        $col->update($criteria, $data, array('upsert' => true));
+        
+        $what = str_ireplace('youtube', '', $what);
+        $songAnnounce = "And next up from " . $who . " is " . $what; // . " which was played on " . $when;
+        $this->write_channel($songAnnounce);
+        $this->_sendRadio($songAnnounce);
         $thing = $this->_sendRadio($url, 'url');
+    }
+
+    private function _checkUrlHistory($url, $now)
+    {
+        $urlData = false;
+        $col = $this->collection->radio->songhistory;
+        $criteria = array('url' => $url);
+        $history = $col->find($criteria); 
+
+        $threshold = 86400;
+
+        foreach ($history as $record) {
+            if (($now - $record['timestamp']) <= $threshold) {
+                $urlData = $this->_getYoutube();        
+                $url = $this->_checkUrlHistory($urlData['origurl'], $now);
+            }
+        }
+
+        if (is_array($urlData)) {
+            if ($urlData['title'] == 'YouTube') {
+                $urlData = $this->_getYoutube();
+                $url = $this->_checkUrlHistory($urlData['origurl'], $now);
+            }
+        }
+
+        return is_array($urlData) ? $urlData : array('url' => $url); 
     }
 
     public function yt($args)
@@ -3022,14 +3088,14 @@ class Actions
         $this->write_channel($msg);
     }
 
-    private function _getYoutube($args)
+    private function _getYoutube($args = array())
     {
         $criteria = array(
             'message' => array(
                 '$regex' => new MongoRegex('/youtube.com/i'),
             ),
         );
-        $query = @$args['arg1'];
+        $query = (isset($args['arg1']) && !empty($args['arg1'])) ? $args['arg1'] : false;
         if ($query) {
             $criteria = array(
                 'message' => array(
@@ -3045,10 +3111,12 @@ class Actions
             preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $string, $match);
             $url = @$match[0][0];
             $title = $this->get_site_title($url);
+            if (empty($url)) $this->_getYoutube($args);
+            $origurl = $url;
             $url = $this->_shorten($url);
             $when = gmdate('Y-m-d', (int) $record['time']);
             $who = $record['user'];
-            return array('url' => $url, 'title' => $title, 'when' => $when, 'who' => $who);
+            return array('url' => $url, 'title' => $title, 'when' => $when, 'who' => $who, 'origurl' => $origurl);
         }
     }
 

@@ -3010,7 +3010,7 @@ class Actions
         } else {
             $url = $args['arg1'];
         }
-        $this->write_channel("This would request " . $url); 
+        $thing = file_get_contents("http://radio.riboflav.in:10010/?url=" . urlencode($url));
     }
 
     public function yt($args)

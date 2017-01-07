@@ -1446,7 +1446,6 @@ class Actions
     {
         $abuse = $this->_getAbuse($args);
         $thing = file_get_contents("http://radio.riboflav.in:10010/?text=" . urlencode($abuse));
-        print_r($thing);
     }
 
     private function _getAbuse($args)

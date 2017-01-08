@@ -3155,11 +3155,12 @@ class Actions
 
         $criteria = array('_id' => new MongoId($objId));
         $record = $this->collection->log->findOne($criteria);
-        if (isset($record['_id'])) {
-            $record['urltitle'] = $title;
-            unset($record['_id']);
-            $this->collection->log->update($criteria, $record, array('upsert' => true));
-        }
+        
+        if (!isset($record['_id'])) return;
+        
+        $record['urltitle'] = $title;
+        unset($record['_id']);
+        $this->collection->log->update($criteria, $record, array('upsert' => true));
     }
 
     private function _cleanUrlHistory($objId = false, $url = false)
@@ -3173,12 +3174,7 @@ class Actions
 
         $record['message'] = str_replace($url, '<old video URL removed>', $record['message']);
         unset($record['_id']);
-
         $this->collection->log->update($criteria, $record, array('upsert' => true));
-
-        $criteria = array('_id' => new MongoId($objId));
-        $record = $this->collection->log->findOne($criteria);
-
     }
 
     public function itg($args)

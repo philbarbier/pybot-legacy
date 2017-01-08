@@ -264,6 +264,12 @@ class Actions
         if (!empty($data['message']) && ($data['command'] == 'PRIVMSG') && ($data['user'] != $this->config['irc_handle'])) {
             if (isset($this->config['log_history']) && $this->config['log_history']) {
                 try {
+                    
+                    if (stristr($data['message'], 'youtube.com')) {
+                        preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $data['message'], $match);
+                        $url = @$match[0][0];
+                        $data['urltitle'] = $this->get_site_title($url);
+                    }
                     $this->collection->log->insert($data);
                 } catch (Exception $e) {
                     $this->Log->log('DB Error', 2);
@@ -3126,14 +3132,53 @@ class Actions
             $title = $this->get_site_title($url);
             if (empty($url)) $this->_getYoutube($args);
             if ($title == 'YouTube') {
+                $this->_cleanUrlHistory($record['_id'], $url);
+                if (isset($record['urltitle'])) {
+                    $this->write_channel("Video for " . $record['urltitle'] . " could not be found");
+                }
                 return $this->_getYoutube($args);
             }
+            if (!isset($record['urltitle'])) $this->_addUrlTitle($record['_id'], $url, $title);
             $origurl = $url;
             $url = $this->_shorten($url);
             $when = gmdate('Y-m-d', (int) $record['time']);
             $who = $record['user'];
             return array('url' => $url, 'title' => $title, 'when' => $when, 'who' => $who, 'origurl' => $origurl);
         }
+    }
+
+    private function _addUrlTitle($objId, $url = false, $title = false)
+    {
+        if (!$url) return;
+
+        if (!$title) $title = $this->get_site_title($url);
+
+        $criteria = array('_id' => new MongoId($objId));
+        $record = $this->collection->log->findOne($criteria);
+        if (isset($record['_id'])) {
+            $record['urltitle'] = $title;
+            unset($record['_id']);
+            $this->collection->log->update($criteria, $record, array('upsert' => true));
+        }
+    }
+
+    private function _cleanUrlHistory($objId = false, $url = false)
+    {
+        if (!$objId) return;
+        
+        $criteria = array('_id' => new MongoId($objId));
+        $record = $this->collection->log->findOne($criteria);
+       
+        if (!isset($record['message'])) return;
+
+        $record['message'] = str_replace($url, '<old video URL removed>', $record['message']);
+        unset($record['_id']);
+
+        $this->collection->log->update($criteria, $record, array('upsert' => true));
+
+        $criteria = array('_id' => new MongoId($objId));
+        $record = $this->collection->log->findOne($criteria);
+
     }
 
     public function itg($args)

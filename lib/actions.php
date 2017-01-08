@@ -604,7 +604,7 @@ class Actions
     }
 
     /* Returns <title> of webpage. */
-    public function get_site_title($url)
+    private function get_site_title($url)
     {
         try {
             //$urlContents = file_get_contents($url);
@@ -1564,7 +1564,7 @@ class Actions
         // $output = explode("\n", shell_exec('/usr/bin/calendar'));
         // $this->write_channel($output[array_rand($output)]);
     }
-    public function _get_git_revision()
+    private function _get_git_revision()
     {
         return shell_exec('/usr/bin/git rev-parse HEAD');
     }
@@ -2110,9 +2110,9 @@ class Actions
     }
 */
     /* Checks all words for valid url, retreives title ad shortens link */
-    public function check_url($words, $channel)
+    private function check_url($words, $channel)
     {
-                $url = false;
+        $url = false;
         foreach ($words as $word) {
             $word = trim($word);
             if (filter_var($word, FILTER_VALIDATE_URL)) {
@@ -2164,7 +2164,7 @@ class Actions
 
     private function _shorten($url)
     {
-                $encoded = urlencode($url);
+        $encoded = urlencode($url);
         try {
             // $result = file_get_contents(;
             $result = $this->curl->simple_get("http://is.gd/create.php?format=simple&url=$encoded");
@@ -2475,7 +2475,7 @@ class Actions
     }
 
     /* math functions */
-    public function sum($args)
+    private function sum($args)
     {
         $parts = explode('|', $this->get_param_string($args['command']));
 
@@ -2590,7 +2590,7 @@ class Actions
         $this->write_channel("          `^*&&&&&&&&&                      '          ");
     }
 
-    public function getcc()
+    private function getcc()
     {
         $arr1 = array(
             'ass',

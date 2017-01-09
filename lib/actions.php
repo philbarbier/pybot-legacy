@@ -36,7 +36,7 @@ class Actions
         $this->Log = new $class($linguo_config);
 
         $this->txlimit = 256; // transmission length limit in bytes (chars)
-        $this->userCache = array();
+        if (!isset($this->config['usercache'])) $this->config['usercache'] = array();
         $this->array_key = '';
         if (!isset($this->config['bothandle'])) $this->config['bothandle'] = false;
         $this->myparts = array();
@@ -352,7 +352,7 @@ class Actions
             return false;
         }
 
-        return isset($this->userCache[$nick]) ? $this->userCache[$nick]['userhash'] : false;
+        return isset($this->config['usercache'][$nick]) ? $this->config['usercache'][$nick]['userhash'] : false;
     }
 
     public function _check_acl($data)
@@ -367,8 +367,8 @@ class Actions
         $this->Log->log($datastr, 3);
         */
 
-        if (isset($this->userCache[$this->get_current_user()]) && $this->check_current_userhash($this->get_current_user(), $this->get_parts())) {
-            $isoper = $this->userCache[$this->get_current_user()]['isoper'];
+        if (isset($this->config['usercache'][$this->get_current_user()]) && $this->check_current_userhash($this->get_current_user(), $this->get_parts())) {
+            $isoper = $this->config['usercache'][$this->get_current_user()]['isoper'];
         } else {
             $isoper = false;
         }
@@ -559,10 +559,10 @@ class Actions
         if (count($parts) == 0 || empty($nick)) {
             return false;
         }
-        if (isset($this->userCache[$nick])) {
+        if (isset($this->config['usercache'][$nick])) {
             $userdata = Irc::break_hostmask($parts[0]);
 
-            return $this->userCache[$nick]['userhash'] == md5($userdata['nick'].$userdata['host']);
+            return $this->config['usercache'][$nick]['userhash'] == md5($userdata['nick'].$userdata['host']);
         } else {
             return false;
         }
@@ -1460,8 +1460,8 @@ class Actions
         $radioUrl = "http://radio.riboflav.in:1337/api/v1/library";
         if (!isset($data['url'])) return;
         //$thing = file_get_contents($radioUrl . "?url=" . $data['url']);
-        // $this->write_channel('Hitting URL ' . $radioUrl);
-        // $this->write_channel(json_encode($data));
+        // $this->write('PRIVMSG', $this->config['admin_chan'], 'Hitting URL ' . $radioUrl);
+        // $this->write('PRIVMSG', $this->config['admin_chan'], json_encode($data));
         $options = array('CURLOPT_HTTPHEADER', array('Content-type: application/json'));
         $thing = $this->curl->simple_post($radioUrl, json_encode($data), $options);
         if (!empty($thing)) $this->write_channel($thing);
@@ -1500,7 +1500,31 @@ class Actions
 
     private function randuser()
     {
-        return array_rand($this->userCache);
+        return array_rand($this->config['usercache']);
+    }
+
+    public function checkUserCache($nick = false)
+    {
+        if (!$nick) return;
+        return isset($this->config['usercache'][$nick]);
+    }
+
+    public function getUserCache()
+    {
+        return $this->config['usercache'];
+    }
+
+    public function setUserCache($key = false, $data = false)
+    {
+        if (!$data || !$key) return;
+
+        if (!isset($this->config['usercache'][$key])) {
+            $this->config['usercache'][$key] = $data;
+        } else {
+            foreach($data as $k => $v) {
+                $this->config['usercache'][$key][$k] = $v;
+            }
+        }
     }
 
     public function rant($args)
@@ -3089,8 +3113,8 @@ class Actions
         $what = str_ireplace('youtube', '', $what);
         $songAnnounce = "And next up from " . $who . " is " . $what; // . " which was played on " . $when;
         $this->write_channel($songAnnounce);
-        $this->_sendRadio(array('text' => $songAnnounce));
-        $extras = array('url' => $origurl, 'user' => $who, 'token' => md5($origurl));
+        // $this->_sendRadio(array('text' => $songAnnounce));
+        $extras = array('url' => $origurl, 'user' => $who, 'token' => md5($origurl), 'intro_text' => $songAnnounce);
         $thing = $this->_sendRadio($extras);
     }
 
@@ -3102,9 +3126,7 @@ class Actions
         $history = $col->find($criteria); 
 
         $threshold = 86400;
-        echo $url . "\n";
         foreach ($history as $record) {
-            print_r($record);
             if (($now - $record['timestamp']) <= $threshold) {
                 $urlData = $this->_getYoutube();        
                 $url = $this->_checkUrlHistory($urlData['origurl'], $now);
@@ -3242,10 +3264,34 @@ class Actions
         $this->write_channel("Roman $out" . $this->randuser());
     }
 
+    private function _getUserSmokes($user = false)
+    {
+        if (!$user) return;
+        
+        $smokedata = $this->_getLastSmoke($user);
+        if (!$smokedata) {
+            $this->write_channel('No smoke data for ' . $user . ' found');
+            return;
+        }
+        $message = 'Smoke stats for ' . $user;
+        $this->write_channel($message);
+        $message = 'Total of ' . $smokedata['totalsmokes'] . ' smokes';
+        $message .= ' since ' . date('d-m-Y H:i', $smokedata['firstsmoke']);
+        $message .= '. The last smoke was ' . $smokedata['time'] . ' - ' . $smokedata['ago'] . ' ago.';
+        $this->write_channel($message);
+    }
+
     public function smoke($args)
     {
+        $user = $this->get_current_user();
+
+        if (isset($args['arg1']) && !empty($args['arg1'])) {
+            $this->write_channel($this->_getUserSmokes($args['arg1']));
+            return;
+        }
+
         $c = $this->collection->irc->smokecount;
-        $criteria = array('user' => $this->get_current_user(), 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
+        $criteria = array('user' => $user, 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
         $d = $c->findOne($criteria);
         $newsmokes = 1;
         $lastsmoke = $this->_getLastSmoke();
@@ -3264,18 +3310,21 @@ class Actions
         $c->update($criteria, $data, array('upsert' => true));
         $d = $c->findOne($criteria);
         $firstsmoke = '';
-        $totalsmokes = isset($lastsmoke['totalsmokes']) ? $lastsmoke['totalsmokes'] : '0'; 
+        $totalsmokes = isset($lastsmoke['totalsmokes']) ? $lastsmoke['totalsmokes'] : '1'; 
         if ($lastsmoke && isset($lastsmoke['firstsmoke'])) {
             $firstsmoke = ' since ' . date('d-m-Y H:i', $lastsmoke['firstsmoke']); 
         }
-        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... This brings you to a grand total of " . $totalsmokes . " smokes" . $firstsmoke . ". Keep up killing yourself with cancer!";
+        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... This brings you to a grand total of " . $totalsmokes . " smoke" . (($totalsmokes > 1) ? "s": "") . $firstsmoke . ". Keep up killing yourself with cancer!";
         if ($lastsmoke && isset($lastsmoke['time'])) $response .= ' Your last smoke was at ' . $lastsmoke['time'] . " - about " . $lastsmoke['ago'] . " ago";
         
         $this->write_channel($response);
     }
 
-    private function _getLastSmoke() {
-        $allrecords = $this->collection->irc->smokecount->find(array('user' => $this->get_current_user()));
+    private function _getLastSmoke($user = false)
+    {
+        if (!$user) $user = $this->get_current_user();
+
+        $allrecords = $this->collection->irc->smokecount->find(array('user' => $user));
         // 1 because this value is used in the smoke() function, so this 
         // accounts for that current smoke
         $totalsmokes = 1;
@@ -3290,7 +3339,7 @@ class Actions
         }
         unset($record);
         $total = $allrecords->count();
-        $d2 = $this->collection->irc->smokecount->find(array('user' => $this->get_current_user()))->sort(array('time' => -1))->limit(1);
+        $d2 = $this->collection->irc->smokecount->find(array('user' => $user))->sort(array('time' => -1))->limit(1);
         $lastsmoke = false;
         foreach($d2 as $record) {
             if (isset($record['time'])) {
@@ -3300,7 +3349,7 @@ class Actions
                 $lastsmoke['ago'] = $this->calculate_timespan($record['time']);
             }
         }
-        $lastsmoke['firstsmoke'] = $firstsmoke;
+        if (is_array($lastsmoke)) $lastsmoke['firstsmoke'] = $firstsmoke;
         return $lastsmoke;
     }
 

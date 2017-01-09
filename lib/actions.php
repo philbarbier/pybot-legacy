@@ -243,6 +243,12 @@ class Actions
     /* macro function for writing to the current channel */
     private function write_channel($message)
     {
+        if (is_array($message)) {
+            foreach($message as $k => $v) {
+                $this->write('PRIVMSG', $this->get_current_channel(), $k . ' => ' . $v);
+            }
+            return;
+        }
         $this->write('PRIVMSG', $this->get_current_channel(), $message);
     }
 
@@ -1451,8 +1457,13 @@ class Actions
 
     private function _sendRadio($data = array())
     {
-        $radioUrl = "http://radio.riboflav.in:10010/";
-        $thing = $this->curl->simple_post($radioUrl, $data);
+        $radioUrl = "http://radio.riboflav.in:1337/api/v1/library";
+        if (!isset($data['url'])) return;
+        //$thing = file_get_contents($radioUrl . "?url=" . $data['url']);
+        // $this->write_channel('Hitting URL ' . $radioUrl);
+        // $this->write_channel(json_encode($data));
+        $options = array('CURLOPT_HTTPHEADER', array('Content-type: application/json'));
+        $thing = $this->curl->simple_post($radioUrl, json_encode($data), $options);
         if (!empty($thing)) $this->write_channel($thing);
     }
 
@@ -3026,12 +3037,21 @@ class Actions
             $what = $data['title'];
             $when = date($dateFmt, strtotime($data['when']));
         } else {
-            $url = $origurl = $args['arg1'];
-            $who = $this->get_current_user();
-            $when = date($dateFmt);
-            $what = $this->get_site_title($url);
-            if ($what == 'YouTube') {
-                $data = $this->_getYoutube();
+            if (stristr($args['arg1'], 'http')) {
+                $url = $origurl = $args['arg1'];
+                $who = $this->get_current_user();
+                $when = date($dateFmt);
+                $what = $this->get_site_title($url);
+                if ($what == 'YouTube') {
+                    $data = $this->_getYoutube();
+                    $url = $data['origurl'];
+                    $origurl = $data['origurl'];
+                    $who = $data['who'];
+                    $what = $data['title'];
+                    $when = date($dateFmt, strtotime($data['when']));
+                }
+            } else {
+                $data = $this->_getYoutube($args);
                 $url = $data['origurl'];
                 $origurl = $data['origurl'];
                 $who = $data['who'];
@@ -3070,7 +3090,7 @@ class Actions
         $songAnnounce = "And next up from " . $who . " is " . $what; // . " which was played on " . $when;
         $this->write_channel($songAnnounce);
         $this->_sendRadio(array('text' => $songAnnounce));
-        $extras = array('url' => urlencode($origurl), 'user' => urlencode($who), 'token' => urlencode(md5($origurl)));
+        $extras = array('url' => $origurl, 'user' => $who, 'token' => md5($origurl));
         $thing = $this->_sendRadio($extras);
     }
 
@@ -3082,8 +3102,9 @@ class Actions
         $history = $col->find($criteria); 
 
         $threshold = 86400;
-
+        echo $url . "\n";
         foreach ($history as $record) {
+            print_r($record);
             if (($now - $record['timestamp']) <= $threshold) {
                 $urlData = $this->_getYoutube();        
                 $url = $this->_checkUrlHistory($urlData['origurl'], $now);
@@ -3118,8 +3139,9 @@ class Actions
         if ($query) {
             $criteria = array(
                 'message' => array(
-                    '$regex' => new MongoRegex("/$query/i"),
+                    '$regex' => new MongoRegex("/youtube.com/i"),
                 ),
+                'user' => $args['arg1']
             );
         };
         $count = $this->collection->log->count($criteria);

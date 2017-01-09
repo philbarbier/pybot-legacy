@@ -3125,7 +3125,7 @@ class Actions
         $criteria = array('url' => $url);
         $history = $col->find($criteria); 
 
-        $threshold = 86400;
+        $threshold = 21600; //86400;
         foreach ($history as $record) {
             if (($now - $record['timestamp']) <= $threshold) {
                 $urlData = $this->_getYoutube();        

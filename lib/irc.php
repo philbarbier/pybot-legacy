@@ -169,6 +169,9 @@ class Irc
                                 if (isset($oldconfig['bothandle'])) {
                                     $classconfig['bothandle'] = $oldconfig['bothandle'];
                                 }
+                                if (isset($oldconfig['usercache'])) {
+                                    $classconfig['usercache'] = $oldconfig['usercache'];
+                                }
                             }
                             unset($this->$theirRef);
                             $this->$initFnName($newClassName, $classconfig);
@@ -377,7 +380,10 @@ class Irc
             $this->actions->set_message_data(trim(@$matches[5]));
         }
         
-        if (isset($parts[1]) && !empty($parts[1]) && (is_numeric($parts[1]) || $parts[1] == 'JOIN' || $parts[1] == 'PART' || $parts[1] == 'INVITE' || $parts[1] == 'KILL')) {
+        if (isset($parts[1]) && !empty($parts[1])) {
+        
+        // && (is_numeric($parts[1]) || $parts[1] == 'JOIN' || $parts[1] == 'PART' || $parts[1] == 'INVITE' || $parts[1] == 'KILL')) {
+
             // we should maybe parse for every code here, that way
             // we're able to tell the IRC state better
             switch (strtoupper($parts[1])) {
@@ -390,9 +396,7 @@ class Irc
                 case 313:
                     $this->is_oper = true;
                     $array_key = $this->actions->get_arraykey($parts);
-                    if (isset($this->actions->userCache[$array_key]) && is_array($this->actions->userCache[$array_key])) {
-                        $this->actions->userCache[$array_key]['isoper'] = 1;
-                    }
+                    $this->actions->setUserCache($array_key, array('isoper' => 1));
                 break;
                 // checks end of WHOIS
                 case 318:
@@ -403,7 +407,7 @@ class Irc
                     foreach ($parts as $i => $val) {
                         if ($i > 4) {
                             $nick = Bleacher::ircnick($val);
-                            if (!isset($this->actions->userCache[$nick])) {
+                            if (!$this->actions->checkUserCache($nick)) {
                                 $this->whois($nick);
                             }
                         }
@@ -456,7 +460,16 @@ class Irc
                     sleep(15);
                     $this->__construct(self::$config);
                 break;
+                case "NICK":
+                    $nickparts = $this->break_hostmask($parts[0]);
+                    $data = array(
+                        'userhash' => md5(@$nickparts['nick'].@$nickparts['host']),
+                        'isoper' => 0
+                    );
 
+                    $nick = str_replace(':', '', $parts[2]);
+                    $this->actions->setUserCache($nick, $data);
+                break;
             }
             if (!$this->in_whois) {
                 $this->actions->set_isoper($this->is_oper);
@@ -520,12 +533,14 @@ class Irc
             $this->actions->set_arraykey($parts);
             $array_key = $this->actions->get_arraykey();
             if (!empty($array_key)) {
-                if (!isset($this->actions->userCache[$array_key])) {
-                    $this->actions->userCache[$array_key] = array();
-                }
 
-                $this->actions->userCache[$array_key]['userhash'] = md5(@$parts[3].@$parts[5]);
-                $this->actions->userCache[$array_key]['isoper'] = 0;
+                $data = array(
+                    'userhash' => md5(@$parts[3].@$parts[5]),
+                    'isoper' => 0
+                );
+
+                $this->actions->setUserCache($array_key, $data);
+               
             }
         }
     }
@@ -541,7 +556,7 @@ class Irc
 
     public function get_usercache()
     {
-        return $this->actions->userCache;
+        return $this->actions->getUserCache();
     }
 
     public function admin_message($message = '')

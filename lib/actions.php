@@ -2625,7 +2625,7 @@ class Actions
         $this->write_channel("          `^*&&&&&&&&&                      '          ");
     }
 
-    private function getcc()
+    public function getcc()
     {
         $arr1 = array(
             'ass',

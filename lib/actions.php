@@ -661,6 +661,7 @@ class Actions
             if ($i >= count($queryArr)-1) break;
             $i++;
         }
+        $query = trim($query);
         $criteria = array(
             '$and' => array(
                     array('message' => new MongoRegEx('/' . $query . '/i')),
@@ -672,7 +673,7 @@ class Actions
             $result = $this->collection->log->find($criteria)->limit($limit);
             $result->sort(array('time' => -1));
             if ($result->count() > 0) {
-                $this->write_user($result->count() . ' results found, showing top ' . $limit . ':');
+                $this->write_user($result->count() . ' results found for "' . $query . '", showing top ' . $limit . ':');
                 $i = 0;
                 foreach ($result as $history) {
                     $this->write_user('['.date('d/m/Y H:i', $history['time']).'] <'.$history['user'].'> '.$history['message']);

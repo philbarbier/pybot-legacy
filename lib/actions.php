@@ -2211,6 +2211,7 @@ class Actions
     public function uptime($args)
     {
         $this->write_channel(trim(shell_exec('uptime')));
+        $this->write_channel('Bot uptime: ' . $this->calculate_timespan($this->config['_starttime']));
     }
 
     public function b_shorten($url)

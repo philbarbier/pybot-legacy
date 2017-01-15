@@ -1,6 +1,5 @@
 #!/usr/bin/env php
 <?php
-$user = get_current_user();
 $config_path =  "./pybotrc";
 if (!file_exists($config_path)) {
 	die("FATAL: Could not find configuration in $config_path\n");
@@ -27,6 +26,7 @@ $ircClass = array(
 $config['_classes'] = array('Irc' => $ircClass);
 $config['_methods'] = array();
 $config['_cwd'] = $_cwd;
+$config['_starttime'] = date('U');
 
 unset($pi, $config_path, $ircClass);
 // include $_cwd . '/lib/transmissionrpc.php';

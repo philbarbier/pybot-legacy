@@ -642,13 +642,45 @@ class Actions
 
     public function history($args)
     {
-        $criteria = array('message' => new MongoRegEx('/^'.$args['arg1'].'/i'));
+        $limit = 10;
+        $ucount = count($args['uargs']) - 1;
+        if ($ucount < 1) $ucount = 1;
+        if (count($args['uargs']) > 1 && isset($args['uargs'][$ucount])) {
+            if (is_numeric($args['uargs'][$ucount])) {
+                $limit = $args['uargs'][$ucount];
+                if ($limit > 25) {
+                    $limit = 25;
+                }
+            }
+        }
+        $query = '';
+        $queryArr = explode(' ', $args['arg1']);
+        $i = 1;
+        foreach ($queryArr as $word) {
+            $query .= $word . ' ';
+            if ($i >= count($queryArr)-1) break;
+            $i++;
+        }
+        $criteria = array(
+            '$and' => array(
+                    array('message' => new MongoRegEx('/' . $query . '/i')),
+                    array('message' => new MongoRegEx('/^(?!history).+/'))
+            )
+        );
+        
         try {
-            $result = $this->collection->log->find($criteria)->limit(10);
+            $result = $this->collection->log->find($criteria)->limit($limit);
             $result->sort(array('time' => -1));
             if ($result->count() > 0) {
+                $this->write_user($result->count() . ' results found, showing top ' . $limit . ':');
+                $i = 0;
                 foreach ($result as $history) {
                     $this->write_user('['.date('d/m/Y H:i', $history['time']).'] <'.$history['user'].'> '.$history['message']);
+                    if ($i > $limit) {
+                        $this->write_user('Results limited to ' . $limit);
+                        break;
+                    }
+                    $i++;
                 }
             } else {
                 $this->write_channel('Nothing found.');
@@ -2161,8 +2193,6 @@ class Actions
                 // find a better way to ignore other bots?
                 if ($this->get_current_user() == 'pybot') return;
                 $url = $this->_shorten($word);
-                //   $this->db->insert('package__pybot_link_history', array('username' => $this->user, 'title' => $title, 'url' => $url, 'created' => date('d-m-Y g:i A')));
-                $criteria = array();
                 $data = array('username' => $this->get_current_user(), 'title' => $title, 'url' => $url, 'created' => date('d-m-Y g:i A'));
                 try {
                     $lh = $this->collection->linkhistory;

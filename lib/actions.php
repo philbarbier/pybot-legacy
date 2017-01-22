@@ -1786,6 +1786,7 @@ class Actions
                 $this->write_channel('Example: ' . $def['example']);
                 return;
             }
+            $this->write_channel('No definition found');
         } else {
             $this->write_channel('Please specify a search query.');
         }

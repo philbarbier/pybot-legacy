@@ -2560,6 +2560,27 @@ class Actions
         return $total;
     }
 
+    public function multiply($args)
+    {
+        $parts = explode('|', $this->get_param_string($args['command']));
+
+        if (count($parts) < 2) {
+            return;
+        }
+
+        print_r($parts);
+
+        
+
+        $total = $total2 = 1;
+        foreach ($parts as $part) {
+            $part = trim($part);
+            $total *= $part;
+        }
+
+        $this->write_channel(round($total, 2));
+    }
+
     public function add($args)
     {
         $this->write_channel($this->sum($args));

@@ -78,7 +78,7 @@ class Actions
     }
 
     /* calculates a date timespan (mimicing CI function) */
-    private function calculate_timespan($seconds = 1, $time = '', $display_mins_secs = true)
+    private function _calculate_timespan($seconds = 1, $time = '', $display_mins_secs = true)
     {
         if (!is_numeric($seconds)) {
             $seconds = 1;
@@ -821,7 +821,7 @@ class Actions
         $parts = explode('|', $this->get_param_string($args['command']));
         $then = strtotime(trim(@$parts[0]));
         $now = strtotime(trim(@$parts[1]));
-        $output = $this->calculate_timespan($then, $now)."\n";
+        $output = $this->_calculate_timespan($then, $now)."\n";
         $years = round(($now - $then) / 60 / 60 / 24 / 365, 2);
         $days = round(($now - $then) / 60 / 60 / 24, 2);
         $hours = round(($now - $then) / 60 / 60, 2);
@@ -2213,7 +2213,7 @@ class Actions
     public function uptime($args)
     {
         $this->write_channel(trim(shell_exec('uptime')));
-        $this->write_channel('Bot uptime: ' . $this->calculate_timespan($this->config['_starttime']));
+        $this->write_channel('Bot uptime: ' . $this->_calculate_timespan($this->config['_starttime']));
     }
 
     public function b_shorten($url)
@@ -2543,7 +2543,7 @@ class Actions
     }
 
     /* math functions */
-    private function sum($args)
+    private function _sum($args)
     {
         $parts = explode('|', $this->get_param_string($args['command']));
 
@@ -2583,7 +2583,7 @@ class Actions
 
     public function add($args)
     {
-        $this->write_channel($this->sum($args));
+        $this->write_channel($this->_sum($args));
     }
 
     /* calculate bmi - first version is in pounds */
@@ -3400,7 +3400,7 @@ class Actions
                 $lastsmoke = array();
                 $lastsmoke['time'] = date('d-m-Y, H:i', $record['time']);
                 $lastsmoke['totalsmokes'] = $totalsmokes;
-                $lastsmoke['ago'] = $this->calculate_timespan($record['time']);
+                $lastsmoke['ago'] = $this->_calculate_timespan($record['time']);
             }
         }
         if (is_array($lastsmoke)) $lastsmoke['firstsmoke'] = $firstsmoke;

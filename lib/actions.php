@@ -2568,10 +2568,6 @@ class Actions
             return;
         }
 
-        print_r($parts);
-
-        
-
         $total = $total2 = 1;
         foreach ($parts as $part) {
             $part = trim($part);

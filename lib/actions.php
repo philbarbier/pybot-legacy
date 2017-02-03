@@ -3317,6 +3317,11 @@ class Actions
     private function _getUserSmokes($user = false)
     {
         if (!$user) return;
+
+        $user = trim($user);
+        if (strstr($user, ' ')) {
+            return;
+        }
         
         $smokedata = $this->_getLastSmoke($user);
         if (!$smokedata) {

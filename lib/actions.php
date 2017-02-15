@@ -1551,6 +1551,8 @@ class Actions
     {
         if (!$data || !$key) return;
 
+        $key = trim($key);
+
         if (!isset($this->config['usercache'][$key])) {
             $this->config['usercache'][$key] = $data;
         } else {

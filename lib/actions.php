@@ -3499,6 +3499,12 @@ class Actions
             $this->write_user("You can add 'final' to this command to get all final results");
         }
     }
+
+    // reminder for the current MC server seed
+    public function mcseed($args = array())
+    {
+        $this->write_channel('-3253466048537712650');
+    }
 }
 
 

@@ -3505,6 +3505,12 @@ class Actions
     {
         $this->write_channel('-3253466048537712650');
     }
+
+    // reminder for the current MC server map
+    public function mcmap($args = array())
+    {
+        $this->write_channel('http://mc-server.seepies.net:8123');
+    }
 }
 
 

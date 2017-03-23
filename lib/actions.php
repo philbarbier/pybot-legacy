@@ -2215,6 +2215,7 @@ class Actions
     public function uptime($args)
     {
         $this->write_channel(trim(shell_exec('uptime')));
+        $this->write_channel('Bot was started at: ' . date('d-m-Y H:i', $this->config['_starttime']));
         $this->write_channel('Bot uptime: ' . $this->_calculate_timespan($this->config['_starttime']));
     }
 
@@ -3504,12 +3505,6 @@ class Actions
     public function mcseed($args = array())
     {
         $this->write_channel('-3253466048537712650');
-    }
-
-    // reminder for the current MC server map
-    public function mcmap($args = array())
-    {
-        $this->write_channel('http://mc-server.seepies.net:8123');
     }
 }
 

@@ -80,6 +80,8 @@ class Linguo
             if ($template) {
                 $template_string = $template['template'];
                 $tpl_user = $template['user'];
+                $timestamp = $template['time'];
+                print_r($template);
             }
         }
         // we do this here in case the ID supplied doesn't yield a result
@@ -91,10 +93,17 @@ class Linguo
                 $template_string = $data['template'];
                 $tpl_id = $data['id'];
                 $tpl_user = $data['user'];
+                $timestamp = $data['time'];
+                print_r($data);
             }
         }
-        
-        $this->setLastTpl($tpl_id, $tpl_user);
+       
+        $tpldata = array(
+            'timestamp' => $timestamp,
+            'tpl_id' => $tpl_id,
+            'tpl_user' => $tpl_user);
+
+        $this->setLastTpl($tpldata);
 
         return $template_string;
     }
@@ -294,9 +303,9 @@ class Linguo
         return $types[rand(0, count($types))];
     }
 
-    private function setLastTpl($tpl_id = false, $tpl_user = false)
+    private function setLastTpl($tpl_data = array()) 
     {
-        if (!$tpl_id || !$tpl_user || !is_numeric($tpl_id)) return;
+        if (!isset($tpl_data['tpl_id']) || !isset($tpl_data['tpl_user']) || !is_numeric($tpl_data['tpl_id'])) return;
 
         $requester = $this->abuse_requester;
 
@@ -304,8 +313,9 @@ class Linguo
         $criteria = array('user' => $requester);
         $data = array(
             'user' => $requester,
-            'tpl_id' => $tpl_id,
-            'tpl_user' => $tpl_user,
+            'tpl_id' => $tpl_data['tpl_id'],
+            'tpl_user' => $tpl_data['tpl_user'],
+            'tpl_time' => $tpl_data['timestamp'],
             'timestamp' => date('U')
         );
 

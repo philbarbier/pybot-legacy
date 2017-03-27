@@ -3303,7 +3303,7 @@ class Actions
         foreach ($data as $msg) {
             $user = $msg['user'];
             $mesg = $msg['message'];
-            $when = gmdate('Y-m-d', (int) $msg['time']);
+            $when = date('d-m-Y H:i', (int) $msg['time']);
         };
         $this->write_channel("($when) $user> $mesg");
     }

@@ -81,7 +81,6 @@ class Linguo
                 $template_string = $template['template'];
                 $tpl_user = $template['user'];
                 $timestamp = $template['time'];
-                print_r($template);
             }
         }
         // we do this here in case the ID supplied doesn't yield a result
@@ -94,7 +93,6 @@ class Linguo
                 $tpl_id = $data['id'];
                 $tpl_user = $data['user'];
                 $timestamp = $data['time'];
-                print_r($data);
             }
         }
        

@@ -1357,7 +1357,7 @@ class Actions
             // check if exists first
 
             $data = $this->collection->words->findOne(array('word' => $word, 'type' => $type));
-            if ($data) {
+            if (is_null($data) || !is_array($data)) {
                 $get_insult = $this->linguo->get_word('insult');
                 $insult = $get_insult['word'];
 
@@ -1367,7 +1367,6 @@ class Actions
                 return $this->write_channel($exclamation . ', ' . $this->currentuser . ' you ' . $insult . ' - that word already exists.');
                 return $this->abuse(array('user' => $this->currentuser));
             }
-
 
             $this->collection->words->update($criteria, $data, array('upsert' => true));
             $this->write_channel("$word added as $type");

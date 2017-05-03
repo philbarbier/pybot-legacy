@@ -2933,8 +2933,12 @@ class Actions
         $this->write_channel($out);
     }
     */
-    public function beer()
+    public function beer($args = array())
     {
+        if (isset($args['arg1']) && strtolower($args['arg1']) == 'beer beer') {
+            $this->write_channel('Bed! Bed! Bed!');
+        }
+
         $hour = date('H');
         if (in_array($hour, range(15, 23)) || in_array($hour, range(0, 6))) {
             $this->write_channel("IT'S BEER NOW!!!");

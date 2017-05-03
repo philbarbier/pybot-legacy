@@ -3449,7 +3449,7 @@ class Actions
         $things = array('Go to hell!', 'Kiss my butt!', 'Shut up!');
         $thing = rand(0,count($things)-1);
         $this->write_channel($things[$thing]);
-        if (($this->bartUseCount % 10) == 0) {
+        if (($this->bartUseCount % 5) == 0) {
             $this->write_channel('Hey, once again, great present, Dad.');
         }
         $this->bartUseCount++;

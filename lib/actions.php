@@ -40,6 +40,7 @@ class Actions
         $this->array_key = '';
         if (!isset($this->config['bothandle'])) $this->config['bothandle'] = false;
         $this->myparts = array();
+        $this->bartUseCount = 1;
         $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'me', 'uptime', 'cc');
 
         if (!$this->connection) {
@@ -3448,6 +3449,10 @@ class Actions
         $things = array('Go to hell!', 'Kiss my butt!', 'Shut up!');
         $thing = rand(0,count($things)-1);
         $this->write_channel($things[$thing]);
+        if (($this->bartUseCount % 10) == 0) {
+            $this->write_channel('Hey, once again, great present, Dad.');
+        }
+        $this->bartUseCount++;
     }
 
     public function lasttpl($args)
@@ -3524,5 +3529,3 @@ class Actions
         $this->write_channel('-3253466048537712650');
     }
 }
-
-

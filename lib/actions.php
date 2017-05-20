@@ -2234,7 +2234,7 @@ class Actions
     {
         $this->write_channel(trim(shell_exec('uptime')));
         $this->write_channel('Bot was started at: ' . date('d-m-Y H:i', $this->config['_starttime']));
-        $this->write_channel('Bot uptime: ' . $this->_calculate_timespan($this->config['_starttime']));
+        $this->write_channel($this->_calculate_timespan($this->config['_starttime']) . ' since our last code fuckup');
     }
 
     public function b_shorten($url)

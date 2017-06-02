@@ -3313,6 +3313,7 @@ class Actions
     public function said($args)
     {
         $criteria = array();
+        $when = false;
         if ($args['arg1']) {
             $criteria = array('user' => $args['arg1']);
         };
@@ -3324,6 +3325,7 @@ class Actions
             $mesg = $msg['message'];
             $when = date('d-m-Y H:i', (int) $msg['time']);
         };
+        if (!$when) return;
         $this->write_channel("($when) $user> $mesg");
     }
 

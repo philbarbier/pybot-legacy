@@ -806,6 +806,13 @@ class Actions
     {
         $time = trim($this->get_param_string($args['command']));
         if (!is_numeric($time)) {
+            if (!strtotime($time)) {
+                $get_insult = $this->linguo->get_word('insult');
+                $insult = $get_insult['word'];
+
+                $this->write_channel("That's not a goddamn time, " . $insult . "!");
+                return;
+            }
             $this->write_channel('Unix : '.strtotime($time));
             $this->write_channel('Human : '.date('Y-m-d g:i A', strtotime($time)).' ('.date('l', strtotime($time)).')');
         } else {

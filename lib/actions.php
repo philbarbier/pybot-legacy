@@ -3402,8 +3402,15 @@ class Actions
             $smokes[$row['user']]['average'] = ceil($smokedata['totalsmokes'] / $numdays);
 
         }
-        foreach($smokes as $user => $smoke) {
-            $this->write_user($user . ' has smoked ' . $smoke['smokecount'] . ' total smokes, averaging ' . $smoke['average'] . ' a day since ' . date('d-m-Y H:i', $smoke['firstsmoke']));
+        if (count($smokes) > 4) {
+            $this->write_channel('Data will be sent via PM');
+            foreach($smokes as $user => $smoke) {
+                $this->write_user($user . ' has smoked ' . $smoke['smokecount'] . ' total smokes, averaging ' . $smoke['average'] . ' a day since ' . date('d-m-Y H:i', $smoke['firstsmoke']));
+            }
+        } else {
+            foreach($smokes as $user => $smoke) {
+                $this->write_channel($user . ' has smoked ' . $smoke['smokecount'] . ' total smokes, averaging ' . $smoke['average'] . ' a day since ' . date('d-m-Y H:i', $smoke['firstsmoke']));
+            }
         }
     }
 

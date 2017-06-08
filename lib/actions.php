@@ -43,6 +43,7 @@ class Actions
         $this->bartUseCount = 1;
         $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'me', 'uptime', 'cc');
 
+        $this->_cacheData = array();
         if (!$this->connection) {
             sleep(60);
             // try again
@@ -1378,6 +1379,7 @@ class Actions
 
             $this->collection->words->update($criteria, $data, array('upsert' => true));
             $this->write_channel("$word added as $type");
+            $this->_invalidateWordCaches();
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
         }
@@ -1389,6 +1391,7 @@ class Actions
         try {
             $this->collection->words->remove(array('word' => $word));
             $this->write_channel("$word removed from dictionary.");
+            $this->_invalidateWordCaches();
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
         }
@@ -1436,6 +1439,7 @@ class Actions
             );
             $this->collection->templates->update($criteria, $data, array('upsert' => true));
             $this->write_channel("Template ID : $id");
+            $this->_invalidateTplCache();
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
         }
@@ -1447,6 +1451,7 @@ class Actions
         try {
             $r = $this->collection->templates->remove(array('id' => $id));
             $this->write_channel("Removed template $id - $r");
+            $this->_invalidateTplCache();
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
         }
@@ -1620,18 +1625,193 @@ class Actions
     }
 
     // Pybot Stats
-    public function pstats($agrs)
+    public function pstats($args)
     {
         try {
+            /*** general word stats ***/
+
+            $criteria = array(
+                array(
+                    '$group' => array(
+                        '_id' => array('user' => '$user'),
+                        'count' => array('$sum' => 1)
+                    )
+                ),
+                array(
+                    '$match' => array(
+                        'count' => array('$gte' => 50)
+                    )
+                )
+            );
+            
+            $data = $this->collection->words->aggregate($criteria);
+            $words = array();
+            $data = $data['result'];
+            foreach ($data as $row) {
+                if (!isset($words[$row['_id']['user']])) {
+                    $words[$row['_id']['user']] = $row['count'];
+                }
+            }
+            arsort($words);
             $count = $this->collection->words->count();
-            $this->write('PRIVMSG', $this->get_current_channel(), "$count words");
+            $wordtext = $count . " words.";
+            $a = 0;
+            foreach ($words as $user => $val) {
+                $wordtext .= ' (' . $val . ') ' . $user;
+                if ($a < count($words)-1) {
+                    $wordtext .= ';';
+                }
+                $a++;
+            }
+            $this->write_channel($wordtext);
+
+            /*** templates ***/
+
+            $criteria = array(
+                array(
+                    '$group' => array(
+                        '_id' => array('user' => '$user'),
+                        'count' => array('$sum' => 1)
+                    )
+                ),
+                array(
+                    '$match' => array(
+                        'count' => array('$gte' => 5)
+                    )
+                )
+            );
+            
+            $data = $this->collection->templates->aggregate($criteria);
+            $templates = array();
+            $data = $data['result'];
+            foreach ($data as $row) {
+                if (!isset($templates[$row['_id']['user']])) {
+                    $templates[$row['_id']['user']] = $row['count'];
+                }
+            }
+            arsort($templates);
+ 
             $count = $this->collection->templates->count();
-            $this->write('PRIVMSG', $this->get_current_channel(), "$count templates");
+            $templatetext = $count . " templates.";
+            $a = 0;
+            foreach ($templates as $user => $val) {
+                $templatetext .= ' (' . $val . ') ' . $user;
+                if ($a < count($templates)-1) {
+                    $templatetext .= ';';
+                }
+                $a++;
+            }
+            $this->write_channel($templatetext);
+
         } catch (Exception $e) {
-            $this->Log->log('DB Error', 2);
+            $this->write_channel('Something got fucked up');
         }
     }
 
+    private function _setCacheData($key = false, $data = false)
+    {
+        if (!$key || !$data) return false;
+        $this->_cacheData[$key] = $data;
+    }
+
+    private function _getCacheData($key = false)
+    {
+        if (!$key || !isset($this->_cacheData[$key])) return false;
+        return $this->_cacheData[$key]; 
+    }
+
+    private function _invalidateWordCaches()
+    {
+        unset($this->_cacheData['wordtypes']);
+    }
+
+    private function _invalidateTplCache()
+    {
+
+    }
+
+    private function _setWordStats()
+    {
+        $criteria = array(
+            array(
+                '$group' => array(
+                    '_id' => array('user' => '$user', 'type' => '$type'),
+                    'count' => array('$sum' => 1)
+                )
+            ),
+            array(
+                '$match' => array(
+                    'count' => array('$gte' => 5)
+                )
+            )
+            
+        );
+        
+        $data = $this->collection->words->aggregate($criteria);
+        $wordtypes = array();
+        $data = $data['result'];
+
+        foreach ($data as $row) {
+            if (!isset($wordtypes[$row['_id']['type']])) $wordtypes[$row['_id']['type']] = array();
+            $wordtypes[$row['_id']['type']][$row['_id']['user']] = $row['count'];
+        }
+        
+        // maybe now add caching?
+        // go through array, get all types
+        // - sort them, then assign associated values to it
+        // and add totals to the types (full totals)
+
+        $types = array();
+        $finaldata = array();
+        foreach($wordtypes as $type => $row) {
+            $types[] = $type;
+        }
+        asort($types, SORT_FLAG_CASE);
+
+        foreach ($types as $index => $type) {
+            $typestats = $wordtypes[$type];
+            arsort($typestats);
+            $finaldata[$type] = $typestats;
+        }
+        $this->_setCacheData('wordtypes', $finaldata);
+
+    }
+
+    public function wordstats($args)
+    {
+        /*** word types ***/
+        $finaldata = $this->_getCacheData('wordtypes');
+        if (!$finaldata) {
+            $this->_setWordStats();
+            $finaldata = $this->_getCacheData('wordtypes');
+        }
+        
+        if (!empty($args['arg1'])) {
+            $word = trim($args['arg1']);
+            if (isset($finaldata[$word])) {
+                $worddata = $finaldata[$word];
+                $finaldata = array();
+                $finaldata[$word] = $worddata;
+            }
+        }
+
+        $a = 0;
+        $i = 0;
+        foreach ($finaldata as $type => $data) {
+            $typetext = '';
+            if (count($data) > 0) $typetext .= $type . ': ';
+            foreach ($data as $user => $val) {
+                $typetext .= ' (' . $val . ') ' . $user;
+                if ($a < count($data)-1) {
+                    $typetext .= ';';
+                }
+                $a++;
+            }
+            $this->write_channel($typetext);
+            if ($i > 5) break;
+            $i++;
+        }
+    }
     public function geo($args)
     {
         $addr = trim($args['arg1']);
@@ -2243,7 +2423,6 @@ class Actions
         $this->write_channel('Bot was started at: ' . date('d-m-Y H:i', $this->config['_starttime']));
         $this->write_channel($this->_calculate_timespan($this->config['_starttime']) . ' since our last code fuckup');
         $lastcommit = explode("\n", $this->_getLastGitCommit());
-        print_r($lastcommit);
         if (!empty($lastcommit) || !$lastcommit) {
             $lastcommitlink = $this->_shorten('https://github.com/philbarbier/pybot-legacy/commit/' . str_replace('commit ', '', $lastcommit[0]));
             $authorraw = trim(str_replace('Author:', '', $lastcommit[1]));

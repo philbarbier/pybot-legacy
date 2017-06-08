@@ -3383,7 +3383,28 @@ class Actions
         $message = 'Total of ' . $smokedata['totalsmokes'] . ' smokes';
         $message .= ' since ' . date('d-m-Y H:i', $smokedata['firstsmoke']);
         $message .= '. The last smoke was ' . $smokedata['time'] . ' - ' . $smokedata['ago'] . ' ago.';
-        $this->write_channel($message);
+        return $message;
+    }
+
+    public function smokes($args)
+    {
+        $c = $this->collection->irc->smokecount;
+        $data = $c->find();
+        $smokes = array();
+        foreach($data as $row) {
+            if (!isset($smokes[$row['user']])) {
+                $smokes[$row['user']] = array();
+            }
+            $smokedata = $this->_getLastSmoke($row['user']);
+            $smokes[$row['user']]['smokecount'] = $smokedata['totalsmokes'];
+            $smokes[$row['user']]['firstsmoke'] = $smokedata['firstsmoke'];
+            $numdays = floor((date('U') - $smokedata['firstsmoke']) / 86400);
+            $smokes[$row['user']]['average'] = ceil($smokedata['totalsmokes'] / $numdays);
+
+        }
+        foreach($smokes as $user => $smoke) {
+            $this->write_user($user . ' has smoked ' . $smoke['smokecount'] . ' total smokes, averaging ' . $smoke['average'] . ' a day since ' . date('d-m-Y H:i', $smoke['firstsmoke']));
+        }
     }
 
     public function smoke($args)

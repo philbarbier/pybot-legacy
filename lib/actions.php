@@ -2243,16 +2243,19 @@ class Actions
         $this->write_channel('Bot was started at: ' . date('d-m-Y H:i', $this->config['_starttime']));
         $this->write_channel($this->_calculate_timespan($this->config['_starttime']) . ' since our last code fuckup');
         $lastcommit = explode("\n", $this->_getLastGitCommit());
+        print_r($lastcommit);
         if (!empty($lastcommit) || !$lastcommit) {
             $lastcommitlink = $this->_shorten('https://github.com/philbarbier/pybot-legacy/commit/' . str_replace('commit ', '', $lastcommit[0]));
-            $this->write_channel('Last commit: ' . $lastcommitlink . ' "' . $lastcommit[3] . '" at ' . $lastcommit[1]);
+            $authorraw = trim(str_replace('Author:', '', $lastcommit[1]));
+            $author = substr($authorraw, 0, strpos($authorraw, ' <'));
+            $this->write_channel('Last commit: ' . $lastcommitlink . ' "' . trim($lastcommit[4]) . '" at ' . trim(str_replace('Date: ', '', $lastcommit[2])) . ' by ' . $author);
         } 
     }
 
     private function _getLastGitCommit()
     {
-        $output = shell_exec("git rev-list --format=format:'%ai' --max-count=1 `git rev-parse HEAD`");
-        $output .= "\n" . shell_exec("git log -1 --pretty=%B");
+        $output = shell_exec("git rev-list --format='medium' --max-count=1 `git rev-parse HEAD`");
+        // $output .= "\n" . shell_exec("git log -1 --pretty=%B");
         return $output;
     }
 

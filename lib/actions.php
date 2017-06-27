@@ -2427,8 +2427,8 @@ class Actions
             $lastcommitlink = $this->_shorten('https://github.com/philbarbier/pybot-legacy/commit/' . str_replace('commit ', '', $lastcommit[0]));
             $authorraw = trim(str_replace('Author:', '', $lastcommit[1]));
             $author = substr($authorraw, 0, strpos($authorraw, ' <'));
-            $lastcommitdate = trim(str_replace('Date: ', '', date('d-m-Y H:i', strtotime($lastcommit[2])))); 
-            $this->write_channel('Last commit: ' . $lastcommitlink . ' "' . trim($lastcommit[4]) . '" at ' . $lastcommitdate . ' (' . $this->_calculate_timespan(strtotime($lastcommitdate)) . ' ago) by ' . $author);
+            $lastcommitdate = trim(str_replace('Date: ', '', $lastcommit[2])); 
+            $this->write_channel('Last commit: ' . $lastcommitlink . ' "' . trim($lastcommit[4]) . '" at ' . date('Y-m-d H:i', strtotime($lastcommitdate)) . ' (' . $this->_calculate_timespan(strtotime($lastcommitdate)) . ' ago) by ' . $author);
         } 
     }
 

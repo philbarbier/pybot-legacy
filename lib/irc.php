@@ -85,6 +85,13 @@ class Irc
                             $res = false;
                             if (substr($sample, 0, 5) === '<?php') {
                                 if (stristr($sample, 'class ' . $expected_class)) {
+                                    if (class_exists($expected_class)) {
+                                        // we can't re-include if it already exists
+                                        // we have to use the reload mechanism
+                                        $this->_reloadModules();
+                                        return;
+                                    }
+
                                     $res = include $_module_path . '/' . $file;
                                     $newClass = array(
                                         'filename'  => $file, 

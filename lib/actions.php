@@ -2421,7 +2421,7 @@ class Actions
     {
         $this->write_channel(trim(shell_exec('uptime')));
         $this->write_channel('Bot was started at: ' . date('d-m-Y H:i', $this->config['_starttime']));
-        $this->write_channel($this->_calculate_timespan($this->config['_starttime']) . ' since our last code fuckup');
+        $this->write_channel($this->_calculate_timespan($this->config['_starttime']) . ' since our last incident');
         $lastcommit = explode("\n", $this->_getLastGitCommit());
         if (!empty($lastcommit) || !$lastcommit) {
             $lastcommitlink = $this->_shorten('https://github.com/philbarbier/pybot-legacy/commit/' . str_replace('commit ', '', $lastcommit[0]));

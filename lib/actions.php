@@ -2420,7 +2420,7 @@ class Actions
     public function uptime($args)
     {
         $this->write_channel(trim(shell_exec('uptime')));
-        $this->write_channel('Bot was started at: ' . date('d-m-Y H:i', $this->config['_starttime']));
+        $this->write_channel('Bot was started on: ' . date('d-m-Y \a\t H:i', $this->config['_starttime']));
         $this->write_channel($this->_calculate_timespan($this->config['_starttime']) . ' since our last incident');
         $lastcommit = explode("\n", $this->_getLastGitCommit());
         if (!empty($lastcommit) || !$lastcommit) {
@@ -2428,7 +2428,7 @@ class Actions
             $authorraw = trim(str_replace('Author:', '', $lastcommit[1]));
             $author = substr($authorraw, 0, strpos($authorraw, ' <'));
             $lastcommitdate = trim(str_replace('Date: ', '', $lastcommit[2])); 
-            $this->write_channel('Last commit: ' . $lastcommitlink . ' "' . trim($lastcommit[4]) . '" at ' . date('Y-m-d H:i', strtotime($lastcommitdate)) . ' (' . $this->_calculate_timespan(strtotime($lastcommitdate)) . ' ago) by ' . $author);
+            $this->write_channel('Last commit: ' . $lastcommitlink . ' "' . trim($lastcommit[4]) . '" on ' . date('Y-m-d \a\t H:i', strtotime($lastcommitdate)) . ' (' . $this->_calculate_timespan(strtotime($lastcommitdate)) . ' ago) by ' . $author);
         } 
     }
 

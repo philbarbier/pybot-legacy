@@ -1520,6 +1520,7 @@ class Actions
 
     private function _sendRadio($data = array())
     {
+        return; 
         $radioUrl = "http://radio.riboflav.in:1337/api/v1/library";
         if (!isset($data['url'])) return;
         //$thing = file_get_contents($radioUrl . "?url=" . $data['url']);
@@ -2791,7 +2792,7 @@ class Actions
             return;
         }
 
-        $total = $total2 = 1;
+        $total = 1;
         foreach ($parts as $part) {
             $part = trim($part);
             $total *= $part;
@@ -2804,6 +2805,31 @@ class Actions
     {
         $this->write_channel($this->_sum($args));
     }
+
+    public function divide($args)
+    {
+        $parts = explode('|', $this->get_param_string($args['command']));
+
+        if (count($parts) < 2) {
+            return;
+        }
+
+        if ($parts[0] == 0 || $parts[1] == 0) {
+            $get_insult = $this->linguo->get_word('insult');
+            $insult = $get_insult['word'];
+            $this->write_channel("Trying to divide by 0 eh? " . $insult . "!");
+            return;
+        }
+
+        if (!is_numeric($parts[0]) || !is_numeric($parts[1])) {
+            return;
+        }
+
+        $total = 0;
+        $total = $parts[0] / $parts[1];
+        $this->write_channel(round($total, 2));
+    }
+
 
     /* calculate bmi - first version is in pounds */
     public function bmi($args)
@@ -3392,7 +3418,7 @@ class Actions
         $this->write_channel($songAnnounce);
         // $this->_sendRadio(array('text' => $songAnnounce));
         $extras = array('url' => $origurl, 'user' => $who, 'token' => md5($origurl), 'intro_text' => $songAnnounce);
-        $thing = $this->_sendRadio($extras);
+        //$thing = $this->_sendRadio($extras);
     }
 
     private function _checkUrlHistory($url, $now)

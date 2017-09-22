@@ -3960,7 +3960,7 @@ class Actions
 			$criteria['type'] = $type;
 		}
 		if ($username) {
-			$criteria['username'] = $username;
+			$criteria['user'] = $username;
 		}
         $results = $this->collection->words->find($criteria)->limit(5);
         foreach ($results as $result) {

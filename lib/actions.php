@@ -318,6 +318,10 @@ class Actions
             if (strstr($data['message'], '5kb.us')) {
                 return;
             }
+            if (is_numeric(strpos($data['message'], 'ythist', 0))) {
+                return;
+            }
+
             $this->check_url(explode(' ', $data['message']), $this->get_current_channel());
         }
     }

@@ -3944,6 +3944,17 @@ class Actions
         }
     }
 
+    public function lookup($args = array()) {
+        if (!isset($args['arg1'])) return;
+        $criteria = array('word' => new MongoRegEx('/^'.$args['arg1'].'/i'));
+        $results = $this->collection->words->find($criteria)->limit(5);
+        foreach ($results as $result) {
+            $word = $result['word'];
+            $user = $result['user'];
+            $type = $result['type'];
+            $this->write_channel("$word ($type) was submitted by $user");
+        }
+    }
     // reminder for the current MC server seed
     public function mcseed($args = array())
     {

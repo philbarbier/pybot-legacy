@@ -272,10 +272,13 @@ class Actions
         if (!empty($data['message']) && ($data['command'] == 'PRIVMSG') && ($data['user'] != $this->config['irc_handle'])) {
             if (isset($this->config['log_history']) && $this->config['log_history']) {
                 try {
-                    
+                   
                     if (stristr($data['message'], 'youtube.com')) {
                         preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $data['message'], $match);
                         $url = @$match[0][0];
+                        if (strpos($data['message'], 'ythist', 0) === false) {
+                            $this->_logYoutube($url);
+                        }
                         $data['urltitle'] = $this->get_site_title($url);
                     }
                     $this->collection->log->insert($data);
@@ -330,6 +333,158 @@ class Actions
         }
 
         $this->write_channel($this->linguo->testtpl(array('arg1' => $data['message'])));
+
+    }
+
+    private function _logYoutube($url = false, $user = false, $time = false)
+    {
+        if (!$url) return;
+
+        $videoId = $this->_getVideoId($url);
+
+        if (!$videoId) return;
+       
+
+        // see if we have this video in the log already
+        $criteria = array(
+            'videoid' => array(
+                '$regex' => new MongoRegex('/' . $videoId . '/'),
+            ),
+        );
+
+        $c = $this->collection->irc->youtubestats;
+
+        $yt = $c->findOne($criteria);
+       
+        if (!isset($yt['title'])) {
+            $title = $this->get_site_title($url);
+        } else {
+            $title = $yt['title'];
+        }
+        
+        $title = str_ireplace(' - YouTube', '', $title);
+
+        $data = array('videoid' => $videoId, 'title' => $title);
+        $data['user'] = $this->get_current_user();
+
+        if (!isset($yt['firstuser'])) {
+            $data['firstuser'] = $this->get_current_user();
+            if ($user) {
+                $data['firstuser'] = $user;
+            }
+        } else {
+            $data['firstuser'] = $yt['firstuser'];
+        }
+
+        if ($user) {
+            $data['user'] = $user;
+        }
+
+        $watchcount = 1;
+        if (isset($yt['watchcount'])) {
+            $watchcount = (int)$yt['watchcount'] + 1;
+        }
+
+        $data['watchcount'] = $watchcount;
+
+        $data['firstwatch'] = time();
+        
+        if (isset($yt['firstwatch'])) {
+            $data['firstwatch'] = $yt['firstwatch'];
+        }
+
+        $data['time'] = time();
+        if (is_numeric($time)) {
+            if (!isset($yt['firstwatch'])) {
+                $data['firstwatch'] = $time;
+            }
+            $data['time'] = $time;
+        }
+
+        $c->update($criteria, $data, array('upsert' => true));
+
+    }
+
+    private function _getVideoId($url = false)
+    {
+        if (!$url) return false;
+        // get the video ID
+        $d = explode('v=', $url);
+        if (!isset($d[1])) {
+            return false; 
+        }
+        $videoId = $d[1];
+        $spos = strpos($d[1], '&');
+        
+        if ($spos) {
+            $videoId = substr($d[1], 0, $spos);
+        }
+        return $videoId;
+    }
+
+    public function ythist($args = array())
+    {
+        if (!isset($args['arg1'])) return;
+        $url = false;
+        if (stristr($args['arg1'], 'youtube.com')) {
+            preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $args['arg1'], $match);
+            $url = @$match[0][0];
+        }
+
+        if (!$url) return;
+
+        $videoId = $this->_getVideoId($url); 
+        // see if we have this video in the log already
+
+        $criteria = array(
+            'videoid' => array(
+                '$regex' => new MongoRegex('/' . $videoId . '/'),
+            ),
+        );
+
+        $c = $this->collection->irc->youtubestats->findOne($criteria);
+
+        if (!isset($c['videoid'])) return;
+
+        $datefmt = 'd-m-Y H:i';
+
+        $str = 'This video, "' . $c['title'] . '" was first linked by ' . $c['firstuser'] . ' on ';
+        $str .= date($datefmt, $c['firstwatch']) . '. It has been linked ' . $c['watchcount'] . ' time';
+        if ((int)$c['watchcount'] > 1) $str .= 's.';
+        $str .= ' It was last linked on ' . date($datefmt, $c['time']) . ' by ' . $c['user'];
+
+        $this->write_channel($str);
+
+    }
+
+    private function _addytlogs($args = array())
+    {
+        return; //disable for now
+        $criteria = array(
+            'message' => array(
+                '$regex' => new MongoRegex('/youtube.com/i'),
+            ),
+        );
+
+        $data = $this->collection->log->find($criteria);
+
+        $data = (iterator_to_array($data));
+
+        $i = 0; 
+        foreach ($data as $row) {
+            preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $row['message'], $match);
+            $url = @$match[0][0];
+            if (!$url) continue;
+            // commenting JUST in case
+            $this->_logYoutube($url, $row['user'], $row['time']);
+            if (($i % 100) == 0) {
+                $this->write_channel('Logging #' . $i);
+            }
+            //if ($i > 2) return;
+            $i++;
+        }
+
+        $this->write_channel('Done');
 
     }
 

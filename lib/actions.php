@@ -2149,8 +2149,13 @@ class Actions
             $this->write_channel("Looking up definition for $word ...\n");
             $def = $this->_getDefinition($args);
             if (isset($def['definition'])) {
-                $this->write_channel('Definition: ' . $def['definition']);
-                $this->write_channel('Example: ' . $def['example']);
+                if (strlen($def['definition']) > 512) {
+                    $this->write_user('Definition: ' . $def['definition']);
+                    $this->write_user('Example: ' . $def['example']);
+                } else {
+                    $this->write_channel('Definition: ' . $def['definition']);
+                    $this->write_channel('Example: ' . $def['example']);
+                }
                 return;
             }
             $this->write_channel('No definition found');
@@ -3946,7 +3951,7 @@ class Actions
 
     public function lookup($args = array()) {
         if (!isset($args['arg1'])) return;
-        $criteria = array('word' => new MongoRegEx('/^'.$args['arg1'].'/i'));
+        $criteria = array('word' => new MongoRegEx('/'.$args['arg1'].'/i'));
         $results = $this->collection->words->find($criteria)->limit(5);
         foreach ($results as $result) {
             $word = $result['word'];

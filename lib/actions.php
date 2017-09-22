@@ -450,8 +450,8 @@ class Actions
 
         $str = 'This video, "' . $c['title'] . '" was first linked by ' . $c['firstuser'] . ' on ';
         $str .= date($datefmt, $c['firstwatch']) . '. It has been linked ' . $c['watchcount'] . ' time';
-        if ((int)$c['watchcount'] > 1) $str .= 's.';
-        $str .= ' It was last linked on ' . date($datefmt, $c['time']) . ' by ' . $c['user'];
+        if ((int)$c['watchcount'] > 1) $str .= 's';
+        $str .= '. It was last linked on ' . date($datefmt, $c['time']) . ' by ' . $c['user'];
 
         $this->write_channel($str);
 

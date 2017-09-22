@@ -3951,7 +3951,17 @@ class Actions
 
     public function lookup($args = array()) {
         if (!isset($args['arg1'])) return;
-        $criteria = array('word' => new MongoRegEx('/'.$args['arg1'].'/i'));
+        $username = trim(@$args['username']);
+        $type = trim(@$args['type']);
+        $criteria = array(
+			'word' => new MongoRegEx('/'.$args['arg1'].'/i')
+		);
+		if ($type) {
+			$criteria['type'] = $type;
+		}
+		if ($username) {
+			$criteria['username'] = $username;
+		}
         $results = $this->collection->words->find($criteria)->limit(5);
         foreach ($results as $result) {
             $word = $result['word'];

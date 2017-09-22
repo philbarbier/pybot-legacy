@@ -3164,6 +3164,18 @@ class actions
             $this->write_channel("Final : $vt @ $ht $vs-$hs, $stat");
         }
     }
+
+	public function lookup() {
+        $criteria = array('word' => new MongoRegEx('/^'.$args['arg1'].'/i'));
+		$results = $this->collection->words->find($criteria)->limit(5);
+		foreach ($results as $result) {
+			$word = $data['word'];
+			$user = $data['user'];
+			$type = $data['type'];
+			$this->write_channel("$word ($type) was submitted by $user");
+		}
+	}
+
 }
 
 

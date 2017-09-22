@@ -1,4 +1,6 @@
 <?php
+class Linguo
+{
 
 /*
     Class Linguo:
@@ -8,24 +10,26 @@
 
 */
 
-require_once $_cwd.'/lib/strings.php';
-
-class linguo
-{
     public function __construct($options = array())
     {
         // do some stuff
         $this->config = $options;
+        if (array_key_exists(__CLASS__, $this->config['_classes'])) {
+            $ircClass = $this->config['_ircClassName'];
+            $ircClass::setCallList(__CLASS__, $this->config['_callee']);
+        }
         $this->abuse_requester = false;
         try {
-            error_log('attempting connection');
             $this->connection = new Mongo($this->config['mongodb']);
         } catch (Exception $e) {
-            error_log('Could not connect');
             sleep(1);
             $this->connection = new Mongo($this->config['mongodb']);
         }
         $this->collection = $this->connection->pybot;
+    }
+
+    public function __destruct()
+    {
     }
 
     public function get_abuse($params = array())
@@ -76,6 +80,7 @@ class linguo
             if ($template) {
                 $template_string = $template['template'];
                 $tpl_user = $template['user'];
+                $timestamp = $template['time'];
             }
         }
         // we do this here in case the ID supplied doesn't yield a result
@@ -87,10 +92,16 @@ class linguo
                 $template_string = $data['template'];
                 $tpl_id = $data['id'];
                 $tpl_user = $data['user'];
+                $timestamp = $data['time'];
             }
         }
-        
-        $this->setLastTpl($tpl_id, $tpl_user);
+       
+        $tpldata = array(
+            'timestamp' => $timestamp,
+            'tpl_id' => $tpl_id,
+            'tpl_user' => $tpl_user);
+
+        $this->setLastTpl($tpldata);
 
         return $template_string;
     }
@@ -193,10 +204,12 @@ class linguo
                     $command = 'who';
                 } elseif (strstr($word, '$rand')) {
                     $command = 'rand';
-                }
-                if (strstr($word, '$dice')) {
+                } elseif (strstr($word, '$dice')) {
                     $command = 'dice';
+                } elseif (strstr($word, '$cc')) {
+                    $command = 'cc';
                 }
+
                 switch ($command) {
                     case 'ip':
                         $wd = rand(1, 254).'.'.rand(1, 254).'.'.rand(1, 254).'.'.rand(1, 254);
@@ -234,7 +247,10 @@ class linguo
                         $wd = rand(10000000, 99999999);
                         $suffix = Strings::suffix('$highrand', $word);
                     break;
-
+                    case 'cc':
+                        $suffix = Strings::suffix('$cc', $word);
+                        $wd = Actions::getcc();
+                    break;
                     default:
                         foreach ($this->_get_word_types() as $type) {
                             if (strstr($word, '$'.$type)) {
@@ -285,9 +301,9 @@ class linguo
         return $types[rand(0, count($types))];
     }
 
-    private function setLastTpl($tpl_id = false, $tpl_user = false)
+    private function setLastTpl($tpl_data = array()) 
     {
-        if (!$tpl_id || !$tpl_user || !is_numeric($tpl_id)) return;
+        if (!isset($tpl_data['tpl_id']) || !isset($tpl_data['tpl_user']) || !is_numeric($tpl_data['tpl_id'])) return;
 
         $requester = $this->abuse_requester;
 
@@ -295,8 +311,9 @@ class linguo
         $criteria = array('user' => $requester);
         $data = array(
             'user' => $requester,
-            'tpl_id' => $tpl_id,
-            'tpl_user' => $tpl_user,
+            'tpl_id' => $tpl_data['tpl_id'],
+            'tpl_user' => $tpl_data['tpl_user'],
+            'tpl_time' => $tpl_data['timestamp'],
             'timestamp' => date('U')
         );
 

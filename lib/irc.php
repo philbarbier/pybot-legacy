@@ -1,14 +1,21 @@
 <?php
 
-include $_cwd.'/lib/actions.php';
-include $_cwd.'/lib/bleacher.php';
-
-class irc
+class Irc 
 {
+
+    public static $config;
+
     public function __construct($config)
     {
-        $this->Log = new Log($config);
-        $this->config = $config;
+        $this->_classes = false;
+        self::$config = $config;
+        self::$config['_ircClassName'] = __CLASS__;
+        self::$config['_callee'] = array(__CLASS__);
+        // lib/
+        $this->_loadModules(self::$config['_cwd'] . '/lib');
+        // modules/
+        $this->_loadModules(self::$config['_cwd'] . '/modules');
+        $this->Log = new Log(self::$config);
         $this->server = $config['irc_server'];
         $this->version = $config['version'];
         $this->port = $config['irc_port'];
@@ -16,7 +23,7 @@ class irc
         $this->handle = $config['irc_handle'];
         $this->first_connect = true;
         $this->set_socket($this->server, $this->port);
-        $this->actions = new Actions($config);
+        $this->actions = new Actions(self::$config);
         $this->_methods = $config['_methods'];
         $this->connect_complete = false;
         $this->retrieve_nick = false;
@@ -25,7 +32,162 @@ class irc
         $this->is_oper = false;
         $this->is_connected = false;
         $this->nick_change = null;
+        $this->current_nick = '';
         $this->main();
+    }
+
+    public function __destruct()
+    {
+        // echo 'destructing class ' . __CLASS__ . "\n";
+    }
+
+    public static function setCallList($className = false, $list = false)
+    {
+        if (!$list || !$className) return;
+        //echo "SETTING CALLLIST FOR " . $className . "\n";
+        self::$config['_classes'][$className]['calllist'] = $list;
+    }
+
+    public function initActions($className = false, $config = false)
+    {
+        if (!$className || !$config) return;
+        $this->actions = new $className($config);
+    }
+
+
+    private function _loadModules($_module_path = false)
+    {
+        if (!$_module_path) {
+            die("Something bad happened -EPATHNOTSET");
+        }
+
+        $mod_files = scandir($_module_path);
+
+        if (!$mod_files) {
+            die("Something bad happened -ENOFILES");
+        }
+
+        foreach($mod_files as $file) {
+            switch ($file) {
+                case '.':
+                case '..':
+                case 'irc.php':
+                    break;
+                default:
+                    // reading is good
+                    if (is_readable($_module_path . '/' . $file)) {
+                        $pathinfo = pathinfo($_module_path . '/' . $file);
+
+                        if (strtolower($pathinfo['extension']) == 'php') {
+                            $expected_class = ucfirst(substr($file, 0, strpos($file, '.')));
+                            $sample = file_get_contents($_module_path . '/' . $file, NULL, NULL, 0, 1024);
+
+                            $res = false;
+                            if (substr($sample, 0, 5) === '<?php') {
+                                if (stristr($sample, 'class ' . $expected_class)) {
+                                    if (class_exists($expected_class)) {
+                                        // we can't re-include if it already exists
+                                        // we have to use the reload mechanism
+                                        $this->_reloadModules();
+                                        return;
+                                    }
+
+                                    $res = include $_module_path . '/' . $file;
+                                    $newClass = array(
+                                        'filename'  => $file, 
+                                        'classname' => $expected_class,
+                                        'origclass' => $expected_class,
+                                        'md5sum'    => md5_file($_module_path . '/' . $file),
+                                        'directory' => $_module_path
+                                    );
+
+                                    self::$config['_classes'][$expected_class] = $newClass; 
+                                    // array_push($config['_classes'], $expected_class);
+                                    // if (!isset($config['_methods'][$expected_class])) $config['_methods'][$expected_class] = array();
+                                    // $config['_methods'][$expected_class] = get_class_methods($expected_class);
+                                }                    
+                            }
+
+                            // here's where we can log a success or not
+                            if ($res && class_exists($expected_class)) {
+                                //echo "Loading module " . $file . " (class " . $expected_class . ") was a success!\n";
+                            }
+                        }
+                        
+                    } else {
+                        echo "can't read " . $_module_path . $file . "\n";
+                    }
+
+            }
+        }
+
+    }
+
+    private function _reloadModules()
+    {
+        $id = date('U');
+        $classes = self::$config['_classes'];
+        foreach ($classes as $className => $classData) {
+            // if Irc is changed, we'll restart the whole lot
+            // it's in the class list because of the reason
+            if ($className == 'Irc') continue;
+            
+            $file = $classData['directory'] . '/' . $classData['filename'];
+            $md5 = md5_file($file);
+            // echo "checking " . $file . "\n";
+            if (!array_key_exists($className, self::$config['_classes'])) {
+                // just include it?
+            } else {
+                if ($md5 != self::$config['_classes'][$className]['md5sum']) {
+                    // changed, reload
+                    $pathinfo = pathinfo($file);
+                    $newClassName = $className . $id;
+                    // echo "changed, reloading " . $className . "\n";
+                    // read file and change class definition to have temp $id
+                    $fileStr = file_get_contents($file);
+                    //echo "orig:\n" . $fileStr . "\n";
+                    $fileStr = str_replace('class ' . $className, 'class ' . $newClassName, $fileStr);
+                    //echo "\nnew:\n".$fileStr."\n";
+                    // write to temp file
+                    $newFileName = $pathinfo['dirname'] . '/' . $pathinfo['filename'] . $id . '.' . $pathinfo['extension'];
+                    $fh = fopen($newFileName, 'w');
+                    if (fwrite($fh, $fileStr)) {
+                        include $newFileName;
+                        unlink($newFileName);
+                        
+                        self::$config['_classes'][$className]['classname'] = $newClassName;
+                        self::$config['_classes'][$className]['md5sum'] = $md5;
+                        self::$config['_origclass'] = $className;
+                        
+                        $calllist = self::$config['_classes'][$className]['calllist'];
+                        $localRef = strtolower($calllist[count($calllist)-1]);
+                        $theirRef = strtolower($classData['origclass']);
+                        $initFnName = 'init' . $theirRef;
+                        $classconfig = self::$config;
+                        if (count($calllist) > 1) {
+                            unset($this->$localRef->$theirRef);
+                            $this->$localRef->initModule($newClassName, $classconfig);
+                        } else {
+                            if (method_exists($this->$theirRef, 'getConfig')) {
+                                $oldconfig = $this->$theirRef->getConfig();
+                                if (isset($oldconfig['channellist'])) {
+                                    $classconfig['channellist'] = $oldconfig['channellist'];
+                                }
+                                if (isset($oldconfig['bothandle'])) {
+                                    $classconfig['bothandle'] = $oldconfig['bothandle'];
+                                }
+                                if (isset($oldconfig['usercache'])) {
+                                    $classconfig['usercache'] = $oldconfig['usercache'];
+                                }
+                            }
+                            unset($this->$theirRef);
+                            $this->$initFnName($newClassName, $classconfig);
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
     private function set_socket($svr = '', $port = 0)
@@ -71,6 +233,7 @@ class irc
         $this->Log->log("Setting nick to '$nick'", 3);
         $this->write("NICK $nick");
         $this->actions->setBotHandle($nick);
+        $this->current_nick = $nick;
     }
 
     private function get_newnick()
@@ -103,7 +266,7 @@ class irc
                 $msg = $this->parse_raw($raw);
 
                 // Print message debug to stdout
-                if ($this->config['debug']) {
+                if (self::$config['debug']) {
                     if (isset($msg['message']) && isset($msg['channel']) && isset($msg['user'])) {
                         $this->Log->log($msg['user'].'@'.str_replace('#', '', $msg['channel']).' : '.$msg['message']);
                     }
@@ -124,6 +287,12 @@ class irc
                 if (!$a) {
                     continue;
                 }
+
+                // handle reloads
+                if ($a === 'reload' && in_array($msg['user'], array('Flimflam'))) {
+                    $this->_reloadModules();
+                }
+
                 // $this->Log->log("Params: " . json_encode($params, true), 3);
 
                 if (method_exists($this->actions, $a)) {
@@ -198,7 +367,7 @@ class irc
         if ($parts[0] == 'ERROR') {
             $this->destroy_socket();
             sleep(120);
-            $this->__construct($this->config);
+            $this->__construct(self::$config);
         }
 
         $this->actions->set_parts($parts);
@@ -218,7 +387,10 @@ class irc
             $this->actions->set_message_data(trim(@$matches[5]));
         }
         
-        if (isset($parts[1]) && !empty($parts[1]) && (is_numeric($parts[1]) || $parts[1] == 'JOIN' || $parts[1] == 'PART' || $parts[1] == 'INVITE' || $parts[1] == 'KILL')) {
+        if (isset($parts[1]) && !empty($parts[1])) {
+        
+        // && (is_numeric($parts[1]) || $parts[1] == 'JOIN' || $parts[1] == 'PART' || $parts[1] == 'INVITE' || $parts[1] == 'KILL')) {
+
             // we should maybe parse for every code here, that way
             // we're able to tell the IRC state better
             switch (strtoupper($parts[1])) {
@@ -231,9 +403,7 @@ class irc
                 case 313:
                     $this->is_oper = true;
                     $array_key = $this->actions->get_arraykey($parts);
-                    if (isset($this->actions->userCache[$array_key]) && is_array($this->actions->userCache[$array_key])) {
-                        $this->actions->userCache[$array_key]['isoper'] = 1;
-                    }
+                    $this->actions->setUserCache($array_key, array('isoper' => 1));
                 break;
                 // checks end of WHOIS
                 case 318:
@@ -244,11 +414,12 @@ class irc
                     foreach ($parts as $i => $val) {
                         if ($i > 4) {
                             $nick = Bleacher::ircnick($val);
-                            if (!isset($this->actions->userCache[$nick])) {
+                            if (!$this->actions->checkUserCache($nick)) {
                                 $this->whois($nick);
                             }
                         }
                     }
+                    $this->actions->addChannel($parts[4]);
                 break;
                 // end of names list
                 case 366:
@@ -262,7 +433,6 @@ class irc
                         $newnick = $this->get_newnick();
                         $this->set_nickname($newnick);
                     }
-                    $this->actions->setBotHandle($parts[2]);
                     $this->nick_change = false;
                 break;
 
@@ -272,6 +442,9 @@ class irc
                     //ready to join
                     $this->first_connect = false;
                     $this->connect_complete = true;
+                break;
+                case 473:
+                    // invite only channel - remove channel from list?
                 break;
                 // non-numerics
 
@@ -292,9 +465,18 @@ class irc
                 case "KILL":
                     $this->destroy_socket();
                     sleep(15);
-                    $this->__construct($this->config);
+                    $this->__construct(self::$config);
                 break;
+                case "NICK":
+                    $nickparts = $this->break_hostmask($parts[0]);
+                    $data = array(
+                        'userhash' => md5(@$nickparts['nick'].@$nickparts['host']),
+                        'isoper' => 0
+                    );
 
+                    $nick = str_replace(':', '', $parts[2]);
+                    $this->actions->setUserCache($nick, $data);
+                break;
             }
             if (!$this->in_whois) {
                 $this->actions->set_isoper($this->is_oper);
@@ -307,12 +489,12 @@ class irc
                 $this->write("JOIN $channel");
             }
             // ensure we're in the default channel
-            if (!in_array($this->config['default_chan'], $this->channels)) {
-                $this->write('JOIN '.$this->config['default_chan']);
+            if (!in_array(self::$config['default_chan'], $this->channels)) {
+                $this->write('JOIN '.self::$config['default_chan']);
             }
             // ensure we're in the admin channel
-            if (!in_array($this->config['admin_chan'], $this->channels)) {
-                $this->write('JOIN '.$this->config['admin_chan']);
+            if (!in_array(self::$config['admin_chan'], $this->channels)) {
+                $this->write('JOIN '.self::$config['admin_chan']);
             }
 
             // print out current revision
@@ -358,12 +540,14 @@ class irc
             $this->actions->set_arraykey($parts);
             $array_key = $this->actions->get_arraykey();
             if (!empty($array_key)) {
-                if (!isset($this->actions->userCache[$array_key])) {
-                    $this->actions->userCache[$array_key] = array();
-                }
 
-                $this->actions->userCache[$array_key]['userhash'] = md5(@$parts[3].@$parts[5]);
-                $this->actions->userCache[$array_key]['isoper'] = 0;
+                $data = array(
+                    'userhash' => md5(@$parts[3].@$parts[5]),
+                    'isoper' => 0
+                );
+
+                $this->actions->setUserCache($array_key, $data);
+               
             }
         }
     }
@@ -379,7 +563,7 @@ class irc
 
     public function get_usercache()
     {
-        return $this->actions->userCache;
+        return $this->actions->getUserCache();
     }
 
     public function admin_message($message = '')
@@ -387,7 +571,7 @@ class irc
         if (empty($message)) {
             return false;
         }
-        $this->write('PRIVMSG '.$this->config['admin_chan'].' :'.$message);
+        $this->write('PRIVMSG '.self::$config['admin_chan'].' :'.$message);
     }
 
     // re-read config file
@@ -426,7 +610,7 @@ class irc
             $this->Log->log('Socket error', 2);
             $this->destroy_socket();
             sleep(60);
-            $this->__construct($this->config);
+            $this->__construct(self::$config);
 
             return false;
         }

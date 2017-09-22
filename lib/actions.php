@@ -1,11 +1,10 @@
 <?php
 
-class actions
+class Actions
 {
     public function __construct($config)
     {
         $this->config = $config;
-        $this->Log = new Log($this->config);
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
         $this->curl = new Curl();
@@ -13,28 +12,60 @@ class actions
         $this->version = $config['version'];
         $this->currentuser = '';
         $this->currentchannel = false;
+        if (!isset($this->config['channellist'])) $this->config['channellist'] = array();
         $this->message_data = '';
         $this->isIRCOper = false;
         // seperate config array incase we need to override anything(?)
         $linguo_config = $this->config;
-        $this->linguo = new Linguo($linguo_config);
-        $this->txlimit = 256; // transmission length limit in bytes (chars)
-        $this->userCache = array();
-        $this->array_key = '';
-        $this->bothandle = false;
-        $this->myparts = array();
-        $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'you', 'me', 'uptime');
-
-        if ($this->_check_permissions($this->get_current_user())) {
-            $this->write_user('GTFO');
-
-            return false;
+        if (!isset($linguo_config['_origclass'])) {
+            $linguo_config['_origclass'] = __CLASS__;
         }
+        if (isset($linguo_config['_callee'])) {
+            $linguo_config['_callee'][] = $linguo_config['_origclass'];
+        }
+        if (array_key_exists(__CLASS__, $this->config['_classes'])) {
+            $ircClass = $this->config['_ircClassName'];
+            $ircClass::setCallList(__CLASS__, $this->config['_callee']);
+        }
+
+        $class = $this->config['_classes']['Linguo']['classname'];
+        $this->linguo = new $class($linguo_config);
+        $class = $this->config['_classes']['Twitter']['classname']; 
+        $this->twitter = new $class($linguo_config);
+        $class = $this->config['_classes']['Log']['classname']; 
+        $this->Log = new $class($linguo_config);
+
+        $this->txlimit = 256; // transmission length limit in bytes (chars)
+        if (!isset($this->config['usercache'])) $this->config['usercache'] = array();
+        $this->array_key = '';
+        if (!isset($this->config['bothandle'])) $this->config['bothandle'] = false;
+        $this->myparts = array();
+        $this->bartUseCount = 1;
+        $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'me', 'uptime', 'cc');
+
+        $this->_cacheData = array();
         if (!$this->connection) {
             sleep(60);
             // try again
             $this->connection = new Mongo($this->config['mongodb']);
         }
+    }
+
+    public function __destruct()
+    {
+        // unload
+    }
+
+    public function getConfig()
+    {
+        return $this->config;
+    }
+
+    public function initModule($className = false, $config = false)
+    {
+        if (!$className || !$config) return;
+        $selfRef = strtolower($config['_origclass']);
+        $this->$selfRef = new $className($config);
     }
 
     private function _check_permissions($nick = '')
@@ -49,7 +80,7 @@ class actions
     }
 
     /* calculates a date timespan (mimicing CI function) */
-    private function calculate_timespan($seconds = 1, $time = '', $display_mins_secs = true)
+    private function _calculate_timespan($seconds = 1, $time = '', $display_mins_secs = true)
     {
         if (!is_numeric($seconds)) {
             $seconds = 1;
@@ -69,7 +100,7 @@ class actions
         $years = floor($seconds / 31536000);
 
         if ($years > 0) {
-            $str .= $years.' '.(($years > 1) ? 'Years' : 'Year').', ';
+            $str .= $years.' '.(($years > 1) ? 'years' : 'year').', ';
         }
 
         $seconds -= $years * 31536000;
@@ -77,7 +108,7 @@ class actions
 
         if ($years > 0 or $months > 0) {
             if ($months > 0) {
-                $str .= $months.' '.(($months   > 1) ? 'Months' : 'Month').', ';
+                $str .= $months.' '.(($months   > 1) ? 'months' : 'month').', ';
             }
             $seconds -= $months * 2628000;
         }
@@ -86,7 +117,7 @@ class actions
 
         if ($years > 0 or $months > 0 or $weeks > 0) {
             if ($weeks > 0) {
-                $str .= $weeks.' '.(($weeks > 1) ? 'Weeks' : 'Week').', ';
+                $str .= $weeks.' '.(($weeks > 1) ? 'weeks' : 'week').', ';
             }
 
             $seconds -= $weeks * 604800;
@@ -96,7 +127,7 @@ class actions
 
         if ($months > 0 or $weeks > 0 or $days > 0) {
             if ($days > 0) {
-                $str .= $days.' '.(($days   > 1) ? 'Days' : 'Day').', ';
+                $str .= $days.' '.(($days   > 1) ? 'days' : 'day').', ';
             }
             $seconds -= $days * 86400;
         }
@@ -105,7 +136,7 @@ class actions
 
         if ($days > 0 or $hours > 0) {
             if ($hours > 0) {
-                $str .= $hours.' '.(($hours > 1) ? 'Hours' : 'Hour').', ';
+                $str .= $hours.' '.(($hours > 1) ? 'hours' : 'hour').', ';
             }
             $seconds -= $hours * 3600;
         }
@@ -116,13 +147,13 @@ class actions
             $minutes = floor($seconds / 60);
             if ($days > 0 or $hours > 0 or $minutes > 0) {
                 if ($minutes > 0) {
-                    $str .= $minutes.' '.(($minutes > 1) ? 'Minutes' : 'Minute').', ';
+                    $str .= $minutes.' '.(($minutes > 1) ? 'minutes' : 'minute').', ';
                 }
                 $seconds -= $minutes * 60;
             }
 
             if ($str == '') {
-                $str .= $seconds.' '.(($seconds > 1) ? 'Seconds' : 'Second').', ';
+                $str .= $seconds.' '.(($seconds > 1) ? 'seconds' : 'second').', ';
             }
         }
 
@@ -143,34 +174,56 @@ class actions
         if (strlen($message) > $this->txlimit) {
             // @TODO gots to make this substr nicely (look for the last space)
             $message_parts = $this->_split_message($message);
+            $count = count($message_parts);
             foreach ($message_parts as $message_part) {
+                // just in case!
+                $message_part = preg_replace('/\\r\\n/', ' ', $message_part);
                 $msg = "$type $channel :$message_part\r\n\r\n";
                 Irc::write($msg); //fwrite($this->socket, $msg, strlen($msg));
+                if ($count > 20) {
+                    sleep(1);
+                }
             }
 
             return true;
+        } elseif (!$message) {
+            $msg = "$type $channel\r\n\r\n";
         } else {
+            $message = preg_replace('/\\r\\n/', ' ', $message);
             $msg = "$type $channel :$message\r\n\r\n";
         }
 
-        return Irc::write($msg); //fwrite($this->socket, $msg, strlen($msg));
+        $ircLib = 'Irc';
+        return $ircLib::write($msg); //fwrite($this->socket, $msg, strlen($msg));
     }
 
     // uses class variable "txlimit" to split the message string up
     // in order to ensure the IRC server receives the full message
+    // and doesn't flood the server
 
-    private function _split_message($message = '')
+    private function _split_message($full_message = '')
     {
-        if (empty($message)) {
+        if (empty($full_message)) {
             return false;
         }
+        
         $parts = array();
-        $i = 0;
-        $prevpos = false;
-        for ($i = 0; $i < strlen($message); $i = $i + $this->txlimit) {
-            $start = (!$prevpos) ? $i : ($start + $prevpos);
-            $prevpos = $this->txlimit - strpos(strrev(substr($message, $start, $this->txlimit)), ' ');
-            $parts[] = substr($message, $start, $prevpos);
+        $j = 0;
+
+        $message_parts = preg_split('/\\r\\n/', $full_message);
+        foreach($message_parts as $part) {
+            if (strlen($part) > $this->txlimit) {
+                $prevpos = false;
+                for ($i = 0; $i < strlen($part); $i = $i + $this->txlimit) {
+                    $start = (!$prevpos) ? $i : ($start + $prevpos);
+                    $prevpos = $this->txlimit - strpos(strrev(substr($part, $start, $this->txlimit)), ' ');
+                    $parts[$j] = substr($part, $start, $prevpos);
+                    $j++;
+                }
+            } else {
+                $parts[$j] = $part;
+                $j++;
+            }
         }
 
         return $parts;
@@ -192,6 +245,12 @@ class actions
     /* macro function for writing to the current channel */
     private function write_channel($message)
     {
+        if (is_array($message)) {
+            foreach($message as $k => $v) {
+                $this->write('PRIVMSG', $this->get_current_channel(), $k . ' => ' . $v);
+            }
+            return;
+        }
         $this->write('PRIVMSG', $this->get_current_channel(), $message);
     }
 
@@ -213,6 +272,15 @@ class actions
         if (!empty($data['message']) && ($data['command'] == 'PRIVMSG') && ($data['user'] != $this->config['irc_handle'])) {
             if (isset($this->config['log_history']) && $this->config['log_history']) {
                 try {
+                   
+                    if (stristr($data['message'], 'youtube.com')) {
+                        preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $data['message'], $match);
+                        $url = @$match[0][0];
+                        if (strpos($data['message'], 'ythist', 0) === false) {
+                            $this->_logYoutube($url);
+                        }
+                        $data['urltitle'] = $this->get_site_title($url);
+                    }
                     $this->collection->log->insert($data);
                 } catch (Exception $e) {
                     $this->Log->log('DB Error', 2);
@@ -222,18 +290,20 @@ class actions
         if ($this->config['log_stats']) {
             $this->stats($data);
         }
-        if (isset($data['command']) && $data['command'] == 'JOIN' && $data['user'] != $this->bothandle) {
+        if (isset($data['command']) && $data['command'] == 'JOIN' && $data['user'] != $this->config['bothandle']) {
             // abuse new user
-
             sleep(2);
 
+            /*
             $abuse_tpls = array(
                                 840, // Oh great that guy is back or whatever
                                 1068, // Why do you even bother, guy?
                                 // 1081, // Fabulous, guy is here
                             );
 
-            $this->abuse(array('arg1' => $data['user'], 'tpl' => $abuse_tpls[rand(0, count($abuse_tpls) - 1)], 'joinabuse' => true));
+            */
+
+            $this->abuse(array('arg1' => $data['user'], 'joinabuse' => true));
         }
 
         // check for a $word in the text
@@ -248,25 +318,184 @@ class actions
             if (strstr($data['message'], '5kb.us')) {
                 return;
             }
-            $url = $this->check_url(explode(' ', $data['message']), $this->get_current_channel());
+            if (is_numeric(strpos($data['message'], 'ythist', 0))) {
+                return;
+            }
+
+            $this->check_url(explode(' ', $data['message']), $this->get_current_channel());
         }
     }
 
     private function _checkForWord($data = false)
     {
         if (!$data) return;
-        
+       
         $pr = preg_match('/\$[a-zA-Z]/', $data['message']);
         if ($pr == 0) return;
+        foreach(explode(' ', $data['message']) as $word) {
+            if (in_array($word, $this->public_commands)) return;
+        }
 
         $this->write_channel($this->linguo->testtpl(array('arg1' => $data['message'])));
+
+    }
+
+    private function _logYoutube($url = false, $user = false, $time = false)
+    {
+        if (!$url) return;
+
+        $videoId = $this->_getVideoId($url);
+
+        if (!$videoId) return;
+       
+
+        // see if we have this video in the log already
+        $criteria = array(
+            'videoid' => array(
+                '$regex' => new MongoRegex('/' . $videoId . '/'),
+            ),
+        );
+
+        $c = $this->collection->irc->youtubestats;
+
+        $yt = $c->findOne($criteria);
+       
+        if (!isset($yt['title'])) {
+            $title = $this->get_site_title($url);
+        } else {
+            $title = $yt['title'];
+        }
+        
+        $title = str_ireplace(' - YouTube', '', $title);
+
+        $data = array('videoid' => $videoId, 'title' => $title);
+        $data['user'] = $this->get_current_user();
+
+        if (!isset($yt['firstuser'])) {
+            $data['firstuser'] = $this->get_current_user();
+            if ($user) {
+                $data['firstuser'] = $user;
+            }
+        } else {
+            $data['firstuser'] = $yt['firstuser'];
+        }
+
+        if ($user) {
+            $data['user'] = $user;
+        }
+
+        $watchcount = 1;
+        if (isset($yt['watchcount'])) {
+            $watchcount = (int)$yt['watchcount'] + 1;
+        }
+
+        $data['watchcount'] = $watchcount;
+
+        $data['firstwatch'] = time();
+        
+        if (isset($yt['firstwatch'])) {
+            $data['firstwatch'] = $yt['firstwatch'];
+        }
+
+        $data['time'] = time();
+        if (is_numeric($time)) {
+            if (!isset($yt['firstwatch'])) {
+                $data['firstwatch'] = $time;
+            }
+            $data['time'] = $time;
+        }
+
+        $c->update($criteria, $data, array('upsert' => true));
+
+    }
+
+    private function _getVideoId($url = false)
+    {
+        if (!$url) return false;
+        // get the video ID
+        $d = explode('v=', $url);
+        if (!isset($d[1])) {
+            return false; 
+        }
+        $videoId = $d[1];
+        $spos = strpos($d[1], '&');
+        
+        if ($spos) {
+            $videoId = substr($d[1], 0, $spos);
+        }
+        return $videoId;
+    }
+
+    public function ythist($args = array())
+    {
+        if (!isset($args['arg1'])) return;
+        $url = false;
+        if (stristr($args['arg1'], 'youtube.com')) {
+            preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $args['arg1'], $match);
+            $url = @$match[0][0];
+        }
+
+        if (!$url) return;
+
+        $videoId = $this->_getVideoId($url); 
+        // see if we have this video in the log already
+
+        $criteria = array(
+            'videoid' => array(
+                '$regex' => new MongoRegex('/' . $videoId . '/'),
+            ),
+        );
+
+        $c = $this->collection->irc->youtubestats->findOne($criteria);
+
+        if (!isset($c['videoid'])) return;
+
+        $datefmt = 'd-m-Y H:i';
+
+        $str = 'This video, "' . $c['title'] . '" was first linked by ' . $c['firstuser'] . ' on ';
+        $str .= date($datefmt, $c['firstwatch']) . '. It has been linked ' . $c['watchcount'] . ' time';
+        if ((int)$c['watchcount'] > 1) $str .= 's';
+        $str .= '. It was last linked on ' . date($datefmt, $c['time']) . ' by ' . $c['user'];
+
+        $this->write_channel($str);
+
+    }
+
+    private function _addytlogs($args = array())
+    {
+        return; //disable for now
+        $criteria = array(
+            'message' => array(
+                '$regex' => new MongoRegex('/youtube.com/i'),
+            ),
+        );
+
+        $data = $this->collection->log->find($criteria);
+
+        $data = (iterator_to_array($data));
+
+        $i = 0; 
+        foreach ($data as $row) {
+            preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $row['message'], $match);
+            $url = @$match[0][0];
+            if (!$url) continue;
+            // commenting JUST in case
+            $this->_logYoutube($url, $row['user'], $row['time']);
+            if (($i % 100) == 0) {
+                $this->write_channel('Logging #' . $i);
+            }
+            //if ($i > 2) return;
+            $i++;
+        }
+
+        $this->write_channel('Done');
 
     }
 
     public function setBotHandle($nick = false)
     {
         if (!$nick) return;
-        $this->bothandle = $nick;
+        $this->config['bothandle'] = $nick;
     }
 
     public function set_arraykey($parts = array())
@@ -287,7 +516,7 @@ class actions
             return false;
         }
 
-        return isset($this->userCache[$nick]) ? $this->userCache[$nick]['userhash'] : false;
+        return isset($this->config['usercache'][$nick]) ? $this->config['usercache'][$nick]['userhash'] : false;
     }
 
     public function _check_acl($data)
@@ -302,8 +531,8 @@ class actions
         $this->Log->log($datastr, 3);
         */
 
-        if (isset($this->userCache[$this->get_current_user()]) && $this->check_current_userhash($this->get_current_user(), $this->get_parts())) {
-            $isoper = $this->userCache[$this->get_current_user()]['isoper'];
+        if (isset($this->config['usercache'][$this->get_current_user()]) && $this->check_current_userhash($this->get_current_user(), $this->get_parts())) {
+            $isoper = $this->config['usercache'][$this->get_current_user()]['isoper'];
         } else {
             $isoper = false;
         }
@@ -451,7 +680,7 @@ class actions
     {
         unset($data['_id']);
         // Increment user message count
-        $criteria = array('date' => date('Y-m-d'), 'user' => $data['user']);
+        $criteria = array('date' => date('Y-m-d'), 'user' => (isset($data['user']) ? $data['user'] : ''));
         if ($data['command'] != 'PRIVMSG') {
             return;
         }
@@ -494,10 +723,10 @@ class actions
         if (count($parts) == 0 || empty($nick)) {
             return false;
         }
-        if (isset($this->userCache[$nick])) {
+        if (isset($this->config['usercache'][$nick])) {
             $userdata = Irc::break_hostmask($parts[0]);
 
-            return $this->userCache[$nick]['userhash'] == md5($userdata['nick'].$userdata['host']);
+            return $this->config['usercache'][$nick]['userhash'] == md5($userdata['nick'].$userdata['host']);
         } else {
             return false;
         }
@@ -545,7 +774,7 @@ class actions
     }
 
     /* Returns <title> of webpage. */
-    public function get_site_title($url)
+    private function get_site_title($url)
     {
         try {
             //$urlContents = file_get_contents($url);
@@ -577,13 +806,46 @@ class actions
 
     public function history($args)
     {
-        $criteria = array('message' => new MongoRegEx('/^'.$args['arg1'].'/i'));
+        $limit = 10;
+        $ucount = count($args['uargs']) - 1;
+        if ($ucount < 1) $ucount = 1;
+        if (count($args['uargs']) > 1 && isset($args['uargs'][$ucount])) {
+            if (is_numeric($args['uargs'][$ucount])) {
+                $limit = $args['uargs'][$ucount];
+                if ($limit > 25) {
+                    $limit = 25;
+                }
+            }
+        }
+        $query = '';
+        $queryArr = explode(' ', $args['arg1']);
+        $i = 1;
+        foreach ($queryArr as $word) {
+            $query .= $word . ' ';
+            if ($i >= count($queryArr)-1) break;
+            $i++;
+        }
+        $query = trim($query);
+        $criteria = array(
+            '$and' => array(
+                    array('message' => new MongoRegEx('/' . $query . '/i')),
+                    array('message' => new MongoRegEx('/^(?!history).+/'))
+            )
+        );
+        
         try {
-            $result = $this->collection->log->find($criteria)->limit(10);
+            $result = $this->collection->log->find($criteria)->limit($limit);
             $result->sort(array('time' => -1));
             if ($result->count() > 0) {
+                $this->write_user($result->count() . ' results found for "' . $query . '", showing top ' . $limit . ':');
+                $i = 0;
                 foreach ($result as $history) {
                     $this->write_user('['.date('d/m/Y H:i', $history['time']).'] <'.$history['user'].'> '.$history['message']);
+                    if ($i > $limit) {
+                        $this->write_user('Results limited to ' . $limit);
+                        break;
+                    }
+                    $i++;
                 }
             } else {
                 $this->write_channel('Nothing found.');
@@ -704,6 +966,13 @@ class actions
     {
         $time = trim($this->get_param_string($args['command']));
         if (!is_numeric($time)) {
+            if (!strtotime($time)) {
+                $get_insult = $this->linguo->get_word('insult');
+                $insult = $get_insult['word'];
+
+                $this->write_channel("That's not a goddamn time, " . $insult . "!");
+                return;
+            }
             $this->write_channel('Unix : '.strtotime($time));
             $this->write_channel('Human : '.date('Y-m-d g:i A', strtotime($time)).' ('.date('l', strtotime($time)).')');
         } else {
@@ -723,7 +992,7 @@ class actions
         $parts = explode('|', $this->get_param_string($args['command']));
         $then = strtotime(trim(@$parts[0]));
         $now = strtotime(trim(@$parts[1]));
-        $output = $this->calculate_timespan($then, $now)."\n";
+        $output = $this->_calculate_timespan($then, $now)."\n";
         $years = round(($now - $then) / 60 / 60 / 24 / 365, 2);
         $days = round(($now - $then) / 60 / 60 / 24, 2);
         $hours = round(($now - $then) / 60 / 60, 2);
@@ -904,12 +1173,14 @@ class actions
 
     public function radio($args)
     {
+        return;
         $abuse = $this->linguo->get_abuse($args);
         $this->collection->radio->insert(array('text' => $abuse));
     }
 
     public function sayradio($args)
     {
+        return;
         $message = @$args['arg1'];
         $this->collection->radio->insert(array('text' => $message));
     }
@@ -1104,6 +1375,7 @@ class actions
     */
     public function say($args)
     {
+        return;
         $chan = @$args['chan'];
         if (!$chan) {
             $chan = $this->get_current_channel();
@@ -1119,27 +1391,76 @@ class actions
     /* Tell pybot to /join a $chan */
     public function join($args)
     {
-        if (@$args['arg1']) {
+        $chan = false;
+        if (isset($args['arg1']) && substr(trim($args['arg1']), 0, 1) === '#') {
             $chan = $args['arg1'];
-        } else {
-            $chan = $this->config['default_chan'];
+        }
+        if (!$chan) return;
+        // check if we're here or not
+        if (array_key_exists($chan, $this->config['channellist'])) {
+            $word = 'there';
+            if ($chan == $this->get_current_channel()) $word = 'here';
+            $get_insult = $this->linguo->get_word('insult');
+            $insult = $get_insult['word'];
+
+            $this->write_channel("I'm " . $word . " already, " . $insult . "!");
+            return;
         }
         $this->write_channel("I'll be over in $chan");
         $this->write('JOIN', $chan);
     }
 
+    public function cycle($args)
+    {
+        return; // disabling this as it's only useful for testing
+        if (strlen($args['arg1']) > 0) return;
+
+        // part
+        $this->part(array('arg1' => $this->get_current_channel()));
+        sleep(1);
+        // join
+        $this->join(array('arg1' => $this->get_current_channel()));
+    }
+
     /* Tell pybot to leave a $chan */
     public function part($args)
     {
-        if ($args['arg1']) {
+        $chan = false;
+        if (isset($args['arg1']) && strstr($args['arg1'], '#')) {
             $chan = $args['arg1'];
+        }
+        if (!$chan) {
+            if (strlen($args['arg1']) > 1) return;
+            $chan = $this->get_current_channel();
+        }
+        if (!array_key_exists($chan, $this->config['channellist'])) {
+            return;
         }
         $oldchan = $this->get_current_channel();
         $this->set_current_channel($chan);
-        $this->write_channel("I'm the fuck outta here");
+        $get_insult = $this->linguo->get_word('insult');
+        $insult = $get_insult['word'];
+        $this->write_channel("So long, " . $insult . "s!");
         $this->write('PART', $chan);
+        $this->removeChannel($chan);
         if ($oldchan !== $chan) {
             $this->set_current_channel($oldchan);
+        }
+    }
+
+    public function addChannel($channel = false)
+    {
+        if (!$channel) return;
+        if (!array_key_exists($channel, $this->config['channellist'])) {
+            $this->config['channellist'][$channel] = 1;
+        }
+    }
+
+    public function removeChannel($channel = false)
+    {
+        if (!$channel) return;
+        if (array_key_exists($channel, $this->config['channellist'])) {
+            unset($this->config['channellist'][$channel]);
         }
     }
 
@@ -1201,8 +1522,23 @@ class actions
             ),
         );
         try {
+            // check if exists first
+
+            $checkdata = $this->collection->words->findOne(array('word' => $word, 'type' => $type));
+            
+            if (is_array($checkdata)) {
+                $get_insult = $this->linguo->get_word('insult');
+                $insult = $get_insult['word'];
+
+                $get_exclamation = $this->linguo->get_word('exclamation');
+                $exclamation = $get_exclamation['word'];
+
+                return $this->write_channel($exclamation . ', ' . $this->currentuser . ' you ' . $insult . ' - that word already exists.');
+            }
+
             $this->collection->words->update($criteria, $data, array('upsert' => true));
             $this->write_channel("$word added as $type");
+            $this->_invalidateWordCaches();
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
         }
@@ -1214,6 +1550,7 @@ class actions
         try {
             $this->collection->words->remove(array('word' => $word));
             $this->write_channel("$word removed from dictionary.");
+            $this->_invalidateWordCaches();
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
         }
@@ -1261,6 +1598,7 @@ class actions
             );
             $this->collection->templates->update($criteria, $data, array('upsert' => true));
             $this->write_channel("Template ID : $id");
+            $this->_invalidateTplCache();
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
         }
@@ -1272,6 +1610,7 @@ class actions
         try {
             $r = $this->collection->templates->remove(array('id' => $id));
             $this->write_channel("Removed template $id - $r");
+            $this->_invalidateTplCache();
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
         }
@@ -1279,6 +1618,7 @@ class actions
 
     public function imgbuse($args, $image = '')
     {
+        return;
         $last_param = end(explode(' ', $args['arg1']));
 
         // If image provided, remove it from the args
@@ -1310,8 +1650,7 @@ class actions
         $imagedata = file_get_contents($image);
         $filename = '/tmp/'.time().'.jpg';
         file_put_contents($filename, $imagedata);
-        $twitter = new Twitter();
-        $count = $twitter->upload($image);
+        $count = $this->twitter->upload($image);
         $this->write_channel("HTTP $count");
         $this->write_channel($short);
     }
@@ -1335,21 +1674,81 @@ class actions
 
     public function abuse($args)
     {
+        $this->write_channel($this->_getAbuse($args));
+    }
+
+    private function _sendRadio($data = array())
+    {
+        return; 
+        $radioUrl = "http://radio.riboflav.in:1337/api/v1/library";
+        if (!isset($data['url'])) return;
+        //$thing = file_get_contents($radioUrl . "?url=" . $data['url']);
+        // $this->write('PRIVMSG', $this->config['admin_chan'], 'Hitting URL ' . $radioUrl);
+        // $this->write('PRIVMSG', $this->config['admin_chan'], json_encode($data));
+        $options = array('CURLOPT_HTTPHEADER', array('Content-type: application/json'));
+        $thing = $this->curl->simple_post($radioUrl, json_encode($data), $options);
+        if (!empty($thing)) $this->write_channel($thing);
+    }
+
+    public function rabuse($args)
+    {
+        $abuse = $this->_getAbuse($args);
+        $abuse = preg_replace('/\\r\\n/', ' ', $abuse);
+        $abuse = preg_replace('/\\n/', ' ', $abuse);
+        $data = array('text' => $abuse);
+        $this->_sendRadio($data);
+    }
+
+    private function _getAbuse($args)
+    {
         try {
             if (!isset($args['arg1']) || strlen(trim($args['arg1'])) == 0) {
-                $this->randabuse($args);
-
-                return;
+                if (isset($args['tpl'])) {
+                    $args = array('arg1' => $this->randuser(), 'tpl' => $args['tpl']);
+                } else {
+                    $args = array('arg1' => $this->randuser());
+                }
             }
             $requester = $this->get_current_user();
             if (isset($args['joinabuse'])) {
-                $requester = $this->bothandle;
+                $requester = $this->config['bothandle'];
             }
             $this->linguo->setLastRequester($requester);
             $abuse = $this->linguo->get_abuse($args);
-            $this->write_channel($abuse);
+            return $abuse;
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
+        }
+    }
+
+    private function randuser()
+    {
+        return array_rand($this->config['usercache']);
+    }
+
+    public function checkUserCache($nick = false)
+    {
+        if (!$nick) return;
+        return isset($this->config['usercache'][$nick]);
+    }
+
+    public function getUserCache()
+    {
+        return $this->config['usercache'];
+    }
+
+    public function setUserCache($key = false, $data = false)
+    {
+        if (!$data || !$key) return;
+
+        $key = trim($key);
+
+        if (!isset($this->config['usercache'][$key])) {
+            $this->config['usercache'][$key] = $data;
+        } else {
+            foreach($data as $k => $v) {
+                $this->config['usercache'][$key][$k] = $v;
+            }
         }
     }
 
@@ -1386,18 +1785,193 @@ class actions
     }
 
     // Pybot Stats
-    public function pstats($agrs)
+    public function pstats($args)
     {
         try {
+            /*** general word stats ***/
+
+            $criteria = array(
+                array(
+                    '$group' => array(
+                        '_id' => array('user' => '$user'),
+                        'count' => array('$sum' => 1)
+                    )
+                ),
+                array(
+                    '$match' => array(
+                        'count' => array('$gte' => 50)
+                    )
+                )
+            );
+            
+            $data = $this->collection->words->aggregate($criteria);
+            $words = array();
+            $data = $data['result'];
+            foreach ($data as $row) {
+                if (!isset($words[$row['_id']['user']])) {
+                    $words[$row['_id']['user']] = $row['count'];
+                }
+            }
+            arsort($words);
             $count = $this->collection->words->count();
-            $this->write('PRIVMSG', $this->get_current_channel(), "$count words");
+            $wordtext = $count . " words.";
+            $a = 0;
+            foreach ($words as $user => $val) {
+                $wordtext .= ' (' . $val . ') ' . $user;
+                if ($a < count($words)-1) {
+                    $wordtext .= ';';
+                }
+                $a++;
+            }
+            $this->write_channel($wordtext);
+
+            /*** templates ***/
+
+            $criteria = array(
+                array(
+                    '$group' => array(
+                        '_id' => array('user' => '$user'),
+                        'count' => array('$sum' => 1)
+                    )
+                ),
+                array(
+                    '$match' => array(
+                        'count' => array('$gte' => 5)
+                    )
+                )
+            );
+            
+            $data = $this->collection->templates->aggregate($criteria);
+            $templates = array();
+            $data = $data['result'];
+            foreach ($data as $row) {
+                if (!isset($templates[$row['_id']['user']])) {
+                    $templates[$row['_id']['user']] = $row['count'];
+                }
+            }
+            arsort($templates);
+ 
             $count = $this->collection->templates->count();
-            $this->write('PRIVMSG', $this->get_current_channel(), "$count templates");
+            $templatetext = $count . " templates.";
+            $a = 0;
+            foreach ($templates as $user => $val) {
+                $templatetext .= ' (' . $val . ') ' . $user;
+                if ($a < count($templates)-1) {
+                    $templatetext .= ';';
+                }
+                $a++;
+            }
+            $this->write_channel($templatetext);
+
         } catch (Exception $e) {
-            $this->Log->log('DB Error', 2);
+            $this->write_channel('Something got fucked up');
         }
     }
 
+    private function _setCacheData($key = false, $data = false)
+    {
+        if (!$key || !$data) return false;
+        $this->_cacheData[$key] = $data;
+    }
+
+    private function _getCacheData($key = false)
+    {
+        if (!$key || !isset($this->_cacheData[$key])) return false;
+        return $this->_cacheData[$key]; 
+    }
+
+    private function _invalidateWordCaches()
+    {
+        unset($this->_cacheData['wordtypes']);
+    }
+
+    private function _invalidateTplCache()
+    {
+
+    }
+
+    private function _setWordStats()
+    {
+        $criteria = array(
+            array(
+                '$group' => array(
+                    '_id' => array('user' => '$user', 'type' => '$type'),
+                    'count' => array('$sum' => 1)
+                )
+            ),
+            array(
+                '$match' => array(
+                    'count' => array('$gte' => 5)
+                )
+            )
+            
+        );
+        
+        $data = $this->collection->words->aggregate($criteria);
+        $wordtypes = array();
+        $data = $data['result'];
+
+        foreach ($data as $row) {
+            if (!isset($wordtypes[$row['_id']['type']])) $wordtypes[$row['_id']['type']] = array();
+            $wordtypes[$row['_id']['type']][$row['_id']['user']] = $row['count'];
+        }
+        
+        // maybe now add caching?
+        // go through array, get all types
+        // - sort them, then assign associated values to it
+        // and add totals to the types (full totals)
+
+        $types = array();
+        $finaldata = array();
+        foreach($wordtypes as $type => $row) {
+            $types[] = $type;
+        }
+        asort($types, SORT_FLAG_CASE);
+
+        foreach ($types as $index => $type) {
+            $typestats = $wordtypes[$type];
+            arsort($typestats);
+            $finaldata[$type] = $typestats;
+        }
+        $this->_setCacheData('wordtypes', $finaldata);
+
+    }
+
+    public function wordstats($args)
+    {
+        /*** word types ***/
+        $finaldata = $this->_getCacheData('wordtypes');
+        if (!$finaldata) {
+            $this->_setWordStats();
+            $finaldata = $this->_getCacheData('wordtypes');
+        }
+        
+        if (!empty($args['arg1'])) {
+            $word = trim($args['arg1']);
+            if (isset($finaldata[$word])) {
+                $worddata = $finaldata[$word];
+                $finaldata = array();
+                $finaldata[$word] = $worddata;
+            }
+        }
+
+        $a = 0;
+        $i = 0;
+        foreach ($finaldata as $type => $data) {
+            $typetext = '';
+            if (count($data) > 0) $typetext .= $type . ': ';
+            foreach ($data as $user => $val) {
+                $typetext .= ' (' . $val . ') ' . $user;
+                if ($a < count($data)-1) {
+                    $typetext .= ';';
+                }
+                $a++;
+            }
+            $this->write_channel($typetext);
+            if ($i > 5) break;
+            $i++;
+        }
+    }
     public function geo($args)
     {
         $addr = trim($args['arg1']);
@@ -1425,7 +1999,7 @@ class actions
         // $output = explode("\n", shell_exec('/usr/bin/calendar'));
         // $this->write_channel($output[array_rand($output)]);
     }
-    public function _get_git_revision()
+    private function _get_git_revision()
     {
         return shell_exec('/usr/bin/git rev-parse HEAD');
     }
@@ -1464,8 +2038,9 @@ class actions
     {
         $version = trim($this->version);
         $branch = trim(@shell_exec('/usr/bin/git rev-parse --abbrev-ref HEAD'));
-        // $branch = 'no git right nao';
-        $version_string = "pybot (" . $branch . ") version " . $version . " - 'Old Found Glory'";
+        $get_insult = $this->linguo->get_word('insult');
+        $insult = $get_insult['word'];
+        $version_string = "pybot (" . $insult . ") version " . $version . " - 'Old Found Glory'";
         $this->write_channel($version_string);
 
         return;
@@ -1507,45 +2082,83 @@ class actions
 
     private function _htmldoit($input)
     {
-            if (is_string($input)) {
-                $tmp = html_entity_decode(strip_tags($input));
-                $re = preg_replace_callback('/(&#[0-9]+;)/', function ($m) { return mb_convert_encoding($m[1], 'UTF-8', 'HTML-ENTITIES'); }, $tmp);
+        if (is_string($input)) {
+            $tmp = html_entity_decode(strip_tags($input));
+            $re = preg_replace_callback('/(&#[0-9]+;)/', function ($m) { return mb_convert_encoding($m[1], 'UTF-8', 'HTML-ENTITIES'); }, $tmp);
 
-                return str_replace('3text', '', $re);
+            return str_replace('3text', '', $re);
+        }
+    }
+
+    private function _getDefinition($args)
+    {
+        if (!$args['arg1']) return array();
+        $word = trim((string) $args['arg1']);
+        $q = rawurlencode($word);
+        $output = array();
+        $url = 'http://api.urbandictionary.com/v0/define?term=' . $q;
+        $html = file_get_html($url);
+        if ($html) {
+            $html = json_decode($html);
+            if (isset($html->list[0])) {
+                $output['definition'] = $html->list[0]->definition;
+                $output['example'] = $html->list[0]->example;
             }
+        }
+
+        return $output;
+
+    }
+
+    public function rdefine($args)
+    {
+        $types = explode(', ', $this->linguo->get_word_types());
+
+        if (isset($args['arg1']) && in_array($args['arg1'], $types)) {
+            $word = $this->linguo->get_word($args['arg1']);
+            $args['arg1'] = $word['word'];
+        }
+
+        if (empty($args['arg1'])) {
+            $type = $this->linguo->get_random_word_type();
+            $word = $this->linguo->get_word($type);
+            $args['arg1'] = $word['word'];
+        }
+
+        $def = $this->_getDefinition($args);
+        if (isset($def['definition'])) {
+            if (strlen($def['definition']) > 512 || strlen($def['example']) > 512) return;
+            $this->_sendRadio(array('text' => 'Looking up definition for ' . $args['arg1']));
+            
+            $definition = preg_replace('/\\r\\n/', ' ', $def['definition']);
+            $definition = preg_replace('/\\n/', ' ', $definition);
+
+            $example = preg_replace('/\\r\\n/', ' ', $def['example']);
+            $example = preg_replace('/\\n/', ' ', $example);
+
+            $this->_sendRadio(array('text' => $definition));
+            $this->_sendRadio(array('text' => $example));
+        }
+        
     }
 
     public function define($args)
     {
         if (!empty($args['arg1'])) {
             $word = trim((string) $args['arg1']);
-            $q = rawurlencode($word);
             $this->write_channel("Looking up definition for $word ...\n");
-            $output = '';
-            $url = 'http://www.urbandictionary.com/define.php?term='.$q;
-            $html = file_get_html($url);
-            //$html = $this->curl->simple_get($url);
-            if ($html) {
-                $result = $html->find('div[class=meaning]');
-                // print_r($result[0]->nodes[0]->_);
-                $def = $result[0]->nodes[0]->_;
-            }
-            // $def = $result[0]->nodes[0];
-            $definition = '';
-            $example = '';
-            if (!empty($def)) {
-                $definition = $this->_getHtmlText($result[0]->nodes);
-                $this->write_channel('Definition: '.$definition);
-            }
-            $exresult = $html->find('div[class=example]');
-            if (!isset($exresult[0]) && !isset($exresult[0]->nodes[0])) {
+            $def = $this->_getDefinition($args);
+            if (isset($def['definition'])) {
+                if (strlen($def['definition']) > 512) {
+                    $this->write_user('Definition: ' . $def['definition']);
+                    $this->write_user('Example: ' . $def['example']);
+                } else {
+                    $this->write_channel('Definition: ' . $def['definition']);
+                    $this->write_channel('Example: ' . $def['example']);
+                }
                 return;
             }
-            $ex = $exresult[0]->nodes[0]->_;
-            if (!empty($ex)) {
-                $example = $this->_getHtmlText($exresult[0]->nodes);
-                $this->write_channel('Example: '.$example);
-            }
+            $this->write_channel('No definition found');
         } else {
             $this->write_channel('Please specify a search query.');
         }
@@ -1565,7 +2178,7 @@ class actions
             if (is_array($node->find('text'))) {
                 foreach($node->find('text') as $num => $textnode) {
                     foreach($textnode->_ as $key => $val) {
-                        $definition .= $this->_htmldoit($val);
+                        //$definition .= $this->_htmldoit($val);
                     }
                 }
             }
@@ -1748,131 +2361,7 @@ class actions
         }
         return true;
     }
-/*
-    public function tstat() {
-        return;
-        $trans = new TransmissionRPC();
-        $r = $trans->get();
-        $active = 0;
-        $pending = 0;
-        foreach ($r->arguments->torrents as $t) {
-            $have = @$t->haveValid;
-            $size = @$t->totalSize;
-            $complete = round(($have / $size) * 100, 2);
-            if ($complete > 0)  {
-                $active++;
-                $this->write_channel($t->name.' - '.$complete." %");
-            } else {
-                $pending++;
-            }
-            if ($t->status == 6) {
-                $trans->remove($t->id);
-            }
-        }
-        $this->write_channel("Active : $active Pending : $pending");
-    }
-    public function tsearch($args) {
-        return;
-        $arg = $args['arg1'];
-        $results = json_decode(file_get_contents("http://isohunt.com/js/json.php?ihq=".urlencode($arg)."&rows=5&sort=seeds"));
-        $output = null;
-        foreach ($results->items->list as $file) {
-            try {
-                $this->collection->torrents->update($file, $file, array('upsert' => true));
-                $r = $this->collection->torrents->findOne($file);
-                $this->write_channel(strip_tags($file->title).' - '.$r['_id']);
-            } catch (Exception $e) {
-                $this->Log->log("DB Error", 2);
-            }
-        }
-        return;
-    }
 
-    public function tget($args) {
-        return;
-        $trans = new TransmissionRPC();
-        $id = trim($args['arg1']);
-        try {
-            $r = $this->collection->torrents->findOne(array('_id' => new MongoId($id)));
-            $url = $r['enclosure_url'];
-            $this->write_channel("Added ".strip_tags($r['title']));
-            $trans->add_file($url);
-        } catch (Exception $e) {
-            $this->Log->log("DB Error", 2);
-        }
-    }
-
-    function ssearch($args) {
-        return;
-        $q = $args['arg1'];
-        $query = urlencode($q);
-        $url = "http://nzbindex.com/rss/?q=$query&max=5&hidespam=1&complete=1&sort=sizedesc&minsize=80&maxsize=500";
-        $string = file_get_contents($url);
-        $xml = simplexml_load_string($string);
-        $output = null;
-        foreach ($xml->channel->item as $item) {
-            $s = $item->enclosure->attributes()->length[0];
-            $size = $s;
-            $title = $this->_parse_nzb($item->title);
-            $link = $item->link;
-            $id = new MongoId();
-            $str_id = (string) $id;
-            try {
-                $this->collection->usenet->insert(array('_id' => $id, 'title' => $title, 'link' => $link, 'size' => $size));
-                $this->write_channel("$size : $title : $str_id");
-            } catch (Exception $e) {
-                $this->Log->log("DB Error", 2);
-            }
-        }
-        return $output;
-    }
-
-    function sget($args) {
-        return;
-        $id = $args['arg1'];
-        $id = new MongoId($id);
-        try {
-            $result = $this->collection->usenet->findOne(array('_id' => $id));
-            $link = str_replace('/release/', '/download/', @$result['link'][0]);
-            $clean = @$result['title'];
-            $title = urlencode(@$result['title']);
-            if (!$link) { return "ID Not Found"; }
-            $r = file_get_contents("http://media.dev.riboflav.in:5000/api?mode=addurl&name=$link&nzbname=$title&cat=music");
-            $this->write_channel("Downloading $clean");
-        } catch (Exception $e) {
-            $this->Log->log("DB Error", 2);
-        }
-    }
-
-    function sstat() {
-        $r = file_get_contents("http://media:5000/api?mode=qstatus&output=json");
-        $data = json_decode($r);
-        $output = null;
-        $speed = $data->speed;
-        foreach ($data->jobs as $result) {
-            $eta = $result->timeleft;
-            $name = $result->filename;
-            $size = round($result->mb);
-            $left = round($result->mbleft);
-            $complete = round($size-$left);
-            $percent = round($complete/$size*100);
-            $this->write_channel("$name - Complete :  {$percent}% - Size : $size M");
-        }
-        $this->write_channel("Speed : {$speed}B/s");
-    }
-
-    private function _parse_nzb($title)
-    {
-        return;
-        $search = array('-', '_', '.', 'nfo', 'par2', 'flac', 'mp3');
-        $parts = explode('"', $title);
-        $new = str_replace($search, ' ', $parts[1]);
-        $p = array_map('ucfirst', explode(' ', $new));
-
-        return implode(' ', $p);
-    }
-
-*/
     public function e164($args)
     {
         $arg = implode('.', array_reverse(str_split(preg_replace('/[^0-9]/', '', $args['arg1'])))).'.in-addr.arpa';
@@ -1894,8 +2383,7 @@ class actions
     public function follow($args)
     {
         $message = $args['arg1'];
-        $twitter = new Twitter();
-        $count = $twitter->follow($message);
+        $count = $this->twitter->follow($message);
         $this->write_channel("HTTP $count");
     }
 
@@ -1909,14 +2397,8 @@ class actions
 
             return;
         };
-        $twitter = new Twitter();
-        $count = $twitter->tweet($message);
+        $count = $this->twitter->tweet($message);
         $this->write_channel("HTTP $count");
-    }
-
-    public function you()
-    {
-        // $this->write_channel('NO U!');
     }
 
     public function me($args)
@@ -2069,7 +2551,7 @@ class actions
     }
 */
     /* Checks all words for valid url, retreives title ad shortens link */
-    public function check_url($words, $channel)
+    private function check_url($words, $channel)
     {
         $url = false;
         foreach ($words as $word) {
@@ -2082,9 +2564,9 @@ class actions
                 if (empty($title)) {
                     $title = 'Untitled ';
                 }
+                // find a better way to ignore other bots?
+                if ($this->get_current_user() == 'pybot') return;
                 $url = $this->_shorten($word);
-                //   $this->db->insert('package__pybot_link_history', array('username' => $this->user, 'title' => $title, 'url' => $url, 'created' => date('d-m-Y g:i A')));
-                $criteria = array();
                 $data = array('username' => $this->get_current_user(), 'title' => $title, 'url' => $url, 'created' => date('d-m-Y g:i A'));
                 try {
                     $lh = $this->collection->linkhistory;
@@ -2103,6 +2585,23 @@ class actions
     public function uptime($args)
     {
         $this->write_channel(trim(shell_exec('uptime')));
+        $this->write_channel('Bot was started on: ' . date('d-m-Y \a\t H:i', $this->config['_starttime']));
+        $this->write_channel($this->_calculate_timespan($this->config['_starttime']) . ' since our last incident');
+        $lastcommit = explode("\n", $this->_getLastGitCommit());
+        if (!empty($lastcommit) || !$lastcommit) {
+            $lastcommitlink = $this->_shorten('https://github.com/philbarbier/pybot-legacy/commit/' . str_replace('commit ', '', $lastcommit[0]));
+            $authorraw = trim(str_replace('Author:', '', $lastcommit[1]));
+            $author = substr($authorraw, 0, strpos($authorraw, ' <'));
+            $lastcommitdate = trim(str_replace('Date: ', '', $lastcommit[2])); 
+            $this->write_channel('Last commit: ' . $lastcommitlink . ' "' . trim($lastcommit[4]) . '" on ' . date('Y-m-d \a\t H:i', strtotime($lastcommitdate)) . ' (' . $this->_calculate_timespan(strtotime($lastcommitdate)) . ' ago) by ' . $author);
+        } 
+    }
+
+    private function _getLastGitCommit()
+    {
+        $output = shell_exec("git rev-list --format='medium' --max-count=1 `git rev-parse HEAD`");
+        // $output .= "\n" . shell_exec("git log -1 --pretty=%B");
+        return $output;
     }
 
     public function b_shorten($url)
@@ -2148,18 +2647,20 @@ class actions
             $args['arg1'] = 'toronto';
         }
 
+        if (strstr($args['arg1'], ' ')) return;
         $this->top_rss('http://www.reddit.com/r/'.$args['arg1'].'.rss', 3);
     }
 
     private function top_rss($url, $count)
     {
+        $data = array();
+        
         try {
             $data = json_decode(json_encode(simplexml_load_string(file_get_contents($url))), true);
         } catch (Exception $e) {
-            $data = array();
-            $data['entry'] = array();
         }
         $i = 0;
+        if (!isset($data['entry'])) return;
         foreach ($data['entry'] as $item) {
             if ($i <= $count - 1) {
                 $title = $item['title'];
@@ -2198,20 +2699,6 @@ class actions
         }
 
         $this->write_channel('Symbol not found. Check http://bitcoincharts.com/markets/ for a list of symbol names.');
-    }
-
-    private function randuser()
-    {
-        return array_rand($this->userCache);
-    }
-
-    public function randabuse($args)
-    {
-        if (isset($args['tpl'])) {
-            $this->abuse(array('arg1' => $this->randuser(), 'tpl' => $args['tpl']));
-        } else {
-            $this->abuse(array('arg1' => $this->randuser()));
-        }
     }
 
     public function metar($args)
@@ -2444,7 +2931,7 @@ class actions
     }
 
     /* math functions */
-    public function sum($args)
+    private function _sum($args)
     {
         $parts = explode('|', $this->get_param_string($args['command']));
 
@@ -2461,10 +2948,52 @@ class actions
         return $total;
     }
 
+    public function multiply($args)
+    {
+        $parts = explode('|', $this->get_param_string($args['command']));
+
+        if (count($parts) < 2) {
+            return;
+        }
+
+        $total = 1;
+        foreach ($parts as $part) {
+            $part = trim($part);
+            $total *= $part;
+        }
+
+        $this->write_channel(round($total, 2));
+    }
+
     public function add($args)
     {
-        $this->write_channel($this->sum($args));
+        $this->write_channel($this->_sum($args));
     }
+
+    public function divide($args)
+    {
+        $parts = explode('|', $this->get_param_string($args['command']));
+
+        if (count($parts) < 2) {
+            return;
+        }
+
+        if ($parts[0] == 0 || $parts[1] == 0) {
+            $get_insult = $this->linguo->get_word('insult');
+            $insult = $get_insult['word'];
+            $this->write_channel("Trying to divide by 0 eh? " . $insult . "!");
+            return;
+        }
+
+        if (!is_numeric($parts[0]) || !is_numeric($parts[1])) {
+            return;
+        }
+
+        $total = 0;
+        $total = $parts[0] / $parts[1];
+        $this->write_channel(round($total, 2));
+    }
+
 
     /* calculate bmi - first version is in pounds */
     public function bmi($args)
@@ -2527,7 +3056,7 @@ class actions
         $this->write_channel('Lisa needs braces');
     }
 
-    public function MORTAL_KOMBAT()
+    public function MORTAL_KOMBAT($args)
     {
         $this->write_channel('                        ..sex..                        ');
         $this->write_channel("                     uuuueeeeeu..^'*&e.                ");
@@ -2559,7 +3088,7 @@ class actions
         $this->write_channel("          `^*&&&&&&&&&                      '          ");
     }
 
-    public function cc()
+    public function getcc()
     {
         $arr1 = array(
             'ass',
@@ -2692,24 +3221,33 @@ class actions
             'bandit',
             'gargler',
         );
-        $this->write_channel($arr1[array_rand($arr1)].' '.$arr2[array_rand($arr2)]);
+        return $arr1[array_rand($arr1)].' '.$arr2[array_rand($arr2)];
     }
 
-    public function The_Hatta()
+    public function cc()
     {
+        
+        $this->write_channel($this->getcc());
+    }
+
+    public function The_Hatta($args)
+    {
+        if (strlen($args['arg1']) > 0) return;
         $this->write_channel('      _____');
         $this->write_channel(' _____|LI|_\\__');
         $this->write_channel('[    _  [^   _ `)     The_Hatta');
         $this->write_channel('`"""(_)"""""(_)~');
     }
-    public function flimflam()
+    public function flimflam($args)
     {
+        if (strlen($args['arg1']) > 0) return;
         $this->write_channel('     __o');
         $this->write_channel("   _ \<,_");
         $this->write_channel('  (_)/ (_) flimflam');
     }
-    public function blafunke()
+    public function blafunke($args)
     {
+        if (strlen($args['arg1']) > 0) return;
         $this->write_channel('                                                               /|');
         $this->write_channel("                    XYX XYX XYX  ,-.                         .' |");
         $this->write_channel(",-.__________________H___H___H__(___)_____________________,-'   |");
@@ -2722,8 +3260,9 @@ class actions
         $this->write_channel("       `------------|_| |_| |_|-----------------'J `-'    blafunke");
     }
 
-    public function gorf()
+    public function gorf($args)
     {
+        if (strlen($args['arg1']) > 0) return;
         $this->write_channel('   (o)--(o) ');
         $this->write_channel("  /.______.\ ");
         $this->write_channel("  \________/ ");
@@ -2733,8 +3272,9 @@ class actions
         $this->write_channel('  ~~  ~~  ~~ ');
     }
 
-    public function sunshine()
+    public function sunshine($args)
     {
+        if (strlen($args['arg1']) > 0) return;
         $this->write_channel("                        \     (      /");
         $this->write_channel("                   `.    \     )    /    .'");
         $this->write_channel("                     `.   \   (    /   .'");
@@ -2785,8 +3325,12 @@ class actions
         $this->write_channel($out);
     }
     */
-    public function beer()
+    public function beer($args = array())
     {
+        if (isset($args['arg1']) && strtolower($args['arg1']) == 'beer beer') {
+            $this->write_channel('Bed! Bed! Bed!');
+        }
+
         $hour = date('H');
         if (in_array($hour, range(15, 23)) || in_array($hour, range(0, 6))) {
             $this->write_channel("IT'S BEER NOW!!!");
@@ -2973,19 +3517,120 @@ class actions
         $this->write_channel($data['question'] . ' (' . $data['category'] . ')');
 
     }
+
+    public function ryt($args)
+    {
+        $dateFmt = 'l jS \of F Y';
+        if (empty($args['arg1'])) {
+            $data = $this->_getYoutube($args);
+            $url = $origurl = $data['origurl'];
+            $who = $data['who'];
+            $what = $data['title'];
+            $when = date($dateFmt, strtotime($data['when']));
+        } else {
+            if (stristr($args['arg1'], 'http')) {
+                $url = $origurl = $args['arg1'];
+                $who = $this->get_current_user();
+                $when = date($dateFmt);
+                $what = $this->get_site_title($url);
+                if ($what == 'YouTube') {
+                    $data = $this->_getYoutube();
+                    $url = $data['origurl'];
+                    $origurl = $data['origurl'];
+                    $who = $data['who'];
+                    $what = $data['title'];
+                    $when = date($dateFmt, strtotime($data['when']));
+                }
+            } else {
+                $data = $this->_getYoutube($args);
+                $url = $data['origurl'];
+                $origurl = $data['origurl'];
+                $who = $data['who'];
+                $what = $data['title'];
+                $when = date($dateFmt, strtotime($data['when']));
+            }
+        }
+
+        $now = date('U');
+
+        $urlData = $this->_checkUrlHistory($origurl, $now);
+
+        if ($url != $urlData['url']) {
+            $url = $urlData['url'];
+            $origurl = $urlData['origurl'];
+            $who = $urlData['who'];
+            $what = $urlData['title'];
+            $when = date($dateFmt, strtotime($urlData['when']));
+        }
+
+        // log history
+        $data = array(
+                'url' => $origurl,
+                'who' => $who,
+                'when' => $when,
+                'title' => $what,
+                'timestamp' => $now
+            );
+
+        $col = $this->collection->radio->songhistory;
+        $criteria = array('url' => $url);
+
+        $col->update($criteria, $data, array('upsert' => true));
+        
+        $what = str_ireplace('youtube', '', $what);
+        $songAnnounce = "And next up from " . $who . " is " . $what; // . " which was played on " . $when;
+        $this->write_channel($songAnnounce);
+        // $this->_sendRadio(array('text' => $songAnnounce));
+        $extras = array('url' => $origurl, 'user' => $who, 'token' => md5($origurl), 'intro_text' => $songAnnounce);
+        //$thing = $this->_sendRadio($extras);
+    }
+
+    private function _checkUrlHistory($url, $now)
+    {
+        $urlData = false;
+        $col = $this->collection->radio->songhistory;
+        $criteria = array('url' => $url);
+        $history = $col->find($criteria); 
+
+        $threshold = 21600; //86400;
+        foreach ($history as $record) {
+            if (($now - $record['timestamp']) <= $threshold) {
+                $urlData = $this->_getYoutube();        
+                $url = $this->_checkUrlHistory($urlData['origurl'], $now);
+            }
+        }
+
+        if (is_array($urlData)) {
+            if ($urlData['title'] == 'YouTube') {
+                $urlData = $this->_getYoutube();
+                $url = $this->_checkUrlHistory($urlData['origurl'], $now);
+            }
+        }
+
+        return is_array($urlData) ? $urlData : array('url' => $url); 
+    }
+
     public function yt($args)
+    {
+        $data = $this->_getYoutube($args);
+        $msg = $data['title'] . " | " . $data['url'] . " | " . $data['who'] . " on " . $data['when'];
+        $this->write_channel($msg);
+    }
+
+    private function _getYoutube($args = array())
     {
         $criteria = array(
             'message' => array(
                 '$regex' => new MongoRegex('/youtube.com/i'),
             ),
         );
-        $query = @$args['arg1'];
+        $query = (isset($args['arg1']) && !empty($args['arg1'])) ? $args['arg1'] : false;
         if ($query) {
             $criteria = array(
                 'message' => array(
-                    '$regex' => new MongoRegex("/$query/i"),
+                    '$regex' => new MongoRegex("/youtube.com/i"),
                 ),
+                'user' => $args['arg1']
             );
         };
         $count = $this->collection->log->count($criteria);
@@ -2995,14 +3640,52 @@ class actions
             $string = $record['message'];
             preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $string, $match);
             $url = @$match[0][0];
-            // print_r($match);
             $title = $this->get_site_title($url);
+            if (empty($url)) $this->_getYoutube($args);
+            if ($title == 'YouTube') {
+                $this->_cleanUrlHistory($record['_id'], $url);
+                if (isset($record['urltitle'])) {
+                    $this->write_channel("Video for " . $record['urltitle'] . " could not be found");
+                }
+                return $this->_getYoutube($args);
+            }
+            if (!isset($record['urltitle'])) $this->_addUrlTitle($record['_id'], $url, $title);
+            $origurl = $url;
             $url = $this->_shorten($url);
             $when = gmdate('Y-m-d', (int) $record['time']);
             $who = $record['user'];
-            $msg = "$title | $url | $who on $when";
-            $this->write_channel($msg);
+            return array('url' => $url, 'title' => $title, 'when' => $when, 'who' => $who, 'origurl' => $origurl);
         }
+    }
+
+    private function _addUrlTitle($objId, $url = false, $title = false)
+    {
+        if (!$url) return;
+
+        if (!$title) $title = $this->get_site_title($url);
+
+        $criteria = array('_id' => new MongoId($objId));
+        $record = $this->collection->log->findOne($criteria);
+        
+        if (!isset($record['_id'])) return;
+        
+        $record['urltitle'] = $title;
+        unset($record['_id']);
+        $this->collection->log->update($criteria, $record, array('upsert' => true));
+    }
+
+    private function _cleanUrlHistory($objId = false, $url = false)
+    {
+        if (!$objId) return;
+        
+        $criteria = array('_id' => new MongoId($objId));
+        $record = $this->collection->log->findOne($criteria);
+       
+        if (!isset($record['message'])) return;
+
+        $record['message'] = str_replace($url, '<old video URL removed>', $record['message']);
+        unset($record['_id']);
+        $this->collection->log->update($criteria, $record, array('upsert' => true));
     }
 
     public function itg($args)
@@ -3022,6 +3705,7 @@ class actions
     public function said($args)
     {
         $criteria = array();
+        $when = false;
         if ($args['arg1']) {
             $criteria = array('user' => $args['arg1']);
         };
@@ -3031,8 +3715,9 @@ class actions
         foreach ($data as $msg) {
             $user = $msg['user'];
             $mesg = $msg['message'];
-            $when = gmdate('Y-m-d', (int) $msg['time']);
+            $when = date('d-m-Y H:i', (int) $msg['time']);
         };
+        if (!$when) return;
         $this->write_channel("($when) $user> $mesg");
     }
 
@@ -3048,10 +3733,67 @@ class actions
         $this->write_channel("Roman $out" . $this->randuser());
     }
 
-    public function smoke($args)
+    private function _getUserSmokes($user = false)
+    {
+        if (!$user) return;
+
+        $user = trim($user);
+        if (strstr($user, ' ')) {
+            return;
+        }
+        
+        $smokedata = $this->_getLastSmoke($user);
+        if (!$smokedata) {
+            $this->write_channel('No smoke data for ' . $user . ' found');
+            return;
+        }
+        $message = 'Smoke stats for ' . $user;
+        $this->write_channel($message);
+        $message = 'Total of ' . $smokedata['totalsmokes'] . ' smokes';
+        $message .= ' since ' . date('d-m-Y H:i', $smokedata['firstsmoke']);
+        $message .= '. The last smoke was ' . $smokedata['time'] . ' - ' . $smokedata['ago'] . ' ago.';
+        return $message;
+    }
+
+    public function smokes($args)
     {
         $c = $this->collection->irc->smokecount;
-        $criteria = array('user' => $this->get_current_user(), 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
+        $data = $c->find();
+        $smokes = array();
+        foreach($data as $row) {
+            if (!isset($smokes[$row['user']])) {
+                $smokes[$row['user']] = array();
+            }
+            $smokedata = $this->_getLastSmoke($row['user']);
+            $smokes[$row['user']]['smokecount'] = $smokedata['totalsmokes'];
+            $smokes[$row['user']]['firstsmoke'] = $smokedata['firstsmoke'];
+            $numdays = floor((date('U') - $smokedata['firstsmoke']) / 86400);
+            $smokes[$row['user']]['average'] = ceil($smokedata['totalsmokes'] / $numdays);
+
+        }
+        if (count($smokes) > 4) {
+            $this->write_channel('Data will be sent via PM');
+            foreach($smokes as $user => $smoke) {
+                $this->write_user($user . ' has smoked ' . $smoke['smokecount'] . ' total smokes, averaging ' . $smoke['average'] . ' a day since ' . date('d-m-Y H:i', $smoke['firstsmoke']));
+            }
+        } else {
+            foreach($smokes as $user => $smoke) {
+                $this->write_channel($user . ' has smoked ' . $smoke['smokecount'] . ' total smokes, averaging ' . $smoke['average'] . ' a day since ' . date('d-m-Y H:i', $smoke['firstsmoke']));
+            }
+        }
+    }
+
+    public function smoke($args)
+    {
+        $user = $this->get_current_user();
+
+        if (isset($args['arg1']) && !empty($args['arg1'])) {
+            $this->write_channel($this->_getUserSmokes($args['arg1']));
+            return;
+        }
+
+        $c = $this->collection->irc->smokecount;
+        $criteria = array('user' => $user, 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
         $d = $c->findOne($criteria);
         $newsmokes = 1;
         $lastsmoke = $this->_getLastSmoke();
@@ -3070,18 +3812,21 @@ class actions
         $c->update($criteria, $data, array('upsert' => true));
         $d = $c->findOne($criteria);
         $firstsmoke = '';
-        $totalsmokes = isset($lastsmoke['totalsmokes']) ? $lastsmoke['totalsmokes'] : '0'; 
+        $totalsmokes = isset($lastsmoke['totalsmokes']) ? $lastsmoke['totalsmokes'] : '1'; 
         if ($lastsmoke && isset($lastsmoke['firstsmoke'])) {
             $firstsmoke = ' since ' . date('d-m-Y H:i', $lastsmoke['firstsmoke']); 
         }
-        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... This brings you to a grand total of " . $totalsmokes . " smokes" . $firstsmoke . ". Keep up killing yourself with cancer!";
-        if ($lastsmoke && isset($lastsmoke['time'])) $response .= ' Your last smoke was at ' . $lastsmoke['time'];
+        $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... This brings you to a grand total of " . $totalsmokes . " smoke" . (($totalsmokes > 1) ? "s": "") . $firstsmoke . ". Keep up killing yourself with cancer!";
+        if ($lastsmoke && isset($lastsmoke['time'])) $response .= ' Your last smoke was at ' . $lastsmoke['time'] . " - about " . $lastsmoke['ago'] . " ago";
         
         $this->write_channel($response);
     }
 
-    private function _getLastSmoke() {
-        $allrecords = $this->collection->irc->smokecount->find(array('user' => $this->get_current_user()));
+    private function _getLastSmoke($user = false)
+    {
+        if (!$user) $user = $this->get_current_user();
+
+        $allrecords = $this->collection->irc->smokecount->find(array('user' => $user));
         // 1 because this value is used in the smoke() function, so this 
         // accounts for that current smoke
         $totalsmokes = 1;
@@ -3096,17 +3841,17 @@ class actions
         }
         unset($record);
         $total = $allrecords->count();
-        $d2 = $this->collection->irc->smokecount->find(array('user' => $this->get_current_user()))->sort(array('time' => -1))->limit(1);
+        $d2 = $this->collection->irc->smokecount->find(array('user' => $user))->sort(array('time' => -1))->limit(1);
         $lastsmoke = false;
         foreach($d2 as $record) {
             if (isset($record['time'])) {
                 $lastsmoke = array();
                 $lastsmoke['time'] = date('d-m-Y, H:i', $record['time']);
                 $lastsmoke['totalsmokes'] = $totalsmokes;
-
+                $lastsmoke['ago'] = $this->_calculate_timespan($record['time']);
             }
         }
-        $lastsmoke['firstsmoke'] = $firstsmoke;
+        if (is_array($lastsmoke)) $lastsmoke['firstsmoke'] = $firstsmoke;
         return $lastsmoke;
     }
 
@@ -3116,7 +3861,7 @@ class actions
         // $criteria = array('user' => $this->get_current_user(), 'day' => date('d'), 'month' => date('m'), 'year' => date('Y'));
         // $d = $c->findOne($criteria);
         $lastsmoke = $this->_getLastSmoke();
-        if ($lastsmoke) $this->write_channel("Well " . $this->get_current_user() . ", this is when you last inhaled cancer " . $lastsmoke['time']); 
+        if ($lastsmoke) $this->write_channel("Well " . $this->get_current_user() . ", this is when you last inhaled cancer " . $lastsmoke['time'] . " - about " . $lastsmoke['ago'] . " ago"); 
 
     }
 
@@ -3130,6 +3875,10 @@ class actions
         $things = array('Go to hell!', 'Kiss my butt!', 'Shut up!');
         $thing = rand(0,count($things)-1);
         $this->write_channel($things[$thing]);
+        if (($this->bartUseCount % 5) == 0) {
+            $this->write_channel('Hey, once again, great present, Dad.');
+        }
+        $this->bartUseCount++;
     }
 
     public function lasttpl($args)
@@ -3137,45 +3886,83 @@ class actions
         $data = $this->linguo->getLastTpl($args);
 
         if (isset($data['no_user'])) {
-                $this->write_channel('Last template used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ') used by ' . $data['user'] . ' on ' . date('d-m-Y H:i', ($data['timestamp'])));
+                $this->write_channel('Last template used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ' on ' . date('d-m-Y H:i', $data['tpl_time']) . ') used by ' . $data['user'] . ' on ' . date('d-m-Y H:i', ($data['timestamp'])));
                 return;
         }
         
-        $this->write_channel('The last template ' . $data['user'] . ' used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ') on ' . date('d-m-Y H:i', ($data['timestamp'])));
+        $this->write_channel('The last template ' . $data['user'] . ' used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ' on ' . date('d-m-Y H:i', $data['tpl_time']) . ') on ' . date('d-m-Y H:i', ($data['timestamp'])));
     }
 
     public function mlb($args) {
         $data = json_decode(file_get_contents("http://www.sportsnet.ca/wp-content/themes/sportsnet/zones/ajax-scoreboard.php"));
-        $mlb = $data->data->mlb;
+        $mlb = false; 
+        try {
+            $mlb = isset($data->data->mlb) ? $data->data->mlb : false;
+        } catch (Exception $e) {
+            return;
+        }
+
+        if (!isset($mlb) || !isset($mlb->{'In-Progress'})) {
+            return;
+        }
+
+        $c = 0;
+        $inprog = array();
+
         foreach ($mlb->{'In-Progress'} as $game) {
             $stat = $game->period_status;
             $ht = $game->home_team_city." ".$game->home_team;
             $vt = $game->visiting_team_city." ".$game->visiting_team;
             $vs = $game->visiting_score;
             $hs = $game->home_score;
-            $this->write_channel("In progress : $vt @ $ht $vs-$hs, $stat");
+            $inprog[] = "In progress : $vt @ $ht $vs-$hs, $stat";
+            $c++;
         }
-        foreach ($mlb->{'Final'} as $game) {
-            $stat = $game->period_status;
-            $ht = $game->home_team_city." ".$game->home_team;
-            $vt = $game->visiting_team_city." ".$game->visiting_team;
-            $vs = $game->visiting_score;
-            $hs = $game->home_score;
-            $this->write_channel("Final : $vt @ $ht $vs-$hs, $stat");
+
+        if ($c > 3) {
+            foreach ($inprog as $k => $v) {
+                $this->write_user($v);
+            }
+        } else {
+            foreach ($inprog as $k => $v) {
+                $this->write_channel($v);
+            }
+        }
+
+        
+
+        if (!isset($mlb->{'Final'})) {
+            return;
+        }
+
+        if (isset($args['arg1']) && $args['arg1'] == 'final') {
+            foreach ($mlb->{'Final'} as $game) {
+                $stat = $game->period_status;
+                $ht = $game->home_team_city." ".$game->home_team;
+                $vt = $game->visiting_team_city." ".$game->visiting_team;
+                $vs = $game->visiting_score;
+                $hs = $game->home_score;
+                $this->write_user("Final : $vt @ $ht $vs-$hs, $stat");
+            }
+        } else {
+            $this->write_user("You can add 'final' to this command to get all final results");
         }
     }
 
-	public function lookup() {
-        $criteria = array('word' => new MongoRegEx('/^'.$args['arg1'].'/i'));
-		$results = $this->collection->words->find($criteria)->limit(5);
-		foreach ($results as $result) {
-			$word = $data['word'];
-			$user = $data['user'];
-			$type = $data['type'];
-			$this->write_channel("$word ($type) was submitted by $user");
-		}
-	}
-
+    public function lookup($args = array()) {
+        if (!isset($args['arg1'])) return;
+        $criteria = array('word' => new MongoRegEx('/'.$args['arg1'].'/i'));
+        $results = $this->collection->words->find($criteria)->limit(5);
+        foreach ($results as $result) {
+            $word = $result['word'];
+            $user = $result['user'];
+            $type = $result['type'];
+            $this->write_channel("$word ($type) was submitted by $user");
+        }
+    }
+    // reminder for the current MC server seed
+    public function mcseed($args = array())
+    {
+        $this->write_channel('-3253466048537712650');
+    }
 }
-
-

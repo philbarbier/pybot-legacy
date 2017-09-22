@@ -1,6 +1,5 @@
 <?php
-
-class strings
+class Strings
 {
     public static function start()
     {

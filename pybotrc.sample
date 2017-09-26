@@ -10,6 +10,10 @@ $config = array(
         '#linux',
         '#chat'
     ),
+    'keep_quiet' => array(
+        '#tmp',
+        '#chan'
+    ),
     'default_chan' => '#bot_dev',
     'admin_chan' => '#bot_ops',
     'log_stats' => false,

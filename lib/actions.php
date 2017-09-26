@@ -5,15 +5,19 @@ class Actions
     public function __construct($config)
     {
         $this->config = $config;
-        if (!isset($this->config['lastPrivmsg'])) $this->config['lastPrivmsg'] = time();
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
         $this->curl = new Curl();
         $this->socket = null;
         $this->version = $config['version'];
+        $this->txlimit = 256; // transmission length limit in bytes (chars)
         $this->currentuser = '';
         $this->currentchannel = false;
         if (!isset($this->config['channellist'])) $this->config['channellist'] = array();
+        
+        if (!isset($this->config['lastPrivmsg'])) $this->_setLastPrivmsg();
+        $this->_setUndead();
+        
         $this->message_data = '';
         $this->isIRCOper = false;
         // seperate config array incase we need to override anything(?)
@@ -36,13 +40,11 @@ class Actions
         $class = $this->config['_classes']['Log']['classname']; 
         $this->Log = new $class($linguo_config);
 
-        $this->txlimit = 256; // transmission length limit in bytes (chars)
         if (!isset($this->config['usercache'])) $this->config['usercache'] = array();
         $this->array_key = '';
         if (!isset($this->config['bothandle'])) $this->config['bothandle'] = false;
         $this->myparts = array();
         $this->bartUseCount = 1;
-        $this->_setUndead();
         $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'me', 'uptime', 'cc');
         $this->_cacheData = array();
         if (!$this->connection) {
@@ -313,9 +315,10 @@ class Actions
         }
 
         if (isset($data['command']) && (($data['command'] == 'JOIN') || ($data['command'] == 'PRIVMSG'))) {
-            $this->config['lastPrivmsg'] = time();
+            if (isset($data['channel'])) {
+                $this->_setLastPrivmsg($data['channel']);
+            }
         }
-        
 
         // only run check_url if we actually see a URL
         // *** can be expanded to look for 'www.' as well
@@ -331,44 +334,68 @@ class Actions
             $this->check_url(explode(' ', $data['message']), $this->get_current_channel());
         }
         
+        // if it's been quiet for a bit, say something!
         $time = time();
         $bit = rand(900, 3600);
-        // if it's been quiet for a bit, say something!
-        if (($time - $this->config['lastPrivmsg']) != $time && (($time - $this->config['lastPrivmsg']) > $bit)) {
-            $this->write('PRIVMSG', $this->config['default_chan'], $this->_getDeadAir());
-            //$this->write('PRIVMSG', '#botdev', $this->_getDeadAir());
-            $this->config['lastPrivmsg'] = time();
-        }
+        if (isset($data['command']) && $data['command'] == 'PING') {
+            /* 
+            if (isset($this->config['lastPrivmsg'])) {
+                $this->_debug($this->config['lastPrivmsg']);
+            }
+            */
+
+            foreach($this->config['channellist'] as $channel => $v) {
+                if (isset($this->config['lastPrivmsg'][$channel])) {
+                    if (($time - $this->config['lastPrivmsg'][$channel]) != $time && (($time - $this->config['lastPrivmsg'][$channel]) > $bit)) {
+                        if (!in_array($channel, $this->config['keep_quiet'])) {
+                            $deadair = $this->_getDeadAir($channel);
+                            //$this->_debug($channel);
+                            $this->write_channel($deadair, $channel);
+                            $this->config['lastPrivmsg'][$channel] = time();
+                        }
+                    }
+                }
+            }
+        } 
     }
 
-    private function _getDeadAir()
+    private function _getDeadAir($chan = false)
     {
+        if (!$chan) return;
         $undead = array();
+        $undead[$chan] = array();
         $word = $this->linguo->get_word('exclamation');
         $word2 = $this->linguo->get_word('adjective');
-        $undead[] = $word['word'] . '! It sure is quiet in here... ' . $word2['word'] . 'ly quiet.'; 
+        $undead[$chan][] = $word['word'] . '! It sure is quiet in here... ' . $word2['word'] . 'ly quiet.'; 
         $word = $this->linguo->get_word('exclamation');
-        $undead[] = $this->linguo->testtpl(array('arg1' => 'It\'s quieter in here than when ' . $this->randuser() . ' got arrested for $crime in his $relatives house. You know, that place near $place. Good thing they didn\'t find the bags of $drug in his $hole!'));
-        $undead[] = $word['word'] . "! I tell ya it's quiet... Why... " . $this->linguo->get_rant(array());
+        $undead[$chan][] = $this->linguo->testtpl(array('arg1' => 'It\'s quieter in here than when ' . $this->randuser() . ' got arrested for $crime in his $relatives house. You know, that place near $place. Good thing they didn\'t find the bags of $drug in his $hole!'));
+        $undead[$chan][] = $word['word'] . "! I tell ya it's quiet... Why... " . $this->linguo->get_rant(array());
         $user = $this->randuser();
         if ($user == $this->config['bothandle']) $user = $this->randuser();
-        $undead[] = $this->linguo->testtpl(array('arg1' => 'Somebody better get talking in here or I\'ll $threat! I\'m looking at you, ' . $user));
+        $undead[$chan][] = $this->linguo->testtpl(array('arg1' => '$exclamation! Does it smell like $odour in here or something? ' . $user . ' you better start chatting or I\'ll $threat!'));
+        $user = $this->randuser();
+        if ($user == $this->config['bothandle']) $user = $this->randuser();
+        $undead[$chan][] = $this->linguo->testtpl(array('arg1' => 'Somebody better get talking in here or I\'ll $threat! I\'m looking at you, ' . $user));
 
         $this->_setUndead($undead);
 
-        $text = $this->config['undead'][rand(0,count($this->config['undead'])-1)];
+        $text = $this->config['undead'][$chan][rand(0,count($this->config['undead'][$chan])-1)];
         return $text;
     }
 
     private function _setUndead($undead = array())
     {
+        // initial build
         if (!isset($this->config['undead'])) {
             $dead = array('Big gulps, huh?');
-            $this->config['undead'] = $dead;
+            $this->config['undead'] = array();
+            foreach($this->config['channellist'] as $channel => $v) {
+                $this->config['undead'][$channel] = $dead;
+            }
         }
         
-        foreach($undead as $zombie) {
-            $this->config['undead'][] = $zombie;
+        foreach($undead as $channel => $zombie) {
+            $this->config['undead'][$channel][] = $zombie;
         }
     }
 
@@ -536,6 +563,21 @@ class Actions
 
         $this->write_channel('Done');
 
+    }
+
+    private function _setLastPrivmsg($chan = false)
+    {
+        // initial setup
+        if (!$chan) {
+            foreach($this->config['channellist'] as $channel => $val) {
+                $this->config['lastPrivmsg'][$channel] = time();
+            }
+            return;
+        }
+        if (!isset($this->config['lastPrivmsg'][$chan])) {
+            $this->config['lastPrivmsg'][$chan] = time();
+        }
+        $this->config['lastPrivmsg'][$chan] = time();
     }
 
     public function setBotHandle($nick = false)
@@ -713,6 +755,11 @@ class Actions
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
         }
+    }
+
+    private function _debug($stuff = array())
+    {
+        $this->write_channel($stuff, $this->config['admin_chan']);
     }
 
     public function debug($args)

@@ -493,6 +493,17 @@ class Irc
                     $this->__construct(self::$config);
                 break;
 
+                // mode changes
+                case 'MODE':
+                    if (isset($matches) && count($matches) > 1) {
+                        //$this->admin_message($matches);
+                        $user = trim($matches[1]);
+                        $chan = trim($matches[4]);
+                        $modes = explode(' ', $matches[5]);
+                        $mode = $modes[0];
+                    }
+                break;
+
                 case "NICK":
                     $nickparts = $this->break_hostmask($parts[0]);
                     $data = array(

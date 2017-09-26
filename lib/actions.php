@@ -16,7 +16,6 @@ class Actions
         if (!isset($this->config['channellist'])) $this->config['channellist'] = array();
         
         if (!isset($this->config['lastPrivmsg'])) $this->_setLastPrivmsg();
-        $this->_setUndead();
         
         $this->message_data = '';
         $this->isIRCOper = false;
@@ -59,7 +58,14 @@ class Actions
         // unload
     }
 
-    public function getConfig()
+    public function _setConfig($key = false, $data = false)
+    {
+        if (!$key || !$data) return;
+        $this->config[$key] = $data;
+
+    }
+
+    public function _getConfig()
     {
         return $this->config;
     }
@@ -334,22 +340,26 @@ class Actions
             $this->check_url(explode(' ', $data['message']), $this->get_current_channel());
         }
         
-        // if it's been quiet for a bit, say something!
         $time = time();
         $bit = rand(900, 3600);
-        if (isset($data['command']) && $data['command'] == 'PING') {
-            /* 
-            if (isset($this->config['lastPrivmsg'])) {
-                $this->_debug($this->config['lastPrivmsg']);
-            }
-            */
-
+        $topicbit = rand(86400,86401);
+        if (isset($data['command'])) { // && $data['command'] == 'PING') {
             foreach($this->config['channellist'] as $channel => $v) {
+                // check channel topics, switch it up if they're old AF
+                if (isset($this->config['topic'][$channel])) {
+                    if (($time - $this->config['topic'][$channel]['topicdate']) != $time && (($time - $this->config['topic'][$channel]['topicdate']) > $topicbit)) {
+                        $this->_setTopic($channel);
+                    }
+                } else {
+                    //set a topic!
+                    $this->_setTopic($channel);
+                }
+
+                // if it's been quiet for a bit, say something!
                 if (isset($this->config['lastPrivmsg'][$channel])) {
                     if (($time - $this->config['lastPrivmsg'][$channel]) != $time && (($time - $this->config['lastPrivmsg'][$channel]) > $bit)) {
                         if (!in_array($channel, $this->config['keep_quiet'])) {
                             $deadair = $this->_getDeadAir($channel);
-                            //$this->_debug($channel);
                             $this->write_channel($deadair, $channel);
                             $this->config['lastPrivmsg'][$channel] = time();
                         }
@@ -357,6 +367,15 @@ class Actions
                 }
             }
         } 
+    }
+
+    private function _setTopic($channel = false, $text = false)
+    {
+        if (!$channel) return;
+        if (!$text) {
+            $text = $this->linguo->get_rant(array());    
+        }
+        $this->write('TOPIC', $channel, $text);
     }
 
     private function _getDeadAir($chan = false)
@@ -378,8 +397,8 @@ class Actions
         $undead[$chan][] = $this->linguo->testtpl(array('arg1' => 'Somebody better get talking in here or I\'ll $threat! I\'m looking at you, ' . $user));
 
         $this->_setUndead($undead);
-
-        $text = $this->config['undead'][$chan][rand(0,count($this->config['undead'][$chan])-1)];
+        $rand = rand(0, (count($this->config['undead'][$chan]) - 1));
+        $text = $this->config['undead'][$chan][$rand];
         return $text;
     }
 
@@ -393,9 +412,11 @@ class Actions
                 $this->config['undead'][$channel] = $dead;
             }
         }
-        
+      
         foreach($undead as $channel => $zombie) {
-            $this->config['undead'][$channel][] = $zombie;
+            foreach ($zombie as $k => $zooma) {
+                $this->config['undead'][$channel][] = $zooma;
+            }
         }
     }
 

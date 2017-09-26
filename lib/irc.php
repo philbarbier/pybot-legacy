@@ -168,24 +168,15 @@ class Irc
                             unset($this->$localRef->$theirRef);
                             $this->$localRef->initModule($newClassName, $classconfig);
                         } else {
-                            if (method_exists($this->$theirRef, 'getConfig')) {
-                                $oldconfig = $this->$theirRef->getConfig();
-                                if (isset($oldconfig['channellist'])) {
-                                    $classconfig['channellist'] = $oldconfig['channellist'];
+                            if (method_exists($this->$theirRef, '_getConfig')) {
+                                $oldconfig = $this->$theirRef->_getConfig();
+                                foreach ($oldconfig as $configkey => $configval) {
+                                    // don't override the defaults
+                                    if (!isset($classconfig[$configkey])) {
+                                        $classconfig[$configkey] = $configval;
+                                    }
                                 }
-                                if (isset($oldconfig['bothandle'])) {
-                                    $classconfig['bothandle'] = $oldconfig['bothandle'];
-                                }
-                                if (isset($oldconfig['usercache'])) {
-                                    $classconfig['usercache'] = $oldconfig['usercache'];
-                                }
-                                if (isset($oldconfig['lastPrivmsg'])) {
-                                    $classconfig['lastPrivmsg'] = $oldconfig['lastPrivmsg'];
-                                }
-                                if (isset($oldconfig['undead'])) {
-                                    $classconfig['undead'] = $oldconfig['undead'];
-                                }
-                            }
+                                                           }
                             unset($this->$theirRef);
                             $this->$initFnName($newClassName, $classconfig);
                         }
@@ -350,6 +341,7 @@ class Irc
 
     public function parse_raw($str)
     {
+        // echo "\n" . date('Y-m-d H:i:s') . " -- RX: " . $str;
         $matches = null;
 
         $regex = '{
@@ -362,8 +354,6 @@ class Irc
 
         preg_match($regex, $str, $matches);
         $parts = explode(' ', $str);
-
-        // echo "\n" . date('Y-m-d H:i:s') . " -- RX: " . $str;
 
         $result = null;
 
@@ -380,7 +370,6 @@ class Irc
         }
 
         $this->actions->set_parts($parts);
-
 
         if (!empty($matches)) {
             $result = array(
@@ -401,6 +390,8 @@ class Irc
 
             // we should maybe parse for every code here, that way
             // we're able to tell the IRC state better
+            $channel = false;
+            if (isset($parts[3])) $channel = $parts[3];
             switch (strtoupper($parts[1])) {
                 // check WHOIS
                 case 311:
@@ -416,6 +407,27 @@ class Irc
                 // checks end of WHOIS
                 case 318:
                     $this->in_whois = false;
+                break;
+                // topic text
+                case 332:
+                    if (!$channel) break;
+                    $topic = str_replace(':', '', $parts[4]);
+                    for ($i = 5; $i < count($parts); $i++) {
+                        $topic .= $parts[$i] . ' ';
+                    }
+                    $oldconfig = $this->actions->_getConfig();
+                    $topicdata = isset($oldconfig['topic']) ? $oldconfig['topic'] : array();
+                    $topicdata[$channel]['topictext'] = trim($topic);
+                    $this->actions->_setConfig('topic', $topicdata);
+                break;
+                // topic stats
+                case 333:
+                    if (!$channel) break;
+                    $oldconfig = $this->actions->_getConfig();
+                    $topicdata = $oldconfig['topic'];
+                    $topicdata[$channel]['topicauthor'] = trim($parts[4]);
+                    $topicdata[$channel]['topicdate'] = trim($parts[5]);
+                    $this->actions->_setConfig('topic', $topicdata);
                 break;
                 // names list
                 case 353:
@@ -454,27 +466,33 @@ class Irc
                 case 473:
                     // invite only channel - remove channel from list?
                 break;
+                // don't have channel ops
+                case 482:
+                    $this->admin_message("I don't have ops in " . trim($channel) . " for something I'm trying to do");
+                break;
+
+
                 // non-numerics
+
+                
+                case "INVITE":
+                    if (isset($parts[3])) {
+                        $this->write('JOIN ' . $parts[3]);
+                    }
+                break;
 
                 // someone joined
                 case 'JOIN':
                     $userinfo = $this->break_hostmask($parts[0]);
                     $this->whois($userinfo['nick']);
                 break;
-                // someone left the channel
-                case 'PART':
 
-                break;
-                case "INVITE":
-                    if (isset($parts[3])) {
-                        $this->write('JOIN ' . $parts[3]);
-                    }
-                break;
                 case "KILL":
                     $this->destroy_socket();
                     sleep(15);
                     $this->__construct(self::$config);
                 break;
+
                 case "NICK":
                     $nickparts = $this->break_hostmask($parts[0]);
                     $data = array(
@@ -484,6 +502,21 @@ class Irc
 
                     $nick = str_replace(':', '', $parts[2]);
                     $this->actions->setUserCache($nick, $data);
+                break;
+                // someone left the channel
+                case 'PART':
+
+                break;
+                // someone changed the topic
+                case 'TOPIC':
+                    if (!$channel) break;
+                    $oldconfig = $this->actions->_getConfig();
+                    $topicdata = $oldconfig['topic'];
+                    $channel = $matches[4];
+                    $topicdata[$channel]['topictext'] = trim($matches[5]);
+                    $topicdata[$channel]['topicauthor'] = trim($matches[1]);
+                    $topicdata[$channel]['topicdate'] = time(); 
+                    $this->actions->_setConfig('topic', $topicdata);
                 break;
             }
             if (!$this->in_whois) {
@@ -578,7 +611,15 @@ class Irc
         if (empty($message)) {
             return false;
         }
-        $this->write('PRIVMSG '.self::$config['admin_chan'].' :'.$message);
+        if (is_array($message)) {
+            foreach($message as $k => $v) {
+                $str = 'PRIVMSG ' . self::$config['admin_chan'] . ' :';
+                $str .= $k . ' => ' . $v; 
+                $this->write($str);
+            }
+            return;
+        }
+        $this->write('PRIVMSG ' . self::$config['admin_chan'] . ' :' . $message);
     }
 
     // re-read config file

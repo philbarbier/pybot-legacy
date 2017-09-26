@@ -3124,6 +3124,9 @@ class Actions
             return;
         }
 
+        $parts[0] = trim($parts[0]);
+        $parts[1] = trim($parts[1]);
+
         if (!is_numeric($parts[0]) || !is_numeric($parts[1])) {
             return;
         }

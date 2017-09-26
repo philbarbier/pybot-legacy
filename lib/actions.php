@@ -373,8 +373,12 @@ class Actions
         $channel = $this->get_current_channel();
         // make sure it's not being done too frequently
         $time = time();
-        if (isset($this->config['topic'][$channel]['topicdate']) && (($time - $this->config['topic'][$channel]['topicdate']) > 1800)) {
-            $this->_setTopic($channel);
+        if (isset($this->config['topic'][$channel]['topicdate'])) {
+            if (($time - $this->config['topic'][$channel]['topicdate']) > 1800) {
+                $this->_setTopic($channel);
+            } else {
+                $this->write_channel('Too soon, pantaloon!');
+            }
         }
     }
 

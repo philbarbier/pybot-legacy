@@ -350,7 +350,9 @@ class Actions
         $word = $this->linguo->get_word('exclamation');
         $undead[] = $this->linguo->testtpl(array('arg1' => 'It\'s quieter in here than when ' . $this->randuser() . ' got arrested for $crime in his $relatives house. You know, that place near $place. Good thing they didn\'t find the bags of $drug in his $hole!'));
         $undead[] = $word['word'] . "! I tell ya it's quiet... Why... " . $this->linguo->get_rant(array());
-        $undead[] = $this->linguo->testtpl(array('arg1' => 'Somebody better get talking in here or I\'ll $threat! I\'m looking at you, ' . $this->randuser()));
+        $user = $this->randuser();
+        if ($user == $this->config['bothandle']) $user = $this->randuser();
+        $undead[] = $this->linguo->testtpl(array('arg1' => 'Somebody better get talking in here or I\'ll $threat! I\'m looking at you, ' . $user));
 
         $this->_setUndead($undead);
 

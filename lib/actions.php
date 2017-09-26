@@ -5,7 +5,7 @@ class Actions
     public function __construct($config)
     {
         $this->config = $config;
-        if (!isset($config['lastPrivmsg'])) $this->config['lastPrivmsg'] = time();
+        if (!isset($this->config['lastPrivmsg'])) $this->config['lastPrivmsg'] = time();
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
         $this->curl = new Curl();
@@ -337,7 +337,6 @@ class Actions
         if (($time - $this->config['lastPrivmsg']) != $time && (($time - $this->config['lastPrivmsg']) > $bit)) {
             $this->write('PRIVMSG', $this->config['default_chan'], $this->_getDeadAir());
             //$this->write('PRIVMSG', '#botdev', $this->_getDeadAir());
-
             $this->config['lastPrivmsg'] = time();
         }
     }

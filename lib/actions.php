@@ -5,6 +5,7 @@ class Actions
     public function __construct($config)
     {
         $this->config = $config;
+        if (!isset($config['lastPrivmsg'])) $this->config['lastPrivmsg'] = time();
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
         $this->curl = new Curl();
@@ -41,8 +42,8 @@ class Actions
         if (!isset($this->config['bothandle'])) $this->config['bothandle'] = false;
         $this->myparts = array();
         $this->bartUseCount = 1;
+        $this->_setUndead();
         $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'me', 'uptime', 'cc');
-
         $this->_cacheData = array();
         if (!$this->connection) {
             sleep(60);
@@ -163,6 +164,8 @@ class Actions
     /* Writes messages to IRC socket */
     public function write($type, $channel = null, $message = null)
     {
+        if (!isset($type) || is_numeric($type)) return;
+
         if ($type == 'QUIT') {
             $quitmsg = $type.' :'.$message."\r\n\r\n";
 
@@ -243,15 +246,16 @@ class Actions
     }
 
     /* macro function for writing to the current channel */
-    private function write_channel($message)
+    private function write_channel($message, $channel = false)
     {
+        if (!$channel) $channel = $this->get_current_channel();
         if (is_array($message)) {
             foreach($message as $k => $v) {
-                $this->write('PRIVMSG', $this->get_current_channel(), $k . ' => ' . $v);
+                $this->write('PRIVMSG', $channel, $k . ' => ' . $v);
             }
             return;
         }
-        $this->write('PRIVMSG', $this->get_current_channel(), $message);
+        $this->write('PRIVMSG', $channel, $message);
     }
 
     /* macro function for writing to the current user */
@@ -269,7 +273,7 @@ class Actions
         }
 
         // make sure we have text content, that it's a message of some sort and make sure we're not logging ourself
-        if (!empty($data['message']) && ($data['command'] == 'PRIVMSG') && ($data['user'] != $this->config['irc_handle'])) {
+        if (!empty($data['message']) && ($data['command'] == 'PRIVMSG') && ($data['user'] != $this->config['bothandle'])) {
             if (isset($this->config['log_history']) && $this->config['log_history']) {
                 try {
                    
@@ -286,6 +290,8 @@ class Actions
                     $this->Log->log('DB Error', 2);
                 }
             }
+            // check for a $word in the text
+            $this->_checkForWord($data);
         }
         if ($this->config['log_stats']) {
             $this->stats($data);
@@ -306,23 +312,62 @@ class Actions
             $this->abuse(array('arg1' => $data['user'], 'joinabuse' => true));
         }
 
-        // check for a $word in the text
-        if ($data['command'] == 'PRIVMSG') {
-            $this->_checkForWord($data);
+        if (isset($data['command']) && (($data['command'] == 'JOIN') || ($data['command'] == 'PRIVMSG'))) {
+            $this->config['lastPrivmsg'] = time();
         }
+        
 
         // only run check_url if we actually see a URL
         // *** can be expanded to look for 'www.' as well
-        if (preg_match('/http[s]?:\/\//', $data['message']) > 0) {
+        if (isset($data['message']) && preg_match('/http[s]?:\/\//', $data['message']) > 0) {
             // temp bandaid to prevent a shortener loop
             if (strstr($data['message'], '5kb.us')) {
-                return;
+                break;
             }
             if (is_numeric(strpos($data['message'], 'ythist', 0))) {
-                return;
+                break;
             }
 
             $this->check_url(explode(' ', $data['message']), $this->get_current_channel());
+        }
+        
+        $time = time();
+        $bit = rand(900, 3600);
+        // if it's been quiet for a bit, say something!
+        if (($time - $this->config['lastPrivmsg']) != $time && (($time - $this->config['lastPrivmsg']) > $bit)) {
+            $this->write('PRIVMSG', $this->config['default_chan'], $this->_getDeadAir());
+            //$this->write('PRIVMSG', '#botdev', $this->_getDeadAir());
+
+            $this->config['lastPrivmsg'] = time();
+        }
+    }
+
+    private function _getDeadAir()
+    {
+        $undead = array();
+        $word = $this->linguo->get_word('exclamation');
+        $word2 = $this->linguo->get_word('adjective');
+        $undead[] = $word['word'] . '! It sure is quiet in here... ' . $word2['word'] . 'ly quiet.'; 
+        $word = $this->linguo->get_word('exclamation');
+        $undead[] = $this->linguo->testtpl(array('arg1' => 'It\'s quieter in here than when ' . $this->randuser() . ' got arrested for $crime in his $relatives house. You know, that place near $place. Good thing they didn\'t find the $drugs in his $hole!'));
+        $undead[] = $word['word'] . "! I tell ya it's quiet... Why... " . $this->linguo->get_rant(array());
+        $undead[] = $this->linguo->testtpl(array('arg1' => 'Somebody better get talking in here or I\'ll $threat! I\'m looking at you, ' . $this->randuser()));
+
+        $this->_setUndead($undead);
+
+        $text = $this->config['undead'][rand(0,count($this->config['undead'])-1)];
+        return $text;
+    }
+
+    private function _setUndead($undead = array())
+    {
+        if (!isset($this->config['undead'])) {
+            $dead = array('Big gulps, huh?');
+            $this->config['undead'] = $dead;
+        }
+        
+        foreach($undead as $zombie) {
+            $this->config['undead'][] = $zombie;
         }
     }
 

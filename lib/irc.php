@@ -179,6 +179,12 @@ class Irc
                                 if (isset($oldconfig['usercache'])) {
                                     $classconfig['usercache'] = $oldconfig['usercache'];
                                 }
+                                if (isset($oldconfig['lastPrivmsg'])) {
+                                    $classconfig['lastPrivmsg'] = $oldconfig['lastPrivmsg'];
+                                }
+                                if (isset($oldconfig['undead'])) {
+                                    $classconfig['undead'] = $oldconfig['undead'];
+                                }
                             }
                             unset($this->$theirRef);
                             $this->$initFnName($newClassName, $classconfig);
@@ -271,7 +277,6 @@ class Irc
                         $this->Log->log($msg['user'].'@'.str_replace('#', '', $msg['channel']).' : '.$msg['message']);
                     }
                 }
-
                 $this->actions->catchall($msg);
                 $params = false;
                 if (isset($msg['message'])) {
@@ -360,8 +365,12 @@ class Irc
 
         // echo "\n" . date('Y-m-d H:i:s') . " -- RX: " . $str;
 
+        $result = null;
+
         if ($parts[0] == 'PING') {
             $this->write('PONG '.$parts[1]);
+            $result = $parts;
+            $result['command'] = $parts[0];
         }
 
         if ($parts[0] == 'ERROR') {
@@ -372,7 +381,6 @@ class Irc
 
         $this->actions->set_parts($parts);
 
-        $result = null;
 
         if (!empty($matches)) {
             $result = array(
@@ -521,7 +529,6 @@ class Irc
         if ($this->arb_counter > 10000) {
             $this->arb_counter = 0;
         }
-
         return $result;
     }
 

@@ -199,6 +199,7 @@ class Actions
             return true;
         } elseif (!$message) {
             $msg = "$type $channel\r\n\r\n";
+            if (!$channel) $msg = "$type\r\n\r\n";
         } else {
             $message = preg_replace('/\\r\\n/', ' ', $message);
             $msg = "$type $channel :$message\r\n\r\n";
@@ -318,6 +319,9 @@ class Actions
             */
 
             $this->abuse(array('arg1' => $data['user'], 'joinabuse' => true));
+            if (isset($data['channel']) && $data['channel'] == $this->config['default_chan']) {
+                $this->_changeMode($data['user'], $data['channel'], 'v');  
+            }
         }
 
         if (isset($data['command']) && (($data['command'] == 'JOIN') || ($data['command'] == 'PRIVMSG'))) {
@@ -380,6 +384,14 @@ class Actions
                 $this->write_channel('Too soon, pantaloon!');
             }
         }
+    }
+
+    private function _changeMode($user = false, $channel = false, $mode = false)
+    {
+        if (!$user || !$channel || !$mode) return;
+
+        $str = 'MODE ' . $channel . ' +' . $mode . ' ' . $user;
+        $this->write($str);
     }
 
     private function _setTopic($channel = false, $text = false)

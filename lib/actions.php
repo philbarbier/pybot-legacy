@@ -345,7 +345,7 @@ class Actions
         }
         
         $time = time();
-        $bit = rand(3600, 7200);
+        $bit = rand(5400, 7200);
         $topicbit = rand(86400,86401);
         if (isset($data['command'])) { // && $data['command'] == 'PING') {
             foreach($this->config['channellist'] as $channel => $v) {

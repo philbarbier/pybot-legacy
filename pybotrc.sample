@@ -4,23 +4,35 @@ $config = array(
     'mongodb' => 'mongodb://mongo0/pybot',
     'irc_server' => 'riboflav.in',
     'irc_port' => 6667,
-    'irc_handle' => 'smellybot',
+    'irc_handle' => 'abusivebot',
     'irc_channels' => array(
-        '#tmp',
-        '#linux',
-        '#chat'
+        '#tmp' => array(
+            'autovoice' => true,
+            'keepquiet' => false,
+            'topicchange' => true,
+            'modes' => '+nrt'
+        ),
+        '#linux' => array(
+            'autovoice' => true,
+            'keepquiet' => true,
+            'topicchange' => true,
+            'modes' => '+nt'
+        ),
+        '#chat' => array(
+            'autovoice' => false,
+            'keepquiet' => false,
+            'topicchange' => true,
+            'modes' => '+nt'
+        )
     ),
-    'keep_quiet' => array(
-        '#tmp',
-        '#chan'
-    ),
-    'default_chan' => '#bot_dev',
-    'admin_chan' => '#bot_ops',
+    'default_chan' => '#chat',
+    'admin_chan' => '#bot_dev',
     'log_stats' => false,
-    'log_history' => false,
+    'log_history' => true,
     'debug' => false,
     'banned_users' => array(
-        'igor'
+        'igor',
+        'nupogodi'
     )
 );
 

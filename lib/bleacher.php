@@ -3,6 +3,7 @@ class Bleacher
 {
     public function __construct($config = array())
     {
+        $this->config = $config;
         if (array_key_exists(__CLASS__, $this->config['_classes'])) {
             $ircClass = $this->config['_ircClassName'];
             $ircClass::setCallList(__CLASS__, $this->config['_callee']);

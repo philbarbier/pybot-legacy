@@ -10,7 +10,7 @@
  *
  * @version    Release: 1.0.0
  */
-class curl
+class Curl
 {
     private $response;          // Contains the cURL response for debug
 
@@ -23,10 +23,12 @@ class curl
     public $error_string;       // Error message returned as a string
     public $info;               // Returned after request (elapsed time, etc)
 
-    public function __construct($url = '')
+    public function __construct($config = array())
     {
-        if ($url) {
-            $this->create($url);
+        $this->config = $config;
+        if (array_key_exists(__CLASS__, $this->config['_classes'])) {
+            $ircClass = $this->config['_ircClassName'];
+            $ircClass::setCallList(__CLASS__, $this->config['_callee']);
         }
     }
 

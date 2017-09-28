@@ -7,7 +7,6 @@ class Actions
         $this->config = $config;
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
-        $this->curl = new Curl();
         $this->socket = null;
         $this->version = $config['version'];
         $this->txlimit = 256; // transmission length limit in bytes (chars)
@@ -15,7 +14,7 @@ class Actions
         $this->currentchannel = false;
         if (!isset($this->config['channellist'])) $this->config['channellist'] = array();
         
-        if (!isset($this->config['lastPrivmsg'])) $this->_setLastPrivmsg();
+        $this->_setLastPrivmsg();
         
         $this->message_data = '';
         $this->isIRCOper = false;
@@ -38,6 +37,8 @@ class Actions
         $this->twitter = new $class($linguo_config);
         $class = $this->config['_classes']['Log']['classname']; 
         $this->Log = new $class($linguo_config);
+        $class = $this->config['_classes']['Curl']['classname']; 
+        $this->curl = new $class($linguo_config);
 
         if (!isset($this->config['usercache'])) $this->config['usercache'] = array();
         $this->array_key = '';
@@ -260,7 +261,14 @@ class Actions
         if (!$channel) $channel = $this->get_current_channel();
         if (is_array($message)) {
             foreach($message as $k => $v) {
-                $this->write('PRIVMSG', $channel, $k . ' => ' . $v);
+                if (is_array($v)) {
+                    $this->write('PRIVMSG', $channel, $k);
+                    foreach($v as $key => $val) {
+                        $this->write('PRIVMSG', $channel, $key . ' => ' . $val);
+                    }
+                } else {
+                    $this->write('PRIVMSG', $channel, $k . ' => ' . $v);
+                }
             }
             return;
         }
@@ -319,14 +327,17 @@ class Actions
             */
 
             $this->abuse(array('arg1' => $data['user'], 'joinabuse' => true));
-            if (isset($data['channel']) && $data['channel'] == $this->config['default_chan']) {
-                $this->_changeMode($data['user'], $data['channel'], 'v');  
+            if (isset($data['channel']) && (isset($this->config['irc_channels'][$data['channel']]['autovoice']) && $this->config['irc_channels'][$data['channel']]['autovoice'])) {
+                $this->_changeMode($data['user'], $data['channel'], '+v');  
             }
         }
 
         if (isset($data['command']) && (($data['command'] == 'JOIN') || ($data['command'] == 'PRIVMSG'))) {
             if (isset($data['channel'])) {
                 $this->_setLastPrivmsg($data['channel']);
+                if (isset($this->config['irc_channels'][$data['channel']])) {
+                    $this->_changeMode(false, $data['channel'], $this->config['irc_channels'][$data['channel']]['modes']);
+                }
             }
         }
 
@@ -349,23 +360,27 @@ class Actions
         $topicbit = rand(86400,86401);
         if (isset($data['command'])) { // && $data['command'] == 'PING') {
             foreach($this->config['channellist'] as $channel => $v) {
+
+                //print_r($this->config['irc_channels'][$channel]);
                 // check channel topics, switch it up if they're old AF
-                if (isset($this->config['topic'][$channel])) {
-                    if (($time - $this->config['topic'][$channel]['topicdate']) != $time && (($time - $this->config['topic'][$channel]['topicdate']) > $topicbit)) {
+                if (isset($this->config['irc_channels'][$channel]['topicchange']) && $this->config['irc_channels'][$channel]['topicchange']) {
+                    if (isset($this->config['irc_channels'][$channel]['topicdate'])) {
+                        if (($time - $this->config['irc_channels'][$channel]['topicdate']) != $time && (($time - $this->config['irc_channels'][$channel]['topicdate']) > $topicbit)) {
+                            $this->_setTopic($channel);
+                        }
+                    } else {
+                        //set a topic!
                         $this->_setTopic($channel);
                     }
-                } else {
-                    //set a topic!
-                    $this->_setTopic($channel);
                 }
 
                 // if it's been quiet for a bit, say something!
-                if (isset($this->config['lastPrivmsg'][$channel])) {
-                    if (($time - $this->config['lastPrivmsg'][$channel]) != $time && (($time - $this->config['lastPrivmsg'][$channel]) > $bit)) {
-                        if (!in_array($channel, $this->config['keep_quiet'])) {
+                if (isset($this->config['irc_channels'][$channel]['lastPrivmsg'])) {
+                    if (($time - $this->config['irc_channels'][$channel]['lastPrivmsg']) != $time && (($time - $this->config['irc_channels'][$channel]['lastPrivmsg']) > $bit)) {
+                        if (isset($this->config['irc_channels'][$channel]['keepquiet']) && $this->config['irc_channels'][$channel]['keepquiet']) {
                             $deadair = $this->_getDeadAir($channel);
                             $this->write_channel($deadair, $channel);
-                            $this->config['lastPrivmsg'][$channel] = time();
+                            $this->_setChannelData($channel, 'lastPrivmsg'. time());
                         }
                     }
                 }
@@ -377,8 +392,8 @@ class Actions
         $channel = $this->get_current_channel();
         // make sure it's not being done too frequently
         $time = time();
-        if (isset($this->config['topic'][$channel]['topicdate'])) {
-            if (($time - $this->config['topic'][$channel]['topicdate']) > 1800) {
+        if (isset($this->config['irc_channels'][$channel]['topicdate'])) {
+            if (($time - $this->config['irc_channels'][$channel]['topicdate']) > 1800) {
                 $this->_setTopic($channel);
             } else {
                 $this->write_channel('Too soon, pantaloon!');
@@ -388,10 +403,20 @@ class Actions
 
     private function _changeMode($user = false, $channel = false, $mode = false)
     {
-        if (!$user || !$channel || !$mode) return;
+        if (!$channel || !$mode) return;
 
-        $str = 'MODE ' . $channel . ' +' . $mode . ' ' . $user;
+        if ($user) {
+            $str = 'MODE ' . $channel . ' ' . $mode . ' ' . $user;
+        } else {
+            $str = 'MODE ' . $channel . ' ' . $mode;
+        }
         $this->write($str);
+    }
+
+    public function _setChannelData($channel = false, $key = false, $value = false) {
+        if (!$channel || !$key || !$value) return;
+        $this->config['irc_channels'][$channel][$key] = $value;
+        return;
     }
 
     private function _setTopic($channel = false, $text = false)
@@ -569,12 +594,10 @@ class Actions
 
         if (!isset($c['videoid'])) return;
 
-        $datefmt = 'd-m-Y H:i';
-
         $str = 'This video, "' . $c['title'] . '" was first linked by ' . $c['firstuser'] . ' on ';
-        $str .= date($datefmt, $c['firstwatch']) . '. It has been linked ' . $c['watchcount'] . ' time';
+        $str .= date($this->config['_dateFormat'] , $c['firstwatch']) . '. It has been linked ' . $c['watchcount'] . ' time';
         if ((int)$c['watchcount'] > 1) $str .= 's';
-        $str .= '. It was last linked on ' . date($datefmt, $c['time']) . ' by ' . $c['user'];
+        $str .= '. It was last linked on ' . date($this->config['_dateFormat'], $c['time']) . ' by ' . $c['user'];
 
         $this->write_channel($str);
 
@@ -616,14 +639,14 @@ class Actions
         // initial setup
         if (!$chan) {
             foreach($this->config['channellist'] as $channel => $val) {
-                $this->config['lastPrivmsg'][$channel] = time();
+                $this->_setChannelData($channel, 'lastPrivmsg', time());
             }
             return;
         }
-        if (!isset($this->config['lastPrivmsg'][$chan])) {
-            $this->config['lastPrivmsg'][$chan] = time();
+        if (!isset($this->config['irc_channels'][$chan]['lastPrivmsg'])) {
+            $this->_setChannelData($chan, 'lastPrivmsg', time());
         }
-        $this->config['lastPrivmsg'][$chan] = time();
+        $this->_setChannelData($chan, 'lastPrivmsg', time());
     }
 
     public function setBotHandle($nick = false)
@@ -939,7 +962,7 @@ class Actions
             $message = $data['message'];
             $created = $data['time'];
         }
-        $created = date('Y-m-d H:i:s', $created);
+        $created = date($this->config['_dateFormat'], $created);
         $this->write_channel("$created | <$user> : $message");
     }
 
@@ -979,7 +1002,7 @@ class Actions
                 $this->write_user($result->count() . ' results found for "' . $query . '", showing top ' . $limit . ':');
                 $i = 0;
                 foreach ($result as $history) {
-                    $this->write_user('['.date('d/m/Y H:i', $history['time']).'] <'.$history['user'].'> '.$history['message']);
+                    $this->write_user('['.date($this->config['_dateFormat'], $history['time']).'] <'.$history['user'].'> '.$history['message']);
                     if ($i > $limit) {
                         $this->write_user('Results limited to ' . $limit);
                         break;
@@ -2076,6 +2099,15 @@ class Actions
 
     }
 
+    // get the raw tpl text
+    public function showtpl($args)
+    {
+        if (!isset($args['arg1']) || !is_numeric($args['arg1'])) return;
+
+        $this->write_channel($this->linguo->getTemplateString($args['arg1']));
+
+    }
+
     public function wordstats($args)
     {
         /*** word types ***/
@@ -2091,6 +2123,9 @@ class Actions
                 $worddata = $finaldata[$word];
                 $finaldata = array();
                 $finaldata[$word] = $worddata;
+            } else {
+                $this->write_channel('Not enough stats found for ' . $word);
+                return;
             }
         }
 
@@ -2724,7 +2759,7 @@ class Actions
     public function uptime($args)
     {
         $this->write_channel(trim(shell_exec('uptime')));
-        $this->write_channel('Bot was started on: ' . date('d-m-Y \a\t H:i', $this->config['_starttime']));
+        $this->write_channel('Bot was started on: ' . date($this->config['_dateFormat'], $this->config['_starttime']));
         $this->write_channel($this->_calculate_timespan($this->config['_starttime']) . ' since our last incident');
         $lastcommit = explode("\n", $this->_getLastGitCommit());
         if (!empty($lastcommit) || !$lastcommit) {
@@ -2732,7 +2767,7 @@ class Actions
             $authorraw = trim(str_replace('Author:', '', $lastcommit[1]));
             $author = substr($authorraw, 0, strpos($authorraw, ' <'));
             $lastcommitdate = trim(str_replace('Date: ', '', $lastcommit[2])); 
-            $this->write_channel('Last commit: ' . $lastcommitlink . ' "' . trim($lastcommit[4]) . '" on ' . date('Y-m-d \a\t H:i', strtotime($lastcommitdate)) . ' (' . $this->_calculate_timespan(strtotime($lastcommitdate)) . ' ago) by ' . $author);
+            $this->write_channel('Last commit: ' . $lastcommitlink . ' "' . trim($lastcommit[4]) . '" on ' . date($this->config['_dateFormat'], strtotime($lastcommitdate)) . ' (' . $this->_calculate_timespan(strtotime($lastcommitdate)) . ' ago) by ' . $author);
         } 
     }
 
@@ -3449,7 +3484,7 @@ class Actions
             $time = strtotime('tomorrow 5 PM', $now);
         }
 
-        $this->write_channel($this->_nicetime(date('Y-m-d H:i', $time)));
+        $this->write_channel($this->_nicetime(date($this->config['_dateFormat'], $time)));
     }
 
     /*
@@ -3486,7 +3521,7 @@ class Actions
             $time = strtotime('tomorrow 3 PM', $now);
         }
 
-        $this->write_channel($this->_nicetime(date('Y-m-d H:i', $time)));
+        $this->write_channel($this->_nicetime(date($this->config['_dateFormat'], $time)));
     }
 
     private function _nicetime($date)
@@ -3857,7 +3892,7 @@ class Actions
         foreach ($data as $msg) {
             $user = $msg['user'];
             $mesg = $msg['message'];
-            $when = date('d-m-Y H:i', (int) $msg['time']);
+            $when = date($this->config['_dateFormat'], (int) $msg['time']);
         };
         if (!$when) return;
         $this->write_channel("($when) $user> $mesg");
@@ -3892,7 +3927,7 @@ class Actions
         $message = 'Smoke stats for ' . $user;
         $this->write_channel($message);
         $message = 'Total of ' . $smokedata['totalsmokes'] . ' smokes';
-        $message .= ' since ' . date('d-m-Y H:i', $smokedata['firstsmoke']);
+        $message .= ' since ' . date($this->config['_dateFormat'], $smokedata['firstsmoke']);
         $message .= '. The last smoke was ' . $smokedata['time'] . ' - ' . $smokedata['ago'] . ' ago.';
         return $message;
     }
@@ -3916,11 +3951,11 @@ class Actions
         if (count($smokes) > 4) {
             $this->write_channel('Data will be sent via PM');
             foreach($smokes as $user => $smoke) {
-                $this->write_user($user . ' has smoked ' . $smoke['smokecount'] . ' total smokes, averaging ' . $smoke['average'] . ' a day since ' . date('d-m-Y H:i', $smoke['firstsmoke']));
+                $this->write_user($user . ' has smoked ' . $smoke['smokecount'] . ' total smokes, averaging ' . $smoke['average'] . ' a day since ' . date($this->config['_dateFormat'], $smoke['firstsmoke']));
             }
         } else {
             foreach($smokes as $user => $smoke) {
-                $this->write_channel($user . ' has smoked ' . $smoke['smokecount'] . ' total smokes, averaging ' . $smoke['average'] . ' a day since ' . date('d-m-Y H:i', $smoke['firstsmoke']));
+                $this->write_channel($user . ' has smoked ' . $smoke['smokecount'] . ' total smokes, averaging ' . $smoke['average'] . ' a day since ' . date($this->config['_dateFormat'], $smoke['firstsmoke']));
             }
         }
     }
@@ -3956,7 +3991,7 @@ class Actions
         $firstsmoke = '';
         $totalsmokes = isset($lastsmoke['totalsmokes']) ? $lastsmoke['totalsmokes'] : '1'; 
         if ($lastsmoke && isset($lastsmoke['firstsmoke'])) {
-            $firstsmoke = ' since ' . date('d-m-Y H:i', $lastsmoke['firstsmoke']); 
+            $firstsmoke = ' since ' . date($this->config['_dateFormat'], $lastsmoke['firstsmoke']); 
         }
         $response = "That's smoke #" . $d['smokes'] . " for " . $d['user'] . " so far today... This brings you to a grand total of " . $totalsmokes . " smoke" . (($totalsmokes > 1) ? "s": "") . $firstsmoke . ". Keep up killing yourself with cancer!";
         if ($lastsmoke && isset($lastsmoke['time'])) $response .= ' Your last smoke was at ' . $lastsmoke['time'] . " - about " . $lastsmoke['ago'] . " ago";
@@ -3988,7 +4023,7 @@ class Actions
         foreach($d2 as $record) {
             if (isset($record['time'])) {
                 $lastsmoke = array();
-                $lastsmoke['time'] = date('d-m-Y, H:i', $record['time']);
+                $lastsmoke['time'] = date($this->config['_dateFormat'], $record['time']);
                 $lastsmoke['totalsmokes'] = $totalsmokes;
                 $lastsmoke['ago'] = $this->_calculate_timespan($record['time']);
             }
@@ -4028,11 +4063,11 @@ class Actions
         $data = $this->linguo->getLastTpl($args);
 
         if (isset($data['no_user'])) {
-                $this->write_channel('Last template used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ' on ' . date('d-m-Y H:i', $data['tpl_time']) . ') used by ' . $data['user'] . ' on ' . date('d-m-Y H:i', ($data['timestamp'])));
+                $this->write_channel('Last template used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ' on ' . date($this->config['_dateFormat'], $data['tpl_time']) . ') used by ' . $data['user'] . ' on ' . date($this->config['_dateFormat'], ($data['timestamp'])));
                 return;
         }
         
-        $this->write_channel('The last template ' . $data['user'] . ' used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ' on ' . date('d-m-Y H:i', $data['tpl_time']) . ') on ' . date('d-m-Y H:i', ($data['timestamp'])));
+        $this->write_channel('The last template ' . $data['user'] . ' used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ' on ' . date($this->config['_dateFormat'], $data['tpl_time']) . ') on ' . date($this->config['_dateFormat'], ($data['timestamp'])));
     }
 
     public function mlb($args) {

@@ -27,6 +27,10 @@ $config['_classes'] = array('Irc' => $ircClass);
 $config['_methods'] = array();
 $config['_cwd'] = $_cwd;
 $config['_starttime'] = date('U');
+$config['_configChecksum'] = md5_file($config_path);
+$config['_configPath'] = $config_path;
+$config['_dateFormat'] = 'd-m-Y H:i';
+
 
 unset($pi, $config_path, $ircClass);
 // include $_cwd . '/lib/transmissionrpc.php';
@@ -34,7 +38,7 @@ unset($pi, $config_path, $ircClass);
 // We keep this here because it's not user configurable
 // and to avoid having to change config files every iteration
 
-$config['version'] = '4.42.'.file_get_contents('VERSION');
+$config['version'] = '4.47.'.file_get_contents('VERSION');
 
 require_once $_cwd . '/tmhoauth/tmhOAuth.php';
 

@@ -26,6 +26,9 @@ class Linguo
             $this->connection = new Mongo($this->config['mongodb']);
         }
         $this->collection = $this->connection->pybot;
+        
+        $class = $this->config['_classes']['Strings']['classname']; 
+        $this->strings = new $class($this->config);
     }
 
     public function __destruct()
@@ -67,6 +70,27 @@ class Linguo
     public function testtpl($params = array())
     {
         return trim($this->_generate_phrase($params['arg1'], null, 0));
+    }
+
+    public function getTemplateString($id = false)
+    {
+        if (!$id) return;
+        $template_string = '';
+        $tpl_id = $id;
+        $tpl_user = false;
+        if ($id > 0) {
+            $criteria = array('id' => (int) $id);
+            $template = $this->collection->templates->findOne($criteria);
+            if ($template) {
+                $template_string = $template['template'];
+                $tpl_user = $template['user'];
+                $timestamp = $template['time'];
+            }
+        }
+        if (empty($template_string)) {
+            return "Couldn't find template string";
+        }
+        return $template_string . ' - ' . $tpl_user . ' (' . date($this->config['_dateFormat'], $timestamp) . ')';
     }
 
     private function _get_template($id = 0)
@@ -170,7 +194,7 @@ class Linguo
         // $abusedata = array();
         // $abusedata['tpl_id'] = $tpl_id;
         foreach ($words as $word) {
-            $prefix = Strings::prefix('$', $word);
+            $prefix = $this->strings->prefix('$', $word);
 
             # $: a candidate for removal
             $w = str_replace('$', '', $word);
@@ -213,42 +237,42 @@ class Linguo
                 switch ($command) {
                     case 'ip':
                         $wd = rand(1, 254).'.'.rand(1, 254).'.'.rand(1, 254).'.'.rand(1, 254);
-                        $suffix = Strings::suffix('$ip', $word);
+                        $suffix = $this->strings->suffix('$ip', $word);
                     break;
                     case 'who':
                         $wd = $who;
-                        $suffix = Strings::suffix('$who', $word);
+                        $suffix = $this->strings->suffix('$who', $word);
                     break;
                     case 'tomorrow':
                         $wd = date('l', strtotime('tomorrow'));
-                        $suffix = Strings::suffix('$tomorrow', $word);
+                        $suffix = $this->strings->suffix('$tomorrow', $word);
                     break;
                     case 'yesterday':
                         $wd = date('l', strtotime('yesterday'));
-                        $suffix = Strings::suffix('$yesterday', $word);
+                        $suffix = $this->strings->suffix('$yesterday', $word);
                     break;
                     case 'date':
                         $wd = date('l F j, Y');
-                        $suffix = Strings::suffix('$today', $word);
+                        $suffix = $this->strings->suffix('$today', $word);
                     break;
                     case 'today':
                         $wd = date('l');
-                        $suffix = Strings::suffix('$today', $word);
+                        $suffix = $this->strings->suffix('$today', $word);
                     break;
                     case 'rand':
                         $wd = rand(18, 99);
-                        $suffix = Strings::suffix('$rand', $word);
+                        $suffix = $this->strings->suffix('$rand', $word);
                     break;
                     case 'dice':
                         $wd = rand(1, 12);
-                        $suffix = Strings::suffix('$rand', $word);
+                        $suffix = $this->strings->suffix('$rand', $word);
                     break;
                     case 'highrand':
                         $wd = rand(10000000, 99999999);
-                        $suffix = Strings::suffix('$highrand', $word);
+                        $suffix = $this->strings->suffix('$highrand', $word);
                     break;
                     case 'cc':
-                        $suffix = Strings::suffix('$cc', $word);
+                        $suffix = $this->strings->suffix('$cc', $word);
                         $wd = Actions::getcc();
                     break;
                     default:
@@ -258,7 +282,7 @@ class Linguo
                                 break;
                             }
                         }
-                        $suffix = Strings::suffix('$'.$wordtype, $word);
+                        $suffix = $this->strings->suffix('$'.$wordtype, $word);
 
                         if ($letter) {
                             $worddata = $this->_get_subword_word($wordtype, $letter);

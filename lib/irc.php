@@ -24,6 +24,7 @@ class Irc
         $this->first_connect = true;
         $this->set_socket($this->server, $this->port);
         $this->actions = new Actions(self::$config);
+        $this->bleacher = new Bleacher(self::$config);
         $this->_methods = $config['_methods'];
         $this->connect_complete = false;
         $this->retrieve_nick = false;
@@ -52,6 +53,12 @@ class Irc
     {
         if (!$className || !$config) return;
         $this->actions = new $className($config);
+    }
+
+    public function initBleacher($className = false, $config = false)
+    {
+        if (!$className || !$config) return;
+        $this->bleacher = new $className($config);
     }
 
 
@@ -120,13 +127,13 @@ class Irc
 
             }
         }
-
     }
 
-    private function _reloadModules()
+    private function _reloadModules($force = false)
     {
         $id = date('U');
         $classes = self::$config['_classes'];
+
         foreach ($classes as $className => $classData) {
             // if Irc is changed, we'll restart the whole lot
             // it's in the class list because of the reason
@@ -138,7 +145,7 @@ class Irc
             if (!array_key_exists($className, self::$config['_classes'])) {
                 // just include it?
             } else {
-                if ($md5 != self::$config['_classes'][$className]['md5sum']) {
+                if (($md5 != self::$config['_classes'][$className]['md5sum']) || ($force)) {
                     // changed, reload
                     $pathinfo = pathinfo($file);
                     $newClassName = $className . $id;
@@ -155,10 +162,12 @@ class Irc
                         include $newFileName;
                         unlink($newFileName);
                         
+                        //echo "\n" . $className;
                         self::$config['_classes'][$className]['classname'] = $newClassName;
                         self::$config['_classes'][$className]['md5sum'] = $md5;
                         self::$config['_origclass'] = $className;
                         
+                        //print_r(self::$config['_classes'][$className]);
                         $calllist = self::$config['_classes'][$className]['calllist'];
                         $localRef = strtolower($calllist[count($calllist)-1]);
                         $theirRef = strtolower($classData['origclass']);
@@ -184,7 +193,6 @@ class Irc
                 }
             }
         }
-
     }
 
     private function set_socket($svr = '', $port = 0)
@@ -286,14 +294,21 @@ class Irc
 
                 // handle reloads
                 if ($a === 'reload' && in_array($msg['user'], array('Flimflam'))) {
-                    $this->_reloadModules();
+                    $config = $this->actions->_getConfig();
+                    self::$config['irc_channels'] = $config['irc_channels'];
+                    $changed = $this->_rehash();
+                    $this->_reloadModules($changed);
                 }
 
                 // $this->Log->log("Params: " . json_encode($params, true), 3);
+                // @TODO gotta fix this so uncallable methods don't shit the bed
+                try {
+                    if (method_exists($this->actions, $a) && is_callable(array($this->actions, $a), true)) {
+                        $result = $this->actions->$a($params);
+                        $this->write($result);
+                    }
+                } catch (Exception $e) {
 
-                if (method_exists($this->actions, $a)) {
-                    $result = $this->actions->$a($params);
-                    $this->write($result);
                 }
 
                 /* THIS IS ANNOYING AS FUCK!
@@ -411,29 +426,23 @@ class Irc
                 // topic text
                 case 332:
                     if (!$channel) break;
-                    $topic = str_replace(':', '', $parts[4]);
+                    $topic = str_replace(':', '', $parts[4]) . ' ';
                     for ($i = 5; $i < count($parts); $i++) {
                         $topic .= $parts[$i] . ' ';
                     }
-                    $oldconfig = $this->actions->_getConfig();
-                    $topicdata = isset($oldconfig['topic']) ? $oldconfig['topic'] : array();
-                    $topicdata[$channel]['topictext'] = trim($topic);
-                    $this->actions->_setConfig('topic', $topicdata);
+                    $this->actions->_setChannelData($channel, 'topictext', trim($topic));
                 break;
                 // topic stats
                 case 333:
                     if (!$channel) break;
-                    $oldconfig = $this->actions->_getConfig();
-                    $topicdata = $oldconfig['topic'];
-                    $topicdata[$channel]['topicauthor'] = trim($parts[4]);
-                    $topicdata[$channel]['topicdate'] = trim($parts[5]);
-                    $this->actions->_setConfig('topic', $topicdata);
+                    $this->actions->_setChannelData($channel, 'topicdate', trim($parts[5]));
+                    $this->actions->_setChannelData($channel, 'topicauthor', trim($parts[4]));
                 break;
                 // names list
                 case 353:
                     foreach ($parts as $i => $val) {
                         if ($i > 4) {
-                            $nick = Bleacher::ircnick($val);
+                            $nick = $this->bleacher->ircnick($val);
                             if (!$this->actions->checkUserCache($nick)) {
                                 $this->whois($nick);
                             }
@@ -462,6 +471,10 @@ class Irc
                     //ready to join
                     $this->first_connect = false;
                     $this->connect_complete = true;
+                break;
+                case 412:
+                    // no text to send
+                    // echo "\n" . $str;
                 break;
                 case 473:
                     // invite only channel - remove channel from list?
@@ -521,13 +534,10 @@ class Irc
                 // someone changed the topic
                 case 'TOPIC':
                     if (!$channel) break;
-                    $oldconfig = $this->actions->_getConfig();
-                    $topicdata = $oldconfig['topic'];
                     $channel = $matches[4];
-                    $topicdata[$channel]['topictext'] = trim($matches[5]);
-                    $topicdata[$channel]['topicauthor'] = trim($matches[1]);
-                    $topicdata[$channel]['topicdate'] = time(); 
-                    $this->actions->_setConfig('topic', $topicdata);
+                    $this->actions->_setChannelData($channel, 'topictext', trim($matches[5]));
+                    $this->actions->_setChannelData($channel, 'topicauthor', trim($matches[1]));
+                    $this->actions->_setChannelData($channel, 'topicdate', time());
                 break;
             }
             if (!$this->in_whois) {
@@ -537,7 +547,7 @@ class Irc
         }
 
         if ($this->connect_complete) {
-            foreach ($this->channels as $channel) {
+            foreach ($this->channels as $channel => $channeldata) {
                 $this->write("JOIN $channel");
             }
             // ensure we're in the default channel
@@ -636,9 +646,33 @@ class Irc
     // re-read config file
     private function _rehash()
     {
-        if (isset($config_path) && file_exists($config_path) && is_readable($config_path)) {
-            include $config_path;
+        $changed = false;
+        $config_path = self::$config['_configPath'];
+        if (isset($config_path) && (file_exists($config_path) && is_readable($config_path))) {
+            $md5 = md5_file($config_path);
+            if (self::$config['_configChecksum'] != $md5) {
+                include $config_path;
+                // re-read config file data into existing class config
+                foreach ($config as $key => $value) {
+                    if (!is_array($value)) {
+                        self::$config[$key] = $value;
+                    } else {
+                        foreach($value as $k => $v) {
+                            if (is_array($v)) {
+                                foreach ($v as $k2 => $v2) {
+                                    self::$config[$key][$k][$k2] = $v2;
+                                }
+                            } else {
+                                self::$config[$key][$k] = $v;
+                            }
+                        }
+                    }
+                }
+                self::$config['_configChecksum'] = $md5;
+                $changed = true;
+            }
         }
+        return $changed;
     }
 
     public function break_hostmask($hm = '')
@@ -652,7 +686,7 @@ class Irc
         list($first, $second) = explode('@', $hm);
         list($dirtynick, $ident) = explode('!', $first);
 
-        $data['nick'] = Bleacher::ircnick($dirtynick);
+        $data['nick'] = $this->bleacher->ircnick($dirtynick);
         $data['ident'] = $ident;
         $data['host'] = $second;
 
@@ -661,10 +695,8 @@ class Irc
 
     public function write($message)
     {
-        /*
-        echo "\n" . date('Y-m-d H:i:s') . ' -- TX: ';
-        echo $message;
-        */
+        // echo "\n" . date('Y-m-d H:i:s') . ' -- TX: ' . $message;
+        
         if (!$this->socket) {
             $this->Log->log('Socket error', 2);
             $this->destroy_socket();
@@ -680,6 +712,9 @@ class Irc
             $res = false;
             $this->Log->log("Couldn't write to the socket", 3);
             $this->Log->log($e->getMessage());
+            $this->destroy_socket();
+            sleep(60);
+            $this->__construct(self::$config);
         }
 
         return $res;

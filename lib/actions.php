@@ -398,7 +398,7 @@ class Actions
         // make sure it's not being done too frequently
         $time = time();
         if (($this->_getChannelData($channel, 'topicdate'))) {
-            if (($time - $this->_getChannelData($channel, 'topicdate')) > 1800) {
+            if (($time - $this->_getChannelData($channel, 'topicdate')) > 30) { //1800) {
                 $this->_setTopic($channel);
             } else {
                 $this->write_channel('Too soon, pantaloon!');
@@ -458,6 +458,7 @@ class Actions
     {
         if (!$channel) return;
         if (!$text) {
+            $this->linguo->setLastRequester($this->config['bothandle']);
             $text = $this->linguo->get_rant(array());    
         }
         $this->write('TOPIC', $channel, $text);

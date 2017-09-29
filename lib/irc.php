@@ -581,6 +581,7 @@ class Irc
                     $this->actions->_setChannelData($channel, 'topictext', trim($matches[5]));
                     $this->actions->_setChannelData($channel, 'topicauthor', trim($matches[1]));
                     $this->actions->_setChannelData($channel, 'topicdate', time());
+                    $this->actions->linguo->setLastRequester($this->actions->get_current_user());
                 break;
             }
             if (!$this->in_whois) {

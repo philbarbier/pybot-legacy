@@ -1968,6 +1968,7 @@ class Actions
     public function rant($args)
     {
         try {
+            $this->linguo->setLastRequester($this->get_current_user());
             $abuse = $this->linguo->get_rant($args);
             $this->write_channel($abuse);
         } catch (Exception $e) {

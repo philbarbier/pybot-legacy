@@ -554,7 +554,7 @@ class Irc
                             $this->actions->_setChannelData($channel, 'channelmodes', $newmode);
                         }
 
-                        if ($parts[4] === $this->current_nick) {
+                        if ($parts[4] === $this->current_nick && isset($newmode)) {
                             $this->actions->_setChannelData($channel, 'botmodes', $newmode);
                         }
                     }

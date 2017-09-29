@@ -640,30 +640,58 @@ class Actions
 
     }
 
-    private function _addytlogs($args = array())
+    private function _maintenance($args = array())
     {
-        return; //disable for now
+        return;
         $criteria = array(
             'message' => array(
-                '$regex' => new MongoRegex('/youtube.com/i'),
+                '$regex' => new MongoRegex('/mkword\ /i'),
             ),
         );
 
         $data = $this->collection->log->find($criteria);
 
-        $data = (iterator_to_array($data));
+        if (!is_array($data)) {
+            $data = (iterator_to_array($data));
+        }
 
         $i = 0; 
         foreach ($data as $row) {
-            preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $row['message'], $match);
-            $url = @$match[0][0];
-            if (!$url) continue;
-            // commenting JUST in case
-            $this->_logYoutube($url, $row['user'], $row['time']);
-            if (($i % 100) == 0) {
-                $this->write_channel('Logging #' . $i);
+            $str = str_replace('mkword ', '', $row['message']);
+            $parts = explode('--type', $str); 
+            if (!isset($parts[1])) continue;
+            $word = trim($parts[0]);
+            $type = trim($parts[1]);
+            //$word = 'Marcus';
+            //$type = 'last_name';
+            if (empty($word) || empty($type)) continue;
+            $criteria = array('word' => $word, 'type' => $type);
+            $checkdata = $this->collection->words->findOne($criteria);
+            
+            if (!isset($checkdata['word']) || !isset($checkdata['type'])) continue;
+
+            if (!isset($checkdata['time'])) {
+
+                //print_r($checkdata);
+                //var_dump($row);
+
+                $worddata = array(
+                    'type' => $checkdata['type'],
+                    'user' => $checkdata['user'],
+                    'word' => $checkdata['word'],
+                    'time' => $row['time']
+                );
+
+                //var_dump($worddata);
+
+                //
+                //echo "\nUpdating $word";
+                //$this->collection->words->update($criteria, $worddata, array('upsert' => true));
             }
-            //if ($i > 2) return;
+            if (($i % 100) == 0) {
+                $this->_debug('At record ' . $i);
+            }
+            if ($i > 2) return;
             $i++;
         }
 
@@ -1721,7 +1749,8 @@ class Actions
             '$set' => array(
                 'word' => $word,
                 'type' => $type,
-                'user' => $this->currentuser,
+                'user' => $this->get_current_user(),
+                'time' => time()
             ),
         );
         try {
@@ -1768,7 +1797,13 @@ class Actions
                 $word = $data['word'];
                 $user = $data['user'];
                 $type = $data['type'];
-                $this->write_channel("$word ($type) was submitted by $user");
+                $time = false;
+                if (isset($data['time'])) $time = date($this->config['_dateFormat'], $data['time']);
+
+                $str = "$word ($type) was submitted by $user";
+                if ($time) $str .= ' - ' . $time;
+
+                $this->write_channel($str);
 
                 return;
             }
@@ -4197,8 +4232,12 @@ class Actions
             $word = $result['word'];
             $user = $result['user'];
             $type = $result['type'];
-            $this->write_channel("$word ($type) was submitted by $user");
-        }
+            
+            $str = "$word ($type) was submitted by $user";
+            if (isset($result['time'])) $str .= ' - ' . date($this->config['_dateFormat'], $result['time']);
+
+            $this->write_channel($str);
+                    }
     }
     // reminder for the current MC server seed
     public function mcseed($args = array())

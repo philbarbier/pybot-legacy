@@ -208,12 +208,12 @@ class Irc
         }
         if (!$this->socket) {
             $this->destroy_socket();
-            sleep(60);
+            sleep(10);
             $this->__construct($this->config);
         }
     }
 
-    private function destroy_socket()
+    public function destroy_socket()
     {
         if ($this->socket) {
             fclose($this->socket);
@@ -259,7 +259,7 @@ class Irc
         if (!$this->socket) {
             $this->Log->log('Socket error', 2);
             $this->destroy_socket();
-            sleep(60);
+            sleep(10);
             $this->__construct($this->config);
         }
 
@@ -379,7 +379,7 @@ class Irc
 
         if ($parts[0] == 'ERROR') {
             $this->destroy_socket();
-            sleep(120);
+            sleep(10);
             $this->__construct(self::$config);
         }
 
@@ -744,7 +744,7 @@ class Irc
         if (!$this->socket) {
             $this->Log->log('Socket error', 2);
             $this->destroy_socket();
-            sleep(60);
+            sleep(10);
             $this->__construct(self::$config);
 
             return false;
@@ -752,12 +752,19 @@ class Irc
         
         try {
             $res = fwrite($this->socket, $message."\r\n\r\n", strlen($message."\r\n\r\n"));
+            if ($res === 0) {
+                $res = false;
+                $this->Log->log("Couldn't write to the socket", 3);
+                //$this->destroy_socket();
+                sleep(10);
+                $this->__construct(self::$config);
+            }
         } catch (Exception $e) {
             $res = false;
             $this->Log->log("Couldn't write to the socket", 3);
             $this->Log->log($e->getMessage());
             $this->destroy_socket();
-            sleep(60);
+            sleep(10);
             $this->__construct(self::$config);
         }
 

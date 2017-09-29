@@ -48,7 +48,7 @@ class Actions
         $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'me', 'uptime', 'cc');
         $this->_cacheData = array();
         if (!$this->connection) {
-            sleep(60);
+            sleep(10);
             // try again
             $this->connection = new Mongo($this->config['mongodb']);
         }
@@ -256,7 +256,7 @@ class Actions
     }
 
     /* macro function for writing to the current channel */
-    private function write_channel($message, $channel = false)
+    public function write_channel($message, $channel = false)
     {
         if (!$channel) $channel = $this->get_current_channel();
         if (is_array($message)) {
@@ -327,16 +327,23 @@ class Actions
             */
 
             $this->abuse(array('arg1' => $data['user'], 'joinabuse' => true));
-            if (isset($data['channel']) && (isset($this->config['irc_channels'][$data['channel']]['autovoice']) && $this->config['irc_channels'][$data['channel']]['autovoice'])) {
+            if (isset($data['channel']) && (!($this->_getChannelData($data['channel'], 'autovoice')) && $this->_getChannelData($data['channel'], 'autovoice'))) {
                 $this->_changeMode($data['user'], $data['channel'], '+v');  
             }
         }
 
-        if (isset($data['command']) && (($data['command'] == 'JOIN') || ($data['command'] == 'PRIVMSG'))) {
+        if (isset($data['command']) && (($data['command'] == 'MODE') || ($data['command'] == 'JOIN') || ($data['command'] == 'PRIVMSG'))) {
             if (isset($data['channel'])) {
                 $this->_setLastPrivmsg($data['channel']);
-                if (isset($this->config['irc_channels'][$data['channel']])) {
-                    $this->_changeMode(false, $data['channel'], $this->config['irc_channels'][$data['channel']]['modes']);
+                if (($this->_getChannelData($data['channel']))) {
+                    if (!($this->_getChannelData($data['channel'], 'modes'))) {
+                        $this->_changeMode(false, $data['channel'], $this->config['default_modes']);
+                        $this->_setChannelData($data['channel'], 'modes', $this->config['default_modes']);
+                    } else {
+                        if (!$this->_hasSameLetters($this->_getChannelData($data['channel'], 'channelmodes'), $this->_getChannelData($data['channel'], 'modes'))) {
+                            $this->_changeMode(false, $data['channel'], '-' . str_replace('+', '', $this->_getChannelData($data['channel'], 'channelmodes')) . '+' . $this->_getChannelData($data['channel'], 'modes'));
+                        }
+                    }
                 }
             }
         }
@@ -360,12 +367,10 @@ class Actions
         $topicbit = rand(86400,86401);
         if (isset($data['command'])) { // && $data['command'] == 'PING') {
             foreach($this->config['channellist'] as $channel => $v) {
-
-                //print_r($this->config['irc_channels'][$channel]);
                 // check channel topics, switch it up if they're old AF
-                if (isset($this->config['irc_channels'][$channel]['topicchange']) && $this->config['irc_channels'][$channel]['topicchange']) {
-                    if (isset($this->config['irc_channels'][$channel]['topicdate'])) {
-                        if (($time - $this->config['irc_channels'][$channel]['topicdate']) != $time && (($time - $this->config['irc_channels'][$channel]['topicdate']) > $topicbit)) {
+                if (($this->_getChannelData($channel, 'topicchange')) && $this->_getChannelData($channel, 'topicchange')) {
+                    if (($this->_getChannelData($channel, 'topicdate'))) {
+                        if (($time - $this->_getChannelData($channel, 'topicdate')) != $time && (($time - $this->_getChannelData($channel, 'topicdate')) > $topicbit)) {
                             $this->_setTopic($channel);
                         }
                     } else {
@@ -375,9 +380,9 @@ class Actions
                 }
 
                 // if it's been quiet for a bit, say something!
-                if (isset($this->config['irc_channels'][$channel]['lastPrivmsg'])) {
-                    if (($time - $this->config['irc_channels'][$channel]['lastPrivmsg']) != $time && (($time - $this->config['irc_channels'][$channel]['lastPrivmsg']) > $bit)) {
-                        if (isset($this->config['irc_channels'][$channel]['keepquiet']) && $this->config['irc_channels'][$channel]['keepquiet']) {
+                if (($this->_getChannelData($channel, 'lastPrivmsg'))) {
+                    if (($time - $this->_getChannelData($channel, 'lastPrivmsg')) != $time && (($time - $this->_getChannelData($channel, 'lastPrivmsg')) > $bit)) {
+                        if (($this->_getChannelData($channel, 'keepquiet')) && $this->_getChannelData($channel, 'keepquiet')) {
                             $deadair = $this->_getDeadAir($channel);
                             $this->write_channel($deadair, $channel);
                             $this->_setChannelData($channel, 'lastPrivmsg'. time());
@@ -392,13 +397,32 @@ class Actions
         $channel = $this->get_current_channel();
         // make sure it's not being done too frequently
         $time = time();
-        if (isset($this->config['irc_channels'][$channel]['topicdate'])) {
-            if (($time - $this->config['irc_channels'][$channel]['topicdate']) > 1800) {
+        if (($this->_getChannelData($channel, 'topicdate'))) {
+            if (($time - $this->_getChannelData($channel, 'topicdate')) > 1800) {
                 $this->_setTopic($channel);
             } else {
                 $this->write_channel('Too soon, pantaloon!');
             }
         }
+    }
+
+    public function _hasSameLetters($string1 = false, $string2 = false)
+    {
+        if (!$string1 || !$string2) return false;
+
+        if (strlen($string1) !== strlen($string2)) return false;
+
+        $string1 = str_replace('+', '', $string1);
+        $string2 = str_replace('+', '', $string2);
+        
+        $data = '';
+
+        for ($i = 0; $i < strlen($string1); $i++) {
+            if (strstr($string2, $string1[$i])) {
+                $data .= $string1[$i];
+            }
+        }
+        return (strlen($string1) == strlen($data));
     }
 
     private function _changeMode($user = false, $channel = false, $mode = false)
@@ -411,12 +435,23 @@ class Actions
             $str = 'MODE ' . $channel . ' ' . $mode;
         }
         $this->write($str);
+        return;
     }
 
-    public function _setChannelData($channel = false, $key = false, $value = false) {
+    public function _setChannelData($channel = false, $key = false, $value = false)
+    {
         if (!$channel || !$key || !$value) return;
         $this->config['irc_channels'][$channel][$key] = $value;
         return;
+    }
+
+    public function _getChannelData($channel = false, $key = false)
+    {
+        if (!$channel || !isset($this->config['irc_channels'][$channel])) return false;
+        if (!$key && isset($this->config['irc_channels'][$channel])) {
+            return $this->config['irc_channels'][$channel];
+        }
+        return isset($this->config['irc_channels'][$channel][$key]) ? $this->config['irc_channels'][$channel][$key] : false;
     }
 
     private function _setTopic($channel = false, $text = false)
@@ -643,10 +678,11 @@ class Actions
             }
             return;
         }
-        if (!isset($this->config['irc_channels'][$chan]['lastPrivmsg'])) {
+        if (!($this->_getChannelData($chan, 'lastPrivmsg'))) {
             $this->_setChannelData($chan, 'lastPrivmsg', time());
         }
         $this->_setChannelData($chan, 'lastPrivmsg', time());
+        return;
     }
 
     public function setBotHandle($nick = false)
@@ -1616,6 +1652,9 @@ class Actions
         if (!array_key_exists($channel, $this->config['channellist'])) {
             $this->config['channellist'][$channel] = 1;
         }
+        // ping for MODEs
+        $this->write('MODE', $channel);
+
     }
 
     public function removeChannel($channel = false)
@@ -1836,7 +1875,18 @@ class Actions
 
     public function abuse($args)
     {
-        $this->write_channel($this->_getAbuse($args));
+        if (($this->_getChannelData($this->get_current_channel(), 'allowabuse'))
+                && $this->_getChannelData($this->get_current_channel(), 'allowabuse')) {
+            
+            if (isset($args['joinabuse']) && $args['joinabuse']) {
+                if (($this->_getChannelData($this->get_current_channel(), 'joinabuse')) 
+                    && $this->_getChannelData($this->get_current_channel(), 'joinabuse')) {
+                    $this->write_channel($this->_getAbuse($args));
+                }
+            } elseif (!isset($args['joinabuse'])) {
+                $this->write_channel($this->_getAbuse($args));
+            }
+        }
     }
 
     private function _sendRadio($data = array())

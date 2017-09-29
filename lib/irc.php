@@ -167,7 +167,6 @@ class Irc
                         self::$config['_classes'][$className]['md5sum'] = $md5;
                         self::$config['_origclass'] = $className;
                         
-                        //print_r(self::$config['_classes'][$className]);
                         $calllist = self::$config['_classes'][$className]['calllist'];
                         $localRef = strtolower($calllist[count($calllist)-1]);
                         $theirRef = strtolower($classData['origclass']);
@@ -423,6 +422,20 @@ class Irc
                 case 318:
                     $this->in_whois = false;
                 break;
+
+                // channel modes that we get back post join MODE call
+                case 324:
+                    $mode = trim($parts[4]);
+                    $user = trim($parts[2]);
+                    $channel = trim($parts[3]);
+                    //echo "\n" . $channel . ' => ' . $mode;
+                    $this->actions->_setChannelData($channel, 'channelmodes', $mode);
+                break;
+                // channel mode timestamp
+                case 329:
+
+                break;
+
                 // topic text
                 case 332:
                     if (!$channel) break;
@@ -500,6 +513,15 @@ class Irc
                     $this->whois($userinfo['nick']);
                 break;
 
+                // we got kicked out? shiiiiiiiiit $insult!
+                case "KICK":
+                    $channel = trim($matches[4]);
+                    $user = trim($matches[1]);
+                    $this->write("JOIN $channel");
+                    $this->actions->write_channel('Hey fuck you, ' . $user . '!', $channel);
+                    $this->actions->abuse(array('arg1' => $user));
+                break;
+
                 case "KILL":
                     $this->destroy_socket();
                     sleep(15);
@@ -508,14 +530,35 @@ class Irc
 
                 // mode changes
                 case 'MODE':
-                    if (isset($matches) && count($matches) > 1) {
-                        //$this->admin_message($matches);
-                        $user = trim($matches[1]);
-                        $chan = trim($matches[4]);
-                        $modes = explode(' ', $matches[5]);
-                        $mode = $modes[0];
+                    if (count($parts) > 4) {
+                        if (strlen($parts[4]) === 2) {
+                            $channel = trim($parts[2]);
+                            $mode = trim($parts[3]);
+                            $oldmode = $this->actions->_getChannelData($channel, 'channelmodes');
+                            $chanmode = $this->actions->_getChannelData($channel, 'modes');
+
+                            if ($mode[0] == '-') {
+                                //$newmode = str_replace(substr($mode, 1), '', $oldmode);
+                                $newmode = $oldmode;
+                                for ($i = 0; $i < strlen($mode); $i++) {
+                                    if (isset($mode[$i+1]) && strstr($oldmode, $mode[$i+1])) {
+                                        $newmode = str_replace($mode[$i+1], '', $newmode);
+                                    }
+                                }
+                            } elseif ($mode[0] == '+') {
+                                if (!$this->actions->_hasSameLetters($oldmode, $mode)) {
+                                    $newmode = $oldmode . str_replace('+', '', $mode);
+                                }
+                            }
+
+                            $this->actions->_setChannelData($channel, 'channelmodes', $newmode);
+                        }
+
+                        if ($parts[4] === $this->current_nick) {
+                            $this->actions->_setChannelData($channel, 'botmodes', $newmode);
+                        }
                     }
-                break;
+                break;  
 
                 case "NICK":
                     $nickparts = $this->break_hostmask($parts[0]);

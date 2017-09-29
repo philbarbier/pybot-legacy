@@ -355,11 +355,9 @@ class Actions
             if (strstr($data['message'], '5kb.us')) {
                 break;
             }
-            if (is_numeric(strpos($data['message'], 'ythist', 0))) {
-                break;
+            if (!is_numeric(strpos($data['message'], 'ythist', 0))) {
+                $this->check_url(explode(' ', $data['message']), $this->get_current_channel());
             }
-
-            $this->check_url(explode(' ', $data['message']), $this->get_current_channel());
         }
         
         $time = time();
@@ -628,7 +626,10 @@ class Actions
 
         $c = $this->collection->irc->youtubestats->findOne($criteria);
 
-        if (!isset($c['videoid'])) return;
+        if (!isset($c['videoid'])) {
+            $this->write_channel('Not found in history'); 
+            return;
+        }
 
         $str = 'This video, "' . $c['title'] . '" was first linked by ' . $c['firstuser'] . ' on ';
         $str .= date($this->config['_dateFormat'] , $c['firstwatch']) . '. It has been linked ' . $c['watchcount'] . ' time';

@@ -382,10 +382,10 @@ class Actions
                 // if it's been quiet for a bit, say something!
                 if (($this->_getChannelData($channel, 'lastPrivmsg'))) {
                     if (($time - $this->_getChannelData($channel, 'lastPrivmsg')) != $time && (($time - $this->_getChannelData($channel, 'lastPrivmsg')) > $bit)) {
-                        if (($this->_getChannelData($channel, 'keepquiet')) && $this->_getChannelData($channel, 'keepquiet')) {
+                        if (!$this->_getChannelData($channel, 'keepquiet')) {
                             $deadair = $this->_getDeadAir($channel);
                             $this->write_channel($deadair, $channel);
-                            $this->_setChannelData($channel, 'lastPrivmsg'. time());
+                            $this->_setChannelData($channel, 'lastPrivmsg', time());
                         }
                     }
                 }

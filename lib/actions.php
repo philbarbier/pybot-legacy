@@ -643,51 +643,82 @@ class Actions
     private function _maintenance($args = array())
     {
         return;
-        $criteria = array(
-            'message' => array(
-                '$regex' => new MongoRegex('/mkword\ /i'),
-            ),
+        //$data = $this->collection->words->find($criteria);
+
+        $typefix = array(
+            'first_name' => 'firstname',
+            'last_name' => 'lastname',
+            'odor' => 'odour',
+            'explor' => 'explore',
+            'populateactivity' => 'activity',
+            'color' => 'colour',
+            'effectt' => 'effect',
         );
 
-        $data = $this->collection->log->find($criteria);
-
-        if (!is_array($data)) {
-            $data = (iterator_to_array($data));
-        }
-
-        $i = 0; 
-        foreach ($data as $row) {
-            $str = str_replace('mkword ', '', $row['message']);
-            $parts = explode('--type', $str); 
-            if (!isset($parts[1])) continue;
-            $word = trim($parts[0]);
-            $type = trim($parts[1]);
-            //$word = 'Marcus';
-            //$type = 'last_name';
-            if (empty($word) || empty($type)) continue;
-            $criteria = array('word' => $word, 'type' => $type);
-            $checkdata = $this->collection->words->findOne($criteria);
-            
-            if (!isset($checkdata['word']) || !isset($checkdata['type'])) continue;
-
-            if (!isset($checkdata['time'])) {
-
-                //print_r($checkdata);
-                //var_dump($row);
-
-                $worddata = array(
-                    'type' => $checkdata['type'],
-                    'user' => $checkdata['user'],
-                    'word' => $checkdata['word'],
-                    'time' => $row['time']
+        foreach($typefix as $fixme => $fix) {
+            $criteria = array('type' => $fixme);
+            $data = $this->collection->words->find($criteria);
+            if (!is_array($data)) $data = iterator_to_array($data);
+            foreach($data as $id => $worddata) {
+                //print_r($worddata);
+                $newdata = array(
+                    'user' => $worddata['user'],
+                    'type' => $typefix[$worddata['type']],
+                    'word' => $worddata['word']
                 );
 
-                //var_dump($worddata);
+                if (isset($worddata['time'])) $newdata['time'] = $worddata['time'];
+                $fixcrit = array(
+                    'user' => $worddata['user'],
+                    'type' => $worddata['type'],
+                    'word' => $worddata['word']
+                );
 
-                //
-                //echo "\nUpdating $word";
-                //$this->collection->words->update($criteria, $worddata, array('upsert' => true));
+                $this->collection->words->update($fixcrit, $newdata, array('upsert' => true));
+                echo "Fixing: " . $newdata['word'] . "\n";
+            } // word foreach
+            $criteria = array(
+                'template' => array(
+                    '$regex' => new MongoRegex('/' . $fixme . '/i'),
+                ),
+            );
+            $data = $this->collection->templates->find($criteria);
+            if (!is_array($data)) $data = iterator_to_array($data);
+            foreach ($data as $id => $template) {
+                //print_r($template);
+                $tplid = $template['id'];
+                $newtplstr = str_replace($fixme, $fix, $template['template']);
+                $newdata = $template;
+                $newdata['template'] = $newtplstr;
+                //print_r($newdata);
+                echo "Fixing tpl " . $tplid . "\n";
+                $this->collection->templates->update(array('id' => $tplid), $newdata, array('upsert' => true));
+                //return;
             }
+
+            //return;
+        }
+        return;
+        $wordtypes = $this->linguo->get_word_types();
+        echo $wordtypes . "\n";
+        $wordtypes = explode(', ', $wordtypes);
+        echo "\nThere are " . count($wordtypes) . " types\n";
+        //print_r($wordtypes);
+        foreach ($wordtypes as $wordtype) {
+            $criteria = array('type' => $wordtype);
+            $words = $this->collection->words->find($criteria);
+            if (!is_array($words)) {
+                $words = (iterator_to_array($words));
+            }
+            //print_r($words);
+            return;
+    
+        }
+
+        
+        $i = 0; 
+        foreach ($data as $row) {
+            
             if (($i % 100) == 0) {
                 $this->_debug('At record ' . $i);
             }

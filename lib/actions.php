@@ -4259,6 +4259,7 @@ class Actions
 			$criteria['user'] = $username;
 		}
         $results = $this->collection->words->find($criteria)->limit(5);
+
         foreach ($results as $result) {
             $word = $result['word'];
             $user = $result['user'];
@@ -4268,7 +4269,9 @@ class Actions
             if (isset($result['time'])) $str .= ' - ' . date($this->config['_dateFormat'], $result['time']);
 
             $this->write_channel($str);
-                    }
+        }
+        if (!isset($str)) $this->write_channel('None found');
+        return;
     }
     // reminder for the current MC server seed
     public function mcseed($args = array())

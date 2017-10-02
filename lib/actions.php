@@ -3783,14 +3783,13 @@ class Actions
         if (!isset($args['arg1'])) return $this->write_channel('Incorrect');
         
         $answer = strtolower($args['arg1']);
-        // $this->write_channel($answer);
         $data = $this->collection->trivia->findOne();
         $question = $data['question'];
         $value = $data['value'];
         $canswer = strtolower(stripslashes($data['answer']));
         $pattern = '/[^a-z][^A-Z][^0-9]/';
         preg_replace($pattern, '', $canswer);
-        // $this->write_channel('ANS: ' . $canswer);
+        if ((strlen($canswer) > 1) && (strlen($answer) <= 2)) return $this->write_channel('Incorrect');
         $who = $this->get_current_user();
         
         if (stristr($canswer,$answer)) {

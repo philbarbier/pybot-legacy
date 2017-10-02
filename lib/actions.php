@@ -327,7 +327,7 @@ class Actions
             */
 
             $this->abuse(array('arg1' => $data['user'], 'joinabuse' => true));
-            if (isset($data['channel']) && (!($this->_getChannelData($data['channel'], 'autovoice')) && $this->_getChannelData($data['channel'], 'autovoice'))) {
+            if (isset($data['channel']) && (($this->_getChannelData($data['channel'], 'autovoice')) && $this->_getChannelData($data['channel'], 'autovoice'))) {
                 $this->_changeMode($data['user'], $data['channel'], '+v');  
             }
         }

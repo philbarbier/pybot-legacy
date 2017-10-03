@@ -361,7 +361,7 @@ class Actions
         }
         
         $time = time();
-        $bit = 30; //rand(5400, 7200);
+        $bit = rand(5400, 7200);
         $topicbit = rand(86400,86401);
 
         if (isset($data['command'])) { // && $data['command'] == 'PING') {
@@ -382,7 +382,6 @@ class Actions
                 if (($this->_getChannelData($channel, 'lastPrivmsg'))) {
                     if (($time - $this->_getChannelData($channel, 'lastPrivmsg')) != $time && (($time - $this->_getChannelData($channel, 'lastPrivmsg')) > $bit)) {
                         if ($this->_getChannelData($channel, 'keepquiet') === false) {
-                            if ($channel == '#topsecret') continue;
                             $this->linguo->setLastRequester($this->config['bothandle']);
                             $deadair = $this->_getDeadAir($channel);
                             $this->write_channel($deadair, $channel);

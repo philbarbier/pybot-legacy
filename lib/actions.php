@@ -361,8 +361,9 @@ class Actions
         }
         
         $time = time();
-        $bit = rand(5400, 7200);
+        $bit = 30; //rand(5400, 7200);
         $topicbit = rand(86400,86401);
+
         if (isset($data['command'])) { // && $data['command'] == 'PING') {
             foreach($this->config['channellist'] as $channel => $v) {
                 // check channel topics, switch it up if they're old AF
@@ -380,7 +381,9 @@ class Actions
                 // if it's been quiet for a bit, say something!
                 if (($this->_getChannelData($channel, 'lastPrivmsg'))) {
                     if (($time - $this->_getChannelData($channel, 'lastPrivmsg')) != $time && (($time - $this->_getChannelData($channel, 'lastPrivmsg')) > $bit)) {
-                        if (!$this->_getChannelData($channel, 'keepquiet')) {
+                        if ($this->_getChannelData($channel, 'keepquiet') === false) {
+                            if ($channel == '#topsecret') continue;
+                            $this->linguo->setLastRequester($this->config['bothandle']);
                             $deadair = $this->_getDeadAir($channel);
                             $this->write_channel($deadair, $channel);
                             $this->_setChannelData($channel, 'lastPrivmsg', time());
@@ -457,7 +460,7 @@ class Actions
         if (!$channel) return;
         if (!$text) {
             $this->linguo->setLastRequester($this->config['bothandle']);
-            $text = $this->linguo->get_rant(array());    
+            $text = $this->linguo->get_rant(array(), true);
         }
         $this->write('TOPIC', $channel, $text);
     }
@@ -472,7 +475,7 @@ class Actions
         $undead[$chan][] = $word['word'] . '! It sure is quiet in here... ' . $word2['word'] . 'ly quiet.'; 
         $word = $this->linguo->get_word('exclamation');
         $undead[$chan][] = $this->linguo->testtpl(array('arg1' => 'It\'s quieter in here than when ' . $this->randuser() . ' got arrested for $crime in his $relatives house. You know, that place near $place. Good thing they didn\'t find the bags of $drug in his $hole!'));
-        $undead[$chan][] = $word['word'] . "! I tell ya it's quiet... Why... " . $this->linguo->get_rant(array());
+        $undead[$chan][] = $word['word'] . "! I tell ya it's quiet... Why... " . $this->linguo->get_rant(array(), true);
         $user = $this->randuser();
         if ($user == $this->config['bothandle']) $user = $this->randuser();
         $undead[$chan][] = $this->linguo->testtpl(array('arg1' => '$exclamation! Does it smell like $odour in here or something? ' . $user . ' you better start chatting or I\'ll $threat!'));

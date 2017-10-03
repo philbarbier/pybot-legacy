@@ -7,10 +7,12 @@ $config = array(
     'irc_handle' => 'abusivebot',
     'irc_channels' => array(
         '#tmp' => array(
+            'allowabuse' => true,
+            'joinabuse' => true,
             'autovoice' => true,
             'keepquiet' => false,
             'topicchange' => true,
-            'modes' => '+nrt'
+            'modes' => '+nt'
         ),
         '#linux' => array(
             'autovoice' => true,

@@ -4279,4 +4279,10 @@ class Actions
     {
         $this->write_channel('-3253466048537712650');
     }
+
+    // because why not?
+    public function shrug($args = array())
+    {
+        $this->write_channel('¯\_(ツ)_/¯');
+    }
 }

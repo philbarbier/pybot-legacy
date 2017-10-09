@@ -3951,6 +3951,7 @@ class Actions
             $url = $this->_shorten($url);
             $when = gmdate('Y-m-d', (int) $record['time']);
             $who = $record['user'];
+            $this->_logYoutube($origurl, $who, $when);
             return array('url' => $url, 'title' => $title, 'when' => $when, 'who' => $who, 'origurl' => $origurl);
         }
     }

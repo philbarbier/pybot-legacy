@@ -1961,14 +1961,13 @@ class Actions
 
     private function _sendRadio($data = array())
     {
-        return; 
-        $radioUrl = "http://radio.riboflav.in:1337/api/v1/library";
-        if (!isset($data['url'])) return;
-        //$thing = file_get_contents($radioUrl . "?url=" . $data['url']);
+        $radioUrl = "http://99.255.152.57:10010/"; //"http://radio.riboflav.in:1337/api/v1/library";
+        //if (!isset($data['url'])) return;
+        $thing = file_get_contents($radioUrl . '?' . http_build_query($data)); //"?url=" . $data['url']);
         // $this->write('PRIVMSG', $this->config['admin_chan'], 'Hitting URL ' . $radioUrl);
         // $this->write('PRIVMSG', $this->config['admin_chan'], json_encode($data));
         $options = array('CURLOPT_HTTPHEADER', array('Content-type: application/json'));
-        $thing = $this->curl->simple_post($radioUrl, json_encode($data), $options);
+        //$thing = $this->curl->simple_post($radioUrl, json_encode($data), $options);
         if (!empty($thing)) $this->write_channel($thing);
     }
 
@@ -2011,6 +2010,10 @@ class Actions
     public function checkUserCache($nick = false)
     {
         if (!$nick) return;
+
+        $criteria = array('user' => $nick);
+        $result = $this->collection->irc->usercache->findOne($criteria);
+        if (!isset($result['user'])) return false;
         return isset($this->config['usercache'][$nick]);
     }
 
@@ -2032,6 +2035,10 @@ class Actions
                 $this->config['usercache'][$key][$k] = $v;
             }
         }
+        //add it to the DB
+        $criteria = array('user' => $key);
+        $data = array('user' => $key, 'data' => $data);
+        $this->collection->irc->usercache->update($criteria, $data, array('upsert' => true));
     }
 
     public function rant($args)
@@ -3879,7 +3886,7 @@ class Actions
         $this->write_channel($songAnnounce);
         // $this->_sendRadio(array('text' => $songAnnounce));
         $extras = array('url' => $origurl, 'user' => $who, 'token' => md5($origurl), 'intro_text' => $songAnnounce);
-        //$thing = $this->_sendRadio($extras);
+        $thing = $this->_sendRadio($extras);
     }
 
     private function _checkUrlHistory($url, $now)

@@ -416,7 +416,12 @@ class Irc
                 case 313:
                     $this->is_oper = true;
                     $array_key = $this->actions->get_arraykey($parts);
-                    $this->actions->setUserCache($array_key, array('isoper' => 1));
+                    $data = array(
+                        'userhash' => md5(@$parts[3].@$parts[5]),
+                        'isoper' => 0
+                    );
+
+                    $this->actions->setUserCache($array_key, $data);
                 break;
                 // checks end of WHOIS
                 case 318:

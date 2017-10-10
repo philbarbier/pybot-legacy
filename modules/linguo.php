@@ -387,4 +387,10 @@ class Linguo
         if (!$handle) return false;
         $this->abuse_requester = $handle;
     }
+
+    public function getUserCacheDB()
+    {
+        return iterator_to_array($this->collection->irc->usercache->find());
+    }
+
 }

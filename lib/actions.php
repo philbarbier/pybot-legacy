@@ -4298,7 +4298,6 @@ class Actions
         $results = $this->collection->templates->find($criteria)->limit(5);
 
         foreach ($results as $result) {
-            $this->_debug($result);
             $tpl = $result['template'];
             $user = $result['user'];
             $id = $result['id'];

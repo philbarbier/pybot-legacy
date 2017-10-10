@@ -4286,4 +4286,19 @@ class Actions
     {
         $this->write_channel('¯\_(ツ)_/¯');
     }
+
+    // lulz
+    public function stone($args = array())
+    {
+        if (!isset($args['arg1']) || empty($args['arg1'])) return;
+
+        if ($args['arg1'] == 'cold') {
+            $this->write_channel('*GUT KICK*');
+            sleep(1);
+            $this->write_channel('*STUNNER*');
+            sleep(1);
+            $this->write_channel('..|.. ..|..');
+        }
+        return;
+    }
 }

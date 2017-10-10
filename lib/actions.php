@@ -4298,10 +4298,12 @@ class Actions
         $results = $this->collection->templates->find($criteria)->limit(5);
 
         foreach ($results as $result) {
+            $this->_debug($result);
             $tpl = $result['template'];
             $user = $result['user'];
+            $id = $result['id'];
             
-            $str = "$tpl -  was submitted by $user";
+            $str = $tpl . " - (ID: " . $id . ") was submitted by " . $user;
             if (isset($result['time'])) $str .= ' - ' . date($this->config['_dateFormat'], $result['time']);
 
             $this->write_channel($str);

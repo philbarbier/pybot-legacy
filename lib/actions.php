@@ -4198,7 +4198,8 @@ class Actions
         $this->write_channel('The last template ' . $data['user'] . ' used was ID ' . $data['tpl_id'] . ' (Created by ' . $data['tpl_user'] . ' on ' . date($this->config['_dateFormat'], $data['tpl_time']) . ') on ' . date($this->config['_dateFormat'], ($data['timestamp'])));
     }
 
-    public function mlb($args) {
+    public function mlb($args)
+    {
         $data = json_decode(file_get_contents("http://www.sportsnet.ca/wp-content/themes/sportsnet/zones/ajax-scoreboard.php"));
         $mlb = false; 
         try {
@@ -4254,7 +4255,8 @@ class Actions
         }
     }
 
-    public function lookup($args = array()) {
+    public function lookup($args = array())
+    {
         if (!isset($args['arg1'])) return;
         $username = trim(@$args['username']);
         $type = trim(@$args['type']);
@@ -4282,6 +4284,33 @@ class Actions
         if (!isset($str)) $this->write_channel('None found');
         return;
     }
+
+    public function lookuptpl($args = array())
+    {
+        if (!isset($args['arg1'])) return;
+        $username = trim(@$args['username']);
+        $criteria = array(
+			'template' => new MongoRegEx('/'.$args['arg1'].'/i')
+		);
+		if ($username) {
+			$criteria['user'] = $username;
+		}
+        $results = $this->collection->templates->find($criteria)->limit(5);
+
+        foreach ($results as $result) {
+            $tpl = $result['template'];
+            $user = $result['user'];
+            
+            $str = "$tpl -  was submitted by $user";
+            if (isset($result['time'])) $str .= ' - ' . date($this->config['_dateFormat'], $result['time']);
+
+            $this->write_channel($str);
+        }
+        if (!isset($str)) $this->write_channel('None found');
+        return;
+    }
+
+
     // reminder for the current MC server seed
     public function mcseed($args = array())
     {

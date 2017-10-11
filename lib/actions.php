@@ -4267,6 +4267,8 @@ class Actions
     public function lookuptpl($args = array())
     {
         if (!isset($args['arg1'])) return;
+        $offset = (isset($args['offset']) && is_numeric($args['offset'])) ? $args['offset'] : false;
+
         $username = trim(@$args['username']);
         $criteria = array(
 			'template' => new MongoRegEx('/'.$args['arg1'].'/i')
@@ -4274,7 +4276,14 @@ class Actions
 		if ($username) {
 			$criteria['user'] = $username;
 		}
-        $results = $this->collection->templates->find($criteria)->limit(5);
+        $results = $this->collection->templates->find($criteria);
+        $count = $results->count();
+
+        if ($offset && (($offset > 0) && ($offset < $count))) {
+            $results = $results->skip($offset);
+        }
+        
+        $results = $results->limit(5);
 
         foreach ($results as $result) {
             $tpl = $result['template'];
@@ -4287,6 +4296,7 @@ class Actions
 
             $this->write_channel($str);
         }
+        return $this->write_channel($count . ' results in total.');
         if (!isset($str)) $this->write_channel('None found');
         return;
     }

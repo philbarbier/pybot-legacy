@@ -2421,6 +2421,7 @@ class Actions
             $def = $this->_getDefinition($args);
             if (isset($def['definition'])) {
                 if (strlen($def['definition']) > 512) {
+                    $this->write_channel('Too long, see PM');
                     $this->write_user('Definition: ' . $def['definition']);
                     $this->write_user('Example: ' . $def['example']);
                 } else {

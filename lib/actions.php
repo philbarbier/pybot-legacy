@@ -645,90 +645,64 @@ class Actions
     private function _maintenance($args = array())
     {
         return;
-        //$data = $this->collection->words->find($criteria);
+        $data = $this->collection->words->find();
 
-        $typefix = array(
-            'first_name' => 'firstname',
-            'last_name' => 'lastname',
-            'odor' => 'odour',
-            'explor' => 'explore',
-            'populateactivity' => 'activity',
-            'color' => 'colour',
-            'effectt' => 'effect',
-        );
-
-        foreach($typefix as $fixme => $fix) {
-            $criteria = array('type' => $fixme);
-            $data = $this->collection->words->find($criteria);
-            if (!is_array($data)) $data = iterator_to_array($data);
-            foreach($data as $id => $worddata) {
-                //print_r($worddata);
-                $newdata = array(
-                    'user' => $worddata['user'],
-                    'type' => $typefix[$worddata['type']],
-                    'word' => $worddata['word']
-                );
-
-                if (isset($worddata['time'])) $newdata['time'] = $worddata['time'];
-                $fixcrit = array(
-                    'user' => $worddata['user'],
-                    'type' => $worddata['type'],
-                    'word' => $worddata['word']
-                );
-
-                $this->collection->words->update($fixcrit, $newdata, array('upsert' => true));
-                echo "Fixing: " . $newdata['word'] . "\n";
-            } // word foreach
-            $criteria = array(
-                'template' => array(
-                    '$regex' => new MongoRegex('/' . $fixme . '/i'),
-                ),
-            );
-            $data = $this->collection->templates->find($criteria);
-            if (!is_array($data)) $data = iterator_to_array($data);
-            foreach ($data as $id => $template) {
-                //print_r($template);
-                $tplid = $template['id'];
-                $newtplstr = str_replace($fixme, $fix, $template['template']);
-                $newdata = $template;
-                $newdata['template'] = $newtplstr;
-                //print_r($newdata);
-                echo "Fixing tpl " . $tplid . "\n";
-                $this->collection->templates->update(array('id' => $tplid), $newdata, array('upsert' => true));
-                //return;
-            }
-
-            //return;
-        }
-        return;
-        $wordtypes = $this->linguo->get_word_types();
-        echo $wordtypes . "\n";
-        $wordtypes = explode(', ', $wordtypes);
-        echo "\nThere are " . count($wordtypes) . " types\n";
-        //print_r($wordtypes);
-        foreach ($wordtypes as $wordtype) {
-            $criteria = array('type' => $wordtype);
-            $words = $this->collection->words->find($criteria);
-            if (!is_array($words)) {
-                $words = (iterator_to_array($words));
-            }
-            //print_r($words);
-            return;
-    
-        }
-
-        
-        $i = 0; 
+        $i = 0;
         foreach ($data as $row) {
-            
-            if (($i % 100) == 0) {
+            if (!isset($row['word']) || !isset($row['type'])) continue;
+            $criteria = array('word' => $row['word'], 'type' => $row['type']);
+            $result = iterator_to_array($this->collection->words->find($criteria));
+            $early = 0;
+            $id = array();
+            $j = 0;
+            foreach ($result as $rr) {
+                if ($j === 0) $first = $rr['_id'];
+                if (isset($rr['time'])) {
+                    if ($rr['time'] === 0) {
+                        $early = $rr['time'];
+                        $id[0] = $rr['_id'];
+                    }
+
+                    if ($rr['time'] < $early) {
+                        $early = $rr['time']; 
+                        $id[0] = $rr['_id'];
+                    }
+                } else {
+                    if ($early === 0) {
+                        $early = time();
+                        // make it the earliest
+                        $id[0] = $result[(string)$first]['_id'];
+                    }
+                }
+                $id[] = $rr['_id'];
+                $j++;
+            }
+            if ($j > 1) {
+
+                // delete the newer dupe entries
+                //$this->_debug('$id[0] - ' . $id[0]);
+
+                $delcriteria = array(
+                                        '_id' => array('$nin' => array(new MongoId((string)$id[0]))),
+                                        'word' => $row['word'],
+                                        'type' => $row['type']
+                                    );
+                $delresults = $this->collection->words->find($delcriteria);
+                //$this->_debug('removing');
+                //$this->_debug(iterator_to_array($delresults));
+                //$delresults = $this->collection->words->remove($delcriteria);
+                //$this->_debug('remove result');
+                //$this->_debug($delresults);
+            }
+            //if ($j > 1) return;
+            if (($i % 500) == 0) {
                 $this->_debug('At record ' . $i);
             }
-            if ($i > 2) return;
             $i++;
         }
-
         $this->write_channel('Done');
+        $this->_invalidateWordCaches();
+        return;
 
     }
 
@@ -2206,11 +2180,6 @@ class Actions
             $wordtypes[$row['_id']['type']][$row['_id']['user']] = $row['count'];
         }
         
-        // maybe now add caching?
-        // go through array, get all types
-        // - sort them, then assign associated values to it
-        // and add totals to the types (full totals)
-
         $types = array();
         $finaldata = array();
         foreach($wordtypes as $type => $row) {
@@ -4258,6 +4227,7 @@ class Actions
     public function lookup($args = array())
     {
         if (!isset($args['arg1'])) return;
+        $offset = (isset($args['offset']) && is_numeric($args['offset'])) ? $args['offset'] : false;
         $username = trim(@$args['username']);
         $type = trim(@$args['type']);
         $criteria = array(
@@ -4269,7 +4239,15 @@ class Actions
 		if ($username) {
 			$criteria['user'] = $username;
 		}
-        $results = $this->collection->words->find($criteria)->limit(5);
+
+        $results = $this->collection->words->find($criteria); //->limit(5);
+        $count = $results->count();
+
+        if ($offset && (($offset > 0) && ($offset < $count))) {
+            $results = $results->skip($offset);
+        }
+
+        $results = $results->limit(5);        
 
         foreach ($results as $result) {
             $word = $result['word'];
@@ -4281,6 +4259,7 @@ class Actions
 
             $this->write_channel($str);
         }
+        return $this->write_channel($count . ' results in total.');
         if (!isset($str)) $this->write_channel('None found');
         return;
     }
@@ -4301,8 +4280,9 @@ class Actions
             $tpl = $result['template'];
             $user = $result['user'];
             $id = $result['id'];
-            
-            $str = $tpl . " - (ID: " . $id . ") was submitted by " . $user;
+            $idstr = '';
+            if (is_numeric($id)) $idstr = " (ID: " . $id . ") "; 
+            $str = $tpl . " -" . $idstr . " was submitted by " . $user;
             if (isset($result['time'])) $str .= ' - ' . date($this->config['_dateFormat'], $result['time']);
 
             $this->write_channel($str);

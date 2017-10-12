@@ -4402,4 +4402,11 @@ class Actions
         }
         return;
     }
+
+    public function channels($args = array())
+    {
+        if ($this->get_current_channel() != $this->config['admin_chan']) return;
+        if (isset($args['arg1']) && !empty($args['arg1'])) return; 
+        $this->write_channel($this->config['channellist']);
+    }
 }

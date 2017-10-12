@@ -31,6 +31,8 @@ $config = array(
     'admin_chan' => '#bot_dev',
     'log_stats' => false,
     'log_history' => true,
+    'dictionary_apiid' => '',
+    'dictionary_apikey' => '',
     'debug' => false,
     'banned_users' => array(
         'igor',

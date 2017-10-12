@@ -2436,6 +2436,79 @@ class Actions
         }
     }
 
+    // proper dictionary lookup
+
+    public function wdefine($args = array())
+    {
+        if (!isset($args['arg1']) || empty($args['arg1'])) return;
+        
+        $word = strtolower($args['arg1']);
+
+        // maybe one day we'll switch to the OED
+        // $apiurl = 'https://od-api.oxforddictionaries.com/api/v1';
+        $apiurl = "http://www.dictionaryapi.com/api/v1/references/collegiate/xml/";
+        $apiurl .= urlencode($word) . "?key=" . urlencode($this->config['dictionary_apikey']);
+
+        // guh, fucking XML! $insult!
+        $doc = file_get_html($apiurl);
+
+        $suggestions = $doc->find('suggestion');
+
+        // if the word isn't found, it'll return suggestions - in this case, handle 'em
+
+        if (count($suggestions) > 0) {
+            $str = "Couldn't find that, did you mean: ";
+            $suggs = array();
+            $i = 0;
+            foreach($suggestions as $suggestion) {
+                $suggs[] = strip_tags($suggestion);
+                $i++;
+                if ($i > 25) break;
+            }
+            $str .= join(', ', $suggs) . '?';
+            $this->write_channel($str);
+            return;
+        }
+        
+        $pronunciation = $doc->find('pr');
+        $word = $doc->find('ew');
+        $type = $doc->find('fl');
+        
+
+        $def = $doc->find('def');
+        $def = $def[0];
+        $num = count($def->find('sn'));
+ 
+        $heading = strip_tags($word[0]) . ' (' . strip_tags($type[0]) . ') :: ' . strip_tags($pronunciation[0]);
+      
+        // this determines if we send to the channel or user
+        $deflimit = 3;
+
+        if ($num > $deflimit) $this->write_channel('Sending to PM');
+        $num > $deflimit ? $this->write_user($heading) : $this->write_channel($heading);
+
+        // this means that there's only one definition point listed
+        if ($num === 0) {
+            $this->write_channel(strip_tags($def));
+            return;
+        }
+
+        $defs = array();
+
+        $outputlimit = 10;
+        
+        // let's not let it go nuts
+        if ($num > $outputlimit) $num = $outputlimit;
+        for ($i = 0; $i < $num; $i++) {
+            $str = strip_tags($def->find('sn', $i)) . ') ';
+            $str .= strip_tags($def->find('ssl', $i)) . ' ';
+            $str .= str_replace(':', '', strip_tags($def->find('dt', $i)));
+            $num > $deflimit ? $this->write_user($str) : $this->write_channel($str);
+        }
+        if ($num >= $outputlimit) $this->write_user("There was more data but I'm done, go look it up yourself");
+        return;
+    }
+
     private function _getHtmlText($nodes) {
         $definition = '';
         foreach ($nodes as $idx => $node) {

@@ -1660,23 +1660,35 @@ class Actions
     /* Tell pybot to leave a $chan */
     public function part($args)
     {
+        if (!isset($args['arg1'])) return;
+        $parts = explode(' ', $args['arg1']);
         $chan = false;
-        if (isset($args['arg1']) && strstr($args['arg1'], '#')) {
-            $chan = $args['arg1'];
+        if (isset($parts[0]) && strstr($parts[0], '#')) {
+            $chan = $parts[0];
         }
+
+        $partmsg = null;
+
         if (!$chan) {
-            if (strlen($args['arg1']) > 1) return;
             $chan = $this->get_current_channel();
+            if (!empty($args['arg1'])) {
+                $partmsg = $args['arg1'];
+            }
         }
         if (!array_key_exists($chan, $this->config['channellist'])) {
             return;
         }
+        if (is_null($partmsg) && isset($parts[1])) {
+            unset($parts[0]);
+            $partmsg = join(' ', $parts);
+        }
+
         $oldchan = $this->get_current_channel();
         $this->set_current_channel($chan);
         $get_insult = $this->linguo->get_word('insult');
         $insult = $get_insult['word'];
         $this->write_channel("So long, " . $insult . "s!");
-        $this->write('PART', $chan);
+        $this->write('PART', $chan, $partmsg);
         $this->removeChannel($chan);
         if ($oldchan !== $chan) {
             $this->set_current_channel($oldchan);

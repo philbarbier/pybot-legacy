@@ -1954,7 +1954,7 @@ class Actions
         // $this->write('PRIVMSG', $this->config['admin_chan'], json_encode($data));
         $options = array('CURLOPT_HTTPHEADER', array('Content-type: application/json'));
         //$thing = $this->curl->simple_post($radioUrl, json_encode($data), $options);
-        if (!empty($thing)) $this->write_channel($thing);
+        //if (!empty($thing)) $this->write_channel($thing);
     }
 
     public function rabuse($args)
@@ -3937,7 +3937,7 @@ class Actions
         $col->update($criteria, $data, array('upsert' => true));
         
         $what = str_ireplace('youtube', '', $what);
-        $songAnnounce = "And next up from " . $who . " is " . $what; // . " which was played on " . $when;
+        $songAnnounce = "And next up from " . $who . " is " . $what . ' ' . $url; // . " which was played on " . $when;
         $this->write_channel($songAnnounce);
         // $this->_sendRadio(array('text' => $songAnnounce));
         $extras = array('url' => $origurl, 'user' => $who, 'token' => md5($origurl), 'intro_text' => $songAnnounce);

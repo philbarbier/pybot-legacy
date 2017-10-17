@@ -399,7 +399,9 @@ class Actions
         $time = time();
         if (($this->_getChannelData($channel, 'topicdate'))) {
             if (($time - $this->_getChannelData($channel, 'topicdate')) > 1800) {
-                $this->_setTopic($channel);
+                $text = false;
+                if (!empty($args['arg1'])) $text = $args['arg1'];
+                $this->_setTopic($channel, $text);
             } else {
                 $this->write_channel('Too soon, pantaloon!');
             }

@@ -2760,6 +2760,7 @@ class Actions
         $this->write_channel("HTTP $count");
     }
 
+    /*
     public function me($args)
     {
         $msg = $args['arg1'];
@@ -2767,6 +2768,7 @@ class Actions
         $message = "{$chr}ACTION $msg{$chr}";
         $this->write_channel($message);
     }
+    */
 
     public function nupogodi($args)
     {

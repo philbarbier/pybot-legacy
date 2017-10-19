@@ -17,7 +17,7 @@ class Irc
         $this->_loadModules(self::$config['_cwd'] . '/modules');
         $this->Log = new Log(self::$config);
         $this->server = $config['irc_server'];
-        $this->version = $config['version'];
+        $this->version = $config['versionNum'] . '.' . $config['versionString'];
         $this->port = $config['irc_port'];
         $this->channels = $config['irc_channels'];
         $this->handle = $config['irc_handle'];
@@ -721,6 +721,15 @@ class Irc
                 $changed = true;
             }
         }
+
+        // check VERSION file for updates
+        if (md5(file_get_contents('VERSION')) != self::$config['_versionChecksum']) {
+            $v = file_get_contents('VERSION');
+            self::$config['versionString'] = $v;
+            self::$config['_versionChecksum'] = md5($v);
+            $changed = true;
+        }
+
         return $changed;
     }
 

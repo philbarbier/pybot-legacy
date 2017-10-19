@@ -8,7 +8,7 @@ class Actions
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
         $this->socket = null;
-        $this->version = $config['version'];
+        $this->version = $config['versionNum'] . '.' . $config['versionString'];
         $this->txlimit = 256; // transmission length limit in bytes (chars)
         $this->currentuser = '';
         $this->currentchannel = false;
@@ -1951,7 +1951,11 @@ class Actions
     {
         $radioUrl = "http://99.255.152.57:10010/"; //"http://radio.riboflav.in:1337/api/v1/library";
         //if (!isset($data['url'])) return;
-        $thing = file_get_contents($radioUrl . '?' . http_build_query($data)); //"?url=" . $data['url']);
+        try {
+            $thing = file_get_contents($radioUrl . '?' . http_build_query($data)); //"?url=" . $data['url']);
+        } catch (Exception $e) {
+            $this->write_channel('Request troubles');
+        }
         // $this->write('PRIVMSG', $this->config['admin_chan'], 'Hitting URL ' . $radioUrl);
         // $this->write('PRIVMSG', $this->config['admin_chan'], json_encode($data));
         $options = array('CURLOPT_HTTPHEADER', array('Content-type: application/json'));
@@ -2492,8 +2496,11 @@ class Actions
         $def = $doc->find('def');
         $def = $def[0];
         $num = count($def->find('sn'));
- 
-        $heading = strip_tags($word[0]) . ' (' . strip_tags($type[0]) . ') :: ' . strip_tags($pronunciation[0]);
+
+        $heading = '';
+        if (isset($word[0]) && isset($type[0]) && isset($pronunciation[0])) {
+            $heading = strip_tags($word[0]) . ' (' . strip_tags($type[0]) . ') :: ' . strip_tags($pronunciation[0]);
+        }
       
         // this determines if we send to the channel or user
         $deflimit = 3;

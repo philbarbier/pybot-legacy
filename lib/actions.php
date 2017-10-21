@@ -3338,6 +3338,16 @@ class Actions
         $this->write_channel($this->_sum($args));
     }
 
+    public function subtract($args = array())
+    {
+        $parts = explode('|', $args['arg1']);
+        if (count($parts) != 2) return;
+
+        if (!is_numeric($parts[0]) || !is_numeric($parts[1])) return;
+
+        $this->write_channel(($parts[0] - $parts[1]));
+    }
+
     public function divide($args)
     {
         $parts = explode('|', $this->get_param_string($args['command']));

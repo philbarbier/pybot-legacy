@@ -4442,4 +4442,12 @@ class Actions
         if (isset($args['arg1']) && !empty($args['arg1'])) return; 
         $this->write_channel($this->config['channellist']);
     }
+
+    public function shinty($args = array())
+    {
+        if (isset($args['arg1']) && ($args['arg1'] == '6' || $args['arg1'] == 'six')) {
+            $this->write_channel("That's numberwang!");
+        }
+        return;
+    }
 }

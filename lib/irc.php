@@ -32,7 +32,6 @@ class Irc
         $this->in_whois = false;
         $this->is_oper = false;
         $this->is_connected = false;
-        $this->nick_change = null;
         $this->current_nick = '';
         $this->main();
     }
@@ -235,8 +234,8 @@ class Irc
             return false;
         }
         $this->Log->log("Setting nick to '$nick'", 3);
-        $this->write("NICK $nick");
-        $this->actions->setBotHandle($nick);
+        $this->_write("NICK $nick");
+        $this->actions->_setBotHandle($nick);
         $this->current_nick = $nick;
     }
 
@@ -254,7 +253,7 @@ class Irc
     public function main()
     {
         $this->set_nickname($this->handle);
-        $this->write("USER $this->handle 8 *  :$this->handle");
+        $this->_write("USER $this->handle 8 *  :$this->handle");
 
         if (!$this->socket) {
             $this->Log->log('Socket error', 2);
@@ -302,9 +301,11 @@ class Irc
                 // $this->Log->log("Params: " . json_encode($params, true), 3);
                 // @TODO gotta fix this so uncallable methods don't shit the bed
                 try {
-                    if (method_exists($this->actions, $a) && is_callable(array($this->actions, $a), true)) {
-                        $result = $this->actions->$a($params);
-                        $this->write($result);
+                    if (substr($a, 0, 1) != '_') {
+                        if (method_exists($this->actions, $a) && is_callable(array($this->actions, $a), true)) {
+                            $result = $this->actions->$a($params);
+                            $this->_write($result);
+                        }
                     }
                 } catch (Exception $e) {
 
@@ -317,7 +318,7 @@ class Irc
                 } else {
                     if (method_exists($this->actions, $a)) {
                         $result = $this->actions->$a($params);
-                        $this->write($result);
+                        $this->_write($result);
                     }
                 }
                 // always reset this
@@ -345,7 +346,7 @@ class Irc
         }
         // reset each call
         $this->is_oper = false;
-        $this->write('WHOIS '.$nick);
+        $this->_write('WHOIS '.$nick);
     }
 
     private function get_arraykey($parts)
@@ -355,7 +356,7 @@ class Irc
 
     public function parse_raw($str)
     {
-        // echo "\n" . date('Y-m-d H:i:s') . " -- RX: " . $str;
+        //echo "\n" . date('Y-m-d H:i:s') . " -- RX: " . $str;
         $matches = null;
 
         $regex = '{
@@ -372,7 +373,7 @@ class Irc
         $result = null;
 
         if ($parts[0] == 'PING') {
-            $this->write('PONG '.$parts[1]);
+            $this->_write('PONG '.$parts[1]);
             $result = $parts;
             $result['command'] = $parts[0];
         }
@@ -409,6 +410,11 @@ class Irc
             switch (strtoupper($parts[1])) {
                 // check WHOIS
                 case 311:
+                    /*
+                    echo "\n=============\n";
+                    print_r($parts);
+                    echo "\n=============\n";
+                    */
                     $this->set_usercache($parts);
                     $this->in_whois = true;
                 break;
@@ -472,17 +478,7 @@ class Irc
                 case 366:
                     // build cache
                 break;
-                // change nick
-                case 432:
-                case 433:
-                    $this->retrieve_nick = true;
-                    if ($this->first_connect) {
-                        $newnick = $this->get_newnick();
-                        $this->set_nickname($newnick);
-                    }
-                    $this->nick_change = false;
-                break;
-
+                
                 // we check here for MOTD/end of MOTD on join
                 case 422:
                 case 376:
@@ -494,6 +490,21 @@ class Irc
                     // no text to send
                     // echo "\n" . $str;
                 break;
+                
+                // change nick
+                case 432:
+                case 433:
+                    $this->retrieve_nick = true;
+                    $newnick = $this->get_newnick();
+                    $this->set_nickname($newnick);
+                break;
+               
+                // changing nick too fast!
+                case 438:
+                    $newnick = $this->actions->_getBotHandle();
+                    $this->actions->_changeNick($newnick); 
+                break;
+
                 case 473:
                     // invite only channel - remove channel from list?
                 break;
@@ -508,7 +519,7 @@ class Irc
                 
                 case "INVITE":
                     if (isset($parts[3])) {
-                        $this->write('JOIN ' . $parts[3]);
+                        $this->_write('JOIN ' . $parts[3]);
                     }
                 break;
 
@@ -522,7 +533,7 @@ class Irc
                 case "KICK":
                     $channel = trim($matches[4]);
                     $user = trim($matches[1]);
-                    $this->write("JOIN $channel");
+                    $this->_write("JOIN $channel");
                     $this->actions->write_channel('Hey fuck you, ' . $user . '!', $channel);
                     $this->actions->abuse(array('arg1' => $user));
                 break;
@@ -597,15 +608,15 @@ class Irc
 
         if ($this->connect_complete) {
             foreach ($this->channels as $channel => $channeldata) {
-                $this->write("JOIN $channel");
+                $this->_write("JOIN $channel");
             }
             // ensure we're in the default channel
             if (!in_array(self::$config['default_chan'], $this->channels)) {
-                $this->write('JOIN '.self::$config['default_chan']);
+                $this->_write('JOIN '.self::$config['default_chan']);
             }
             // ensure we're in the admin channel
             if (!in_array(self::$config['admin_chan'], $this->channels)) {
-                $this->write('JOIN '.self::$config['admin_chan']);
+                $this->_write('JOIN '.self::$config['admin_chan']);
             }
 
             // print out current revision
@@ -685,11 +696,11 @@ class Irc
             foreach($message as $k => $v) {
                 $str = 'PRIVMSG ' . self::$config['admin_chan'] . ' :';
                 $str .= $k . ' => ' . $v; 
-                $this->write($str);
+                $this->_write($str);
             }
             return;
         }
-        $this->write('PRIVMSG ' . self::$config['admin_chan'] . ' :' . $message);
+        $this->_write('PRIVMSG ' . self::$config['admin_chan'] . ' :' . $message);
     }
 
     // re-read config file
@@ -751,7 +762,7 @@ class Irc
         return $data;
     }
 
-    public function write($message)
+    public function _write($message)
     {
         // echo "\n" . date('Y-m-d H:i:s') . ' -- TX: ' . $message;
         

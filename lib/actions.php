@@ -171,15 +171,23 @@ class Actions
     }
 
     /* Writes messages to IRC socket */
-    public function write($type, $channel = null, $message = null)
+    private function write($type, $channel = null, $message = null)
     {
         if (!isset($type) || is_numeric($type)) return;
 
         if ($type == 'QUIT') {
             $quitmsg = $type.' :'.$message."\r\n\r\n";
 
-            return Irc::write($quitmsg); // $this->socket, $quitmsg, strlen($quitmsg));
+            return Irc::_write($quitmsg); // $this->socket, $quitmsg, strlen($quitmsg));
         }
+
+        if (substr($type, 0, 4) == 'NICK' && !is_null($channel)) {
+            $nickchange = $type . "\r\n\r\n";
+            Irc::_write($nickchange);
+            $this->_setBotHandle($channel);
+            return;
+        }
+
         if (!$channel) {
             $channel = $this->config['default_chan'];
         }
@@ -191,7 +199,7 @@ class Actions
                 // just in case!
                 $message_part = preg_replace('/\\r\\n/', ' ', $message_part);
                 $msg = "$type $channel :$message_part\r\n\r\n";
-                Irc::write($msg); //fwrite($this->socket, $msg, strlen($msg));
+                Irc::_write($msg); //fwrite($this->socket, $msg, strlen($msg));
                 if ($count > 20) {
                     sleep(1);
                 }
@@ -206,8 +214,7 @@ class Actions
             $msg = "$type $channel :$message\r\n\r\n";
         }
 
-        $ircLib = 'Irc';
-        return $ircLib::write($msg); //fwrite($this->socket, $msg, strlen($msg));
+        return Irc::_write($msg); //fwrite($this->socket, $msg, strlen($msg));
     }
 
     // uses class variable "txlimit" to split the message string up
@@ -316,26 +323,24 @@ class Actions
         if (isset($data['command']) && $data['command'] == 'JOIN' && $data['user'] != $this->config['bothandle']) {
             // abuse new user
             sleep(2);
-
-            /*
-            $abuse_tpls = array(
-                                840, // Oh great that guy is back or whatever
-                                1068, // Why do you even bother, guy?
-                                // 1081, // Fabulous, guy is here
-                            );
-
-            */
-
             $this->abuse(array('arg1' => $data['user'], 'joinabuse' => true));
+            // autovoice
             if (isset($data['channel']) && $this->_getChannelData($data['channel'], 'autovoice')) {
                 $this->_changeMode($data['user'], $data['channel'], '+v');  
             }
         }
 
         if (isset($data['command']) && (($data['command'] == 'MODE') || ($data['command'] == 'JOIN') || ($data['command'] == 'PRIVMSG'))) {
+            /*
+            this just tracks channel data:
+                - Last channel event (for the quiet spice)
+                - sets channel modes up 
+            */
+
             if (isset($data['channel'])) {
                 $this->_setLastPrivmsg($data['channel']);
                 if (($this->_getChannelData($data['channel']))) {
+                    // set the channel modes either from defaults, or if they're specified in the config file
                     if (!($this->_getChannelData($data['channel'], 'modes'))) {
                         $this->_changeMode(false, $data['channel'], $this->config['default_modes']);
                         $this->_setChannelData($data['channel'], 'modes', $this->config['default_modes']);
@@ -345,6 +350,17 @@ class Actions
                         }
                     }
                 }
+            }
+            // this is to check that the bot is using the configured nickname
+
+            // this is just in case the bot has been trying to change nick too many times
+            if (isset($this->config['_nickChangeString']) && (time() >= $this->config['_nickChangeTime'])) {
+                $this->write('NICK ' . $this->config['_nickChangeString'], $this->config['_nickChangeString']);
+            }
+
+            // this is the base check to ensure that the bots nick matches the config
+            if ($this->config['bothandle'] != $this->config['irc_handle']) {
+                $this->write('NICK ' . $this->config['irc_handle'], $this->config['irc_handle']); 
             }
         }
 
@@ -724,10 +740,23 @@ class Actions
         return;
     }
 
-    public function setBotHandle($nick = false)
+    public function _setBotHandle($nick = false)
     {
         if (!$nick) return;
         $this->config['bothandle'] = $nick;
+    }
+
+    public function _getBotHandle()
+    {
+        return $this->config['bothandle'];
+    }
+
+    public function _changeNick($nick = false)
+    {
+        if (!$nick || !is_string($nick)) return;
+        $this->config['_nickChangeTime'] = time() + 30;
+        $this->config['_nickChangeString'] = $newnick;
+
     }
 
     public function set_arraykey($parts = array())

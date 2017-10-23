@@ -356,6 +356,7 @@ class Actions
             // this is just in case the bot has been trying to change nick too many times
             if (isset($this->config['_nickChangeString']) && (time() >= $this->config['_nickChangeTime'])) {
                 $this->write('NICK ' . $this->config['_nickChangeString'], $this->config['_nickChangeString']);
+                unset($this->config['_nickChangeString']);
             }
 
             // this is the base check to ensure that the bots nick matches the config

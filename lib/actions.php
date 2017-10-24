@@ -4407,12 +4407,17 @@ class Actions
         $offset = (isset($args['offset']) && is_numeric($args['offset'])) ? $args['offset'] : false;
 
         $username = trim(@$args['username']);
+
+        // if we're looking for a var, escape that dorra dorra, yo
+        $args['arg1'] = str_replace('$', '\\$', $args['arg1']);
+
         $criteria = array(
 			'template' => new MongoRegEx('/'.$args['arg1'].'/i')
 		);
 		if ($username) {
 			$criteria['user'] = $username;
 		}
+
         $results = $this->collection->templates->find($criteria);
         $count = $results->count();
 

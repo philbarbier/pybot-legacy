@@ -511,7 +511,7 @@ class Actions
     {
         // initial build
         if (!isset($this->config['undead'])) {
-            $dead = array('Big gulps, huh?');
+            $dead = array('Big gulps, huh?', 'MMMMMBOP!');
             $this->config['undead'] = array();
             foreach($this->config['channellist'] as $channel => $v) {
                 $this->config['undead'][$channel] = $dead;
@@ -2524,6 +2524,10 @@ class Actions
         
 
         $def = $doc->find('def');
+        if (!isset($def[0])) {
+            return $this->write_channel("Something didn't work out there, bud");
+        }
+
         $def = $def[0];
         $num = count($def->find('sn'));
 

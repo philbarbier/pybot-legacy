@@ -326,15 +326,18 @@ class Actions
             $this->abuse(array('arg1' => $data['user'], 'joinabuse' => true));
             // autovoice
             if (isset($data['channel']) && $this->_getChannelData($data['channel'], 'autovoice')) {
-                $this->_changeMode($data['user'], $data['channel'], '+v');  
+                $this->_changeMode($data['user'], $data['channel'], '+v');
             }
         }
+
+		# There are some things we just don't tolerate...
+		$this->_kickwords($data);
 
         if (isset($data['command']) && (($data['command'] == 'MODE') || ($data['command'] == 'JOIN') || ($data['command'] == 'PRIVMSG'))) {
             /*
             this just tracks channel data:
                 - Last channel event (for the quiet spice)
-                - sets channel modes up 
+                - sets channel modes up
             */
 
             if (isset($data['channel'])) {
@@ -407,8 +410,9 @@ class Actions
                     }
                 }
             }
-        } 
+        }
     }
+
 
     public function topic($args = array()) {
         $channel = $this->get_current_channel();
@@ -4489,4 +4493,16 @@ class Actions
         }
         return;
     }
+
+	public function _kickwords($args) {
+		// LOL shutup errors
+		$message = @$args['message'];
+		$channel = @$args['channel'];
+		$user = @$args['user'];
+		# Hardcoded for now, will live in DB eventually ( addkickword / rmkickword )
+		if (strpos($message, 'buzzfeed.com')) {
+			$chr = chr(1);
+			$message = "{$chr}KICK $channel $user STAHP!{$chr}";
+		}
+	}
 }

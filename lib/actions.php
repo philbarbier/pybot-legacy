@@ -4500,9 +4500,9 @@ class Actions
 		$channel = @$args['channel'];
 		$user = @$args['user'];
 		# Hardcoded for now, will live in DB eventually ( addkickword / rmkickword )
-		if (strpos($message, 'buzzfeed.com')) {
-			$chr = chr(1);
-			$message = "{$chr}KICK $channel $user STAHP!{$chr}";
+		if (stristr($message, 'buzzfeed.com')) {
+            $random_insult = $this->linguo->get_word('insult');
+            $this->write('KICK', $channel . ' ' . $user, 'STAHP ' . $random_insult['word']);
 		}
 	}
 }

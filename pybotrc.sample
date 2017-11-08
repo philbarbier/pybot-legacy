@@ -1,4 +1,5 @@
 <?php
+// rename this file to pybotrc to use bot
 $config = array(
     'logfile' => '/dev/null',
     'mongodb' => 'mongodb://mongo0/pybot',
@@ -7,10 +8,12 @@ $config = array(
     'irc_handle' => 'abusivebot',
     'irc_channels' => array(
         '#tmp' => array(
+            'allowabuse' => true,
+            'joinabuse' => true,
             'autovoice' => true,
             'keepquiet' => false,
             'topicchange' => true,
-            'modes' => '+nrt'
+            'modes' => '+nt'
         ),
         '#linux' => array(
             'autovoice' => true,
@@ -29,6 +32,8 @@ $config = array(
     'admin_chan' => '#bot_dev',
     'log_stats' => false,
     'log_history' => true,
+    'dictionary_apiid' => '',
+    'dictionary_apikey' => '',
     'debug' => false,
     'banned_users' => array(
         'igor',

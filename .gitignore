@@ -6,3 +6,4 @@ cache.properties
 build/logs/
 build/pdepend/
 log
+pybotrc

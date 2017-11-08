@@ -53,14 +53,14 @@ class Linguo
         return $this->_generate_phrase($template, $in_who, @$params['sw']); // @TODO implement the old "$l" from above once parser is implemented
     }
 
-    public function get_rant($params = array())
+    public function get_rant($params = array(), $dontlog = false)
     {
         $in_tpl = (isset($params['tpl'])) ? $params['tpl'] : false;
         $in_who = (isset($params['arg1'])) ? $params['arg1'] : false;
-        $template = $this->_get_template($in_tpl);
+        $template = $this->_get_template($in_tpl, $dontlog);
         if ($in_tpl === false) {
             while (strpos($template, '$who') !== false) { // dont use a tpl with who, unless we specified it
-                $template = $this->_get_template($in_tpl);
+                $template = $this->_get_template($in_tpl, $dontlog);
             }
         }
 
@@ -93,7 +93,7 @@ class Linguo
         return $template_string . ' - ' . $tpl_user . ' (' . date($this->config['_dateFormat'], $timestamp) . ')';
     }
 
-    private function _get_template($id = 0)
+    private function _get_template($id = 0, $dontlog = false)
     {
         $template_string = '';
         $tpl_id = $id;
@@ -125,7 +125,9 @@ class Linguo
             'tpl_id' => $tpl_id,
             'tpl_user' => $tpl_user);
 
-        $this->setLastTpl($tpldata);
+        if ($dontlog === false) {
+            $this->setLastTpl($tpldata);
+        }
 
         return $template_string;
     }
@@ -340,7 +342,7 @@ class Linguo
             'tpl_time' => $tpl_data['timestamp'],
             'timestamp' => date('U')
         );
-
+        
         $c->update($criteria, $data, array('upsert' => true));
     }
 
@@ -385,4 +387,10 @@ class Linguo
         if (!$handle) return false;
         $this->abuse_requester = $handle;
     }
+
+    public function getUserCacheDB()
+    {
+        return iterator_to_array($this->collection->irc->usercache->find());
+    }
+
 }

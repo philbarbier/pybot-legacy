@@ -4,7 +4,7 @@ class Strings
     public function __construct($config = array())
     {
         $this->config = $config;
-        if (array_key_exists(__CLASS__, $this->config['_classes'])) {
+        if (array_key_exists(__CLASS__, $this->config['_classes']) && isset($this->config['_ircClassName'])) {
             $ircClass = $this->config['_ircClassName'];
             $ircClass::setCallList(__CLASS__, $this->config['_callee']);
         }

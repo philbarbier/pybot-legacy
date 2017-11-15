@@ -278,18 +278,30 @@ class Linguo
                         $wd = Actions::getcc();
                     break;
                     default:
-                        foreach ($this->_get_word_types() as $type) {
-                            if (strstr($word, '$'.$type)) {
-                                $wordtype = $type;
-                                break;
+
+                        $types = $this->_get_word_types();
+                        $as = array_search($w, $types);
+                       
+                        $wordtype = false;
+                        if ($as) {
+                            $wordtype = $type = $types[$as];
+                        } else {
+                            foreach ($types as $type) {
+                                $adjuster = floor(strlen($word) / 4);
+                                if ($adjuster <= 1) $adjuster = 2;
+                                $thing =  substr($word, 1, strlen($word)-$adjuster);
+                                if (strstr('$' . $type, $thing)) { 
+                                    $wordtype = $type;
+                                    break;
+                                }
                             }
                         }
+
                         $suffix = $this->strings->suffix('$'.$wordtype, $word);
 
                         if ($letter) {
                             $worddata = $this->_get_subword_word($wordtype, $letter);
                         } else {
-                            $wordtype = $type;
                             $worddata = $this->_get_word($wordtype);
                         }
                         if (isset($worddata['word'])) {

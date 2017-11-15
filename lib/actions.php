@@ -176,13 +176,13 @@ class Actions
         if (!isset($type) || is_numeric($type)) return;
 
         if ($type == 'QUIT') {
-            $quitmsg = $type.' :'.$message."\r\n\r\n";
+            $quitmsg = $type.' :'.$message; //."\r\n\r\n";
 
             return Irc::_write($quitmsg); // $this->socket, $quitmsg, strlen($quitmsg));
         }
 
         if (substr($type, 0, 4) == 'NICK' && !is_null($channel)) {
-            $nickchange = $type . "\r\n\r\n";
+            $nickchange = $type; // . "\r\n\r\n";
             Irc::_write($nickchange);
             $this->_setBotHandle($channel);
             return;
@@ -198,7 +198,7 @@ class Actions
             foreach ($message_parts as $message_part) {
                 // just in case!
                 $message_part = preg_replace('/\\r\\n/', ' ', $message_part);
-                $msg = "$type $channel :$message_part\r\n\r\n";
+                $msg = "$type $channel :$message_part"; //\r\n\r\n";
                 Irc::_write($msg); //fwrite($this->socket, $msg, strlen($msg));
                 if ($count > 20) {
                     sleep(1);
@@ -207,11 +207,11 @@ class Actions
 
             return true;
         } elseif (!$message) {
-            $msg = "$type $channel\r\n\r\n";
-            if (!$channel) $msg = "$type\r\n\r\n";
+            $msg = "$type $channel"; //\r\n\r\n";
+            if (!$channel) $msg = "$type"; //\r\n\r\n";
         } else {
             $message = preg_replace('/\\r\\n/', ' ', $message);
-            $msg = "$type $channel :$message\r\n\r\n";
+            $msg = "$type $channel :$message"; //\r\n\r\n";
         }
 
         return Irc::_write($msg); //fwrite($this->socket, $msg, strlen($msg));

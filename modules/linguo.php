@@ -289,7 +289,7 @@ class Linguo
                             foreach ($types as $type) {
                                 $adjuster = floor(strlen($word) / 4);
                                 if ($adjuster <= 1) $adjuster = 2;
-                                $thing =  substr($word, 1, strlen($word)-$adjuster);
+                                $thing =  substr($word, 0, strlen($word)-$adjuster);
                                 if (strstr('$' . $type, $thing)) { 
                                     $wordtype = $type;
                                     break;

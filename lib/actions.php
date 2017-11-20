@@ -2360,7 +2360,6 @@ class Actions
     public function version()
     {
         $version = trim($this->version);
-        $branch = trim(@shell_exec('/usr/bin/git rev-parse --abbrev-ref HEAD'));
         $get_insult = $this->linguo->get_word('insult');
         $insult = $get_insult['word'];
         $version_string = "pybot (" . $insult . ") version " . $version . " - 'Old Found Glory'";

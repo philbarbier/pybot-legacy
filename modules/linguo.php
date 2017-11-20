@@ -289,7 +289,10 @@ class Linguo
                             foreach ($types as $type) {
                                 $adjuster = floor(strlen($word) / 4);
                                 if ($adjuster <= 1) $adjuster = 2;
+                                if (strlen($word) >= 5) $adjuster++;
                                 $thing =  substr($word, 0, strlen($word)-$adjuster);
+                                $thing = preg_replace('/[^a-zA-Z\$]/', '', $thing);
+                                if (strlen($thing) <= 2) $thing = preg_replace('/[^a-zA-Z\$]/', '', $word);
                                 if (strstr('$' . $type, $thing)) { 
                                     $wordtype = $type;
                                     break;

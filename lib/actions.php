@@ -3078,8 +3078,9 @@ class Actions
         }
     }
 
-    private function btc_general()
+    public function btc_general()
     {
+        return;
         $data = json_decode(file_get_contents('http://api.bitcoincharts.com/v1/weighted_prices.json'), 1);
         $day = $data['CAD']['24h'];
         $week = $data['CAD']['7d'];

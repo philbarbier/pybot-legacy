@@ -298,6 +298,14 @@ class Linguo
                                     break;
                                 }
                             }
+                            if (!$wordtype) {
+                                foreach ($types as $type) {
+                                    if (strstr($word, '$' . $type)) { 
+                                        $wordtype = $type;
+                                        break;
+                                    }
+                                }
+                            }
                         }
 
                         $suffix = $this->strings->suffix('$'.$wordtype, $word);

@@ -531,6 +531,7 @@ class Irc
 
                 // we got kicked out? shiiiiiiiiit $insult!
                 case "KICK":
+                    if (trim($parts[3]) != $this->current_nick) break;
                     $channel = trim($matches[4]);
                     $user = trim($matches[1]);
                     $this->_write("JOIN $channel");
@@ -607,6 +608,10 @@ class Irc
         }
 
         if ($this->connect_complete) {
+            foreach (self::$config['custom_commands'] as $cmd) {
+                $this->_write($cmd);
+            }
+
             foreach ($this->channels as $channel => $channeldata) {
                 $this->_write("JOIN $channel");
             }

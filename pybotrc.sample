@@ -1,8 +1,15 @@
 <?php
 // rename this file to pybotrc to use bot
+
+// custom_commands:
+// these do NOT get re-read on a reload, only on full restart
+
 $config = array(
     'logfile' => '/dev/null',
     'mongodb' => 'mongodb://mongo0/pybot',
+    'custom_commands' => array(
+        0 => 'vhost login pass',
+    ),
     'irc_server' => 'riboflav.in',
     'irc_port' => 6667,
     'irc_handle' => 'abusivebot',

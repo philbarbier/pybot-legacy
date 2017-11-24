@@ -305,18 +305,24 @@ class Linguo
                                         break;
                                     }
                                 }
+                                
                             }
                         }
 
                         $suffix = $this->strings->suffix('$'.$wordtype, $word);
 
-                        if ($letter) {
-                            $worddata = $this->_get_subword_word($wordtype, $letter);
-                        } else {
-                            $worddata = $this->_get_word($wordtype);
+                        $subworddata = array();
+                        if (strstr($suffix, '$')) {
+                            $subworddata = $this->_get_word(substr($suffix, 1));
                         }
+
+                        $worddata = $this->_get_word($wordtype);
+                        
                         if (isset($worddata['word'])) {
                             $wd = $worddata['word'];
+                            if (isset($subworddata['word'])) {
+                                $suffix = $subworddata['word'];
+                            }
                             // @TODO when we implement the IDs, add this back 
                             $wid = false; // $worddata['id'];
                         }
@@ -340,7 +346,10 @@ class Linguo
     /* ###### IRC Functions ###### */
     public function get_word_types()
     {
-        return implode(', ', $this->_get_word_types());
+        $types = $this->_get_word_types();
+        // for The_Hatta <3
+        sort($types);
+        return implode(', ', $types);
     }
 
     public function get_random_word_type()

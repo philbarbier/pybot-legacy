@@ -1932,7 +1932,7 @@ class Actions
         };
 
         // Recurse until length
-        if (strlen($result) > 140) {
+        if (strlen($result) > 280) {
             return $this->imgbuse($args, $image);
         };
 
@@ -2227,6 +2227,7 @@ class Actions
         $wordtypes = array();
         $data = $data['result'];
 
+        // @TODO add total wordtype count
         foreach ($data as $row) {
             if (!isset($wordtypes[$row['_id']['type']])) $wordtypes[$row['_id']['type']] = array();
             $wordtypes[$row['_id']['type']][$row['_id']['user']] = $row['count'];
@@ -2795,7 +2796,7 @@ class Actions
         //		$this->write_channel("Sorri guiz got b& : http://i.imgur.com/FpoAkmz.png");
         $message = $args['arg1'];
         $len = strlen($message);
-        if ($len > 140) {
+        if ($len > 280) {
             $this->write_channel("Too long bro ($len)");
 
             return;

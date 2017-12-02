@@ -290,7 +290,7 @@ class Linguo
                                 $adjuster = floor(strlen($word) / 2);
                                 if ($adjuster <= 1) $adjuster = 2;
                                 if (strlen($word) >= 5) $adjuster++;
-                                $thing =  substr($word, 0, strlen($word)-$adjuster);
+                                $thing =  substr($word, 0, (strlen($word)-($adjuster + 1)));
                                 $thing = preg_replace('/[^a-zA-Z\$]/', '', $thing);
                                 if (strlen($thing) <= 2) $thing = preg_replace('/[^a-zA-Z\$]/', '', $word);
                                 if (strstr('$' . $type, $thing)) { 

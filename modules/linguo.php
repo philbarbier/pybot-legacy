@@ -287,7 +287,7 @@ class Linguo
                             $wordtype = $type = $types[$as];
                         } else {
                             foreach ($types as $type) {
-                                $adjuster = floor(strlen($word) / 2);
+                                $adjuster = floor(strlen($word) / 4);
                                 if ($adjuster <= 1) $adjuster = 2;
                                 if (strlen($word) >= 5) $adjuster++;
                                 $thing =  substr($word, 0, (strlen($word)-($adjuster + 1)));

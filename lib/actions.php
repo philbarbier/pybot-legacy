@@ -1715,9 +1715,13 @@ class Actions
                 $partmsg = $args['arg1'];
             }
         }
-        if (!array_key_exists($chan, $this->config['channellist'])) {
+
+        
+
+        if (!array_key_exists($chan, $this->config['channellist']) || ($chan == $this->config['default_chan'])) {
             return;
         }
+
         if (is_null($partmsg) && isset($parts[1])) {
             unset($parts[0]);
             $partmsg = join(' ', $parts);

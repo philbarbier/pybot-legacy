@@ -280,7 +280,7 @@ class Linguo
                     default:
 
                         $types = $this->_get_word_types();
-                        $as = array_search($w, $types);
+                        $as = array_search(strtolower($w), $types);
                        
                         $wordtype = false;
                         if ($as) {
@@ -293,14 +293,14 @@ class Linguo
                                 $thing =  substr($word, 0, (strlen($word)-($adjuster)));
                                 $thing = preg_replace('/[^a-zA-Z\$]/', '', $thing);
                                 if (strlen($thing) <= 2) $thing = preg_replace('/[^a-zA-Z\$]/', '', $word);
-                                if (strstr('$' . $type, $thing)) { 
+                                if (stristr('$' . $type, $thing)) { 
                                     $wordtype = $type;
                                     break;
                                 }
                             }
                             if (!$wordtype) {
                                 foreach ($types as $type) {
-                                    if (strstr($word, '$' . $type)) { 
+                                    if (stristr($word, '$' . $type)) { 
                                         $wordtype = $type;
                                         break;
                                     }

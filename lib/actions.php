@@ -4040,6 +4040,7 @@ class Actions
     public function yt($args)
     {
         $data = $this->_getYoutube($args);
+        if (!isset($data['title']) || !isset($data['url'])) return $this->write_channel('Nothing found');
         $msg = $data['title'] . " | " . $data['url'] . " | " . $data['who'] . " on " . $data['when'];
         $this->write_channel($msg);
     }

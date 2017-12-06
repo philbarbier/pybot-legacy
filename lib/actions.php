@@ -301,7 +301,7 @@ class Actions
             if (isset($this->config['log_history']) && $this->config['log_history']) {
                 try {
                    
-                    if (stristr($data['message'], 'youtube.com')) {
+                    if (stristr($data['message'], 'youtube.com') || stristr($data['message'], 'youtu.be')) {
                         preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $data['message'], $match);
                         $url = @$match[0][0];
                         if (strpos($data['message'], 'ythist', 0) === false) {
@@ -550,7 +550,6 @@ class Actions
         $videoId = $this->_getVideoId($url);
 
         if (!$videoId) return;
-       
 
         // see if we have this video in the log already
         $criteria = array(
@@ -618,7 +617,12 @@ class Actions
         // get the video ID
         $d = explode('v=', $url);
         if (!isset($d[1])) {
-            return false; 
+            // might be a youtu.be/<id> URL, check that too
+            if (stristr($url, 'youtu.be')) {
+                $d = explode('.be/', $url);
+            } else {
+                return false;
+            }
         }
         $videoId = $d[1];
         $spos = strpos($d[1], '&');
@@ -633,7 +637,7 @@ class Actions
     {
         if (!isset($args['arg1'])) return;
         $url = false;
-        if (stristr($args['arg1'], 'youtube.com')) {
+        if (stristr($args['arg1'], 'youtube.com') || stristr($args['arg1'], 'youtu.be')) {
             preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $args['arg1'], $match);
             $url = @$match[0][0];
         }
@@ -4039,18 +4043,22 @@ class Actions
     private function _getYoutube($args = array())
     {
         $criteria = array(
-            'message' => array(
-                '$regex' => new MongoRegex('/youtube.com/i'),
+            '$or' => array(
+                array(
+                    'message' => array(
+                    '$regex' => new MongoRegex('/youtube.com/i'),
+                    ),
+                ),
+                array(
+                    'message' => array(
+                        '$regex' => new MongoRegex('/youtu.be/i'),
+                    ),
+                ),
             ),
         );
         $query = (isset($args['arg1']) && !empty($args['arg1'])) ? $args['arg1'] : false;
         if ($query) {
-            $criteria = array(
-                'message' => array(
-                    '$regex' => new MongoRegex("/youtube.com/i"),
-                ),
-                'user' => $args['arg1']
-            );
+            $criteria['user'] = $args['arg1'];
         };
         $count = $this->collection->log->count($criteria);
         $rand = rand(0, $count);
@@ -4071,7 +4079,7 @@ class Actions
             if (!isset($record['urltitle'])) $this->_addUrlTitle($record['_id'], $url, $title);
             $origurl = $url;
             $url = $this->_shorten($url);
-            $when = gmdate('Y-m-d', (int) $record['time']);
+            $when = date($this->config['_dateFormat'], (int) $record['time']);
             $who = $record['user'];
             $this->_logYoutube($origurl, $who, $when);
             return array('url' => $url, 'title' => $title, 'when' => $when, 'who' => $who, 'origurl' => $origurl);

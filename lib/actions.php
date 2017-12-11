@@ -4508,7 +4508,7 @@ class Actions
         return;
     }
 
-	public function _kickwords($args) {
+	public function _kickwords($args = array()) {
 		// LOL shutup errors
 		$message = @$args['message'];
 		$channel = @$args['channel'];
@@ -4519,4 +4519,23 @@ class Actions
             $this->write('KICK', $channel . ' ' . $user, 'STAHP ' . $random_insult['word']);
 		}
 	}
+
+    public function ls($args = array())
+    {
+        $top = $this->linguo->testtpl(array('arg1' => rand(8192,16384) . ' total'));
+        $this->write_channel($top);
+        $num = rand(1,5);
+        for ($i = 0; $i < $num; $i++) {
+            $dornot = array('-', 'd');
+            $perms = $dornot[array_rand($dornot)];
+            $permarray = array('-', 'r', 'w', 'x', 'X', 's', 't');
+            for ($j=0; $j < 9; $j++) {
+                $perms .= $permarray[array_rand($permarray)];
+            }
+
+            $filedate = date('M j H:i', strtotime(rand(1,12) . '/' . rand(1,31) . '/1984 ' . rand(0,23) . ':' . rand(0,59)));
+            $owner = $group = strtolower($this->randuser());
+            $this->write_channel($this->linguo->testtpl(array('arg1' => $perms . '   ' . rand(1,16384) . ' ' . $owner . ' ' . $group . ' ' . $filedate . '  $media$extension')));
+        }
+    }
 }

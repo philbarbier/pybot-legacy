@@ -45,7 +45,7 @@ class Actions
         if (!isset($this->config['bothandle'])) $this->config['bothandle'] = false;
         $this->myparts = array();
         $this->bartUseCount = 1;
-        $this->public_commands = array('ls', 'me', 'version', 'abuse', 'history', 'testtpl', 'uptime', 'cc');
+        $this->public_commands = array();
         $this->_cacheData = array();
         if (!$this->connection) {
             sleep(10);
@@ -793,6 +793,7 @@ class Actions
 
     public function _check_acl($data)
     {
+        return;
         $action = @$data['command'];
 
         /*
@@ -3153,9 +3154,23 @@ class Actions
         $this->write_channel($line);
     }
 
-    private function get_rand_line($search)
+    private function get_rand_line($search = false)
     {
-        $data = explode("\n", file_get_contents('lib/actions.php'));
+        $dir = new RecursiveDirectoryIterator('./');
+        $files = new RecursiveIteratorIterator($dir);
+        $matches = array();
+        foreach ($files as $name => $obj) {
+            if (substr($name, strlen($name)-4, 4) === '.php') {
+                $matches[] = $name;
+            }
+        }
+
+        $listing = '';
+
+        foreach ($matches as $key => $file) {
+            $listing .= file_get_contents($file);
+        }
+        $data = explode("\n", $listing); //file_get_contents('lib/actions.php'));
         $rand = array_rand($data);
         $str = trim($data[$rand]);
         if ($search) {

@@ -299,10 +299,11 @@ class Irc
                 }
 
                 // $this->Log->log("Params: " . json_encode($params, true), 3);
-                // @TODO gotta fix this so uncallable methods don't shit the bed
                 try {
                     if (substr($a, 0, 1) != '_') {
-                        if (method_exists($this->actions, $a) && is_callable(array($this->actions, $a), true)) {
+                        //
+                        $ref = new ReflectionMethod($this->actions, $a);
+                        if ($ref->isPublic()) {
                             $result = $this->actions->$a($params);
                             $this->_write($result);
                         }
@@ -773,7 +774,7 @@ class Irc
         
         if (!$this->socket) {
             $this->Log->log('Socket error', 2);
-            $this->destroy_socket();
+            self::destroy_socket();
             sleep(10);
             $this->__construct(self::$config);
 

@@ -45,7 +45,7 @@ class Actions
         if (!isset($this->config['bothandle'])) $this->config['bothandle'] = false;
         $this->myparts = array();
         $this->bartUseCount = 1;
-        $this->public_commands = array('version', 'abuse', 'history', 'testtpl', 'me', 'uptime', 'cc');
+        $this->public_commands = array('ls', 'me', 'version', 'abuse', 'history', 'testtpl', 'uptime', 'cc');
         $this->_cacheData = array();
         if (!$this->connection) {
             sleep(10);
@@ -535,8 +535,10 @@ class Actions
        
         $pr = preg_match('/\$[a-zA-Z]/', $data['message']);
         if ($pr == 0) return;
+        // check first word only, send it back if it's a command
         foreach(explode(' ', $data['message']) as $word) {
-            if (in_array($word, $this->public_commands)) return;
+            if (method_exists($this, $word)) return;
+            break;
         }
 
         $this->write_channel($this->linguo->testtpl(array('arg1' => $data['message'])));

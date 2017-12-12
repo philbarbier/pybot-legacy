@@ -3010,6 +3010,7 @@ class Actions
             $lastcommitdate = trim(str_replace('Date: ', '', $lastcommit[2])); 
             $this->write_channel('Last commit: ' . $lastcommitlink . ' "' . trim($lastcommit[4]) . '" on ' . date($this->config['_dateFormat'], strtotime($lastcommitdate)) . ' (' . $this->_calculate_timespan(strtotime($lastcommitdate)) . ' ago) by ' . $author);
         } 
+        return $this->version();
     }
 
     private function _getLastGitCommit()

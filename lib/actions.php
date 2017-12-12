@@ -1,5 +1,4 @@
 <?php
-
 class Actions
 {
     public function __construct($config)

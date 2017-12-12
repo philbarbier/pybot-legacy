@@ -1977,12 +1977,10 @@ class Actions
 
     public function abuse($args)
     {
-        if (($this->_getChannelData($this->get_current_channel(), 'allowabuse'))
-                && $this->_getChannelData($this->get_current_channel(), 'allowabuse')) {
+        if ($this->_getChannelData($this->get_current_channel(), 'allowabuse')) {
             
             if (isset($args['joinabuse']) && $args['joinabuse']) {
-                if (($this->_getChannelData($this->get_current_channel(), 'joinabuse')) 
-                    && $this->_getChannelData($this->get_current_channel(), 'joinabuse')) {
+                if ($this->_getChannelData($this->get_current_channel(), 'joinabuse')) {
                     $this->write_channel($this->_getAbuse($args));
                 }
             } elseif (!isset($args['joinabuse'])) {

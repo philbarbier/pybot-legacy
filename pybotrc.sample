@@ -4,6 +4,12 @@
 // custom_commands:
 // these do NOT get re-read on a reload, only on full restart
 
+// if options from the irc_channels are removed rather 
+// than changed, they will not be updated
+
+// for example, removing "allowabuse" will not change that config setting
+// only changing the value will cause a change in behaviour
+
 $config = array(
     'logfile' => '/dev/null',
     'mongodb' => 'mongodb://mongo0/pybot',
@@ -35,6 +41,7 @@ $config = array(
             'modes' => '+nt'
         )
     ),
+    'default_modes' => '+nt',
     'default_chan' => '#chat',
     'admin_chan' => '#bot_dev',
     'log_stats' => false,

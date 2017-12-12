@@ -188,6 +188,101 @@ class Linguo
         return $types;
     }
 
+    private function _getWordStrings($w = false, $word = false, $command = false, $who = false)
+    {
+        switch ($command) {
+            case 'ip':
+                $wd = rand(1, 254).'.'.rand(1, 254).'.'.rand(1, 254).'.'.rand(1, 254);
+                $suffix = $this->strings->suffix('$ip', $word);
+            break;
+            case 'who':
+                $wd = $who;
+                $suffix = $this->strings->suffix('$who', $word);
+            break;
+            case 'tomorrow':
+                $wd = date('l', strtotime('tomorrow'));
+                $suffix = $this->strings->suffix('$tomorrow', $word);
+            break;
+            case 'yesterday':
+                $wd = date('l', strtotime('yesterday'));
+                $suffix = $this->strings->suffix('$yesterday', $word);
+            break;
+            case 'date':
+                $wd = date('l F j, Y');
+                $suffix = $this->strings->suffix('$today', $word);
+            break;
+            case 'today':
+                $wd = date('l');
+                $suffix = $this->strings->suffix('$today', $word);
+            break;
+            case 'rand':
+                $wd = rand(18, 99);
+                $suffix = $this->strings->suffix('$rand', $word);
+            break;
+            case 'dice':
+                $wd = rand(1, 12);
+                $suffix = $this->strings->suffix('$rand', $word);
+            break;
+            case 'highrand':
+                $wd = rand(10000000, 99999999);
+                $suffix = $this->strings->suffix('$highrand', $word);
+            break;
+            case 'cc':
+                $suffix = $this->strings->suffix('$cc', $word);
+                $wd = Actions::getcc();
+            break;
+            default:
+
+                $types = $this->_get_word_types();
+                $as = array_search(strtolower($w), $types);
+               
+                $wordtype = false;
+                if ($as) {
+                    $wordtype = $type = $types[$as];
+                } else {
+                    foreach ($types as $type) {
+                        $adjuster = floor(strlen($word) / 4);
+                        if ($adjuster <= 1) $adjuster = 2;
+                        if (strlen($word) >= 5) $adjuster++;
+                        $thing =  substr($word, 0, (strlen($word)-($adjuster)));
+                        $thing = preg_replace('/[^a-zA-Z\$]/', '', $thing);
+                        if (strlen($thing) <= 2) $thing = preg_replace('/[^a-zA-Z\$]/', '', $word);
+                        if (stristr('$' . $type, $thing)) { 
+                            $wordtype = $type;
+                            break;
+                        }
+                    }
+                    if (!$wordtype) {
+                        foreach ($types as $type) {
+                            if (stristr($word, '$' . $type)) { 
+                                $wordtype = $type;
+                                break;
+                            }
+                        }
+                        
+                    }
+                }
+
+                $suffix = $this->strings->suffix('$' . $wordtype, $word);
+                if (strpos($word, $wordtype) > 1) {
+                    $prefix = $this->strings->prefix('$' . $wordtype, $word);
+                }
+
+                $worddata = $this->_get_word($wordtype);
+                
+                if (isset($worddata['word'])) {
+                    $wd = $worddata['word'];
+                    // @TODO when we implement the IDs, add this back 
+                    $wid = false; // $worddata['id'];
+                }
+        }
+        $return = array('wd' => $wd);
+        if (isset($suffix)) $return['suffix'] = $suffix;
+        if (isset($prefix)) $return['prefix'] = $prefix;
+       
+        return $return;    
+    }
+
     private function _generate_phrase($template_string, $who, $letter = null)
     {
         $words = explode(' ', $template_string);
@@ -235,97 +330,72 @@ class Linguo
                 } elseif (strstr($word, '$cc')) {
                     $command = 'cc';
                 }
-
-                switch ($command) {
-                    case 'ip':
-                        $wd = rand(1, 254).'.'.rand(1, 254).'.'.rand(1, 254).'.'.rand(1, 254);
-                        $suffix = $this->strings->suffix('$ip', $word);
-                    break;
-                    case 'who':
-                        $wd = $who;
-                        $suffix = $this->strings->suffix('$who', $word);
-                    break;
-                    case 'tomorrow':
-                        $wd = date('l', strtotime('tomorrow'));
-                        $suffix = $this->strings->suffix('$tomorrow', $word);
-                    break;
-                    case 'yesterday':
-                        $wd = date('l', strtotime('yesterday'));
-                        $suffix = $this->strings->suffix('$yesterday', $word);
-                    break;
-                    case 'date':
-                        $wd = date('l F j, Y');
-                        $suffix = $this->strings->suffix('$today', $word);
-                    break;
-                    case 'today':
-                        $wd = date('l');
-                        $suffix = $this->strings->suffix('$today', $word);
-                    break;
-                    case 'rand':
-                        $wd = rand(18, 99);
-                        $suffix = $this->strings->suffix('$rand', $word);
-                    break;
-                    case 'dice':
-                        $wd = rand(1, 12);
-                        $suffix = $this->strings->suffix('$rand', $word);
-                    break;
-                    case 'highrand':
-                        $wd = rand(10000000, 99999999);
-                        $suffix = $this->strings->suffix('$highrand', $word);
-                    break;
-                    case 'cc':
-                        $suffix = $this->strings->suffix('$cc', $word);
-                        $wd = Actions::getcc();
-                    break;
-                    default:
-
-                        $types = $this->_get_word_types();
-                        $as = array_search(strtolower($w), $types);
-                       
-                        $wordtype = false;
-                        if ($as) {
-                            $wordtype = $type = $types[$as];
-                        } else {
-                            foreach ($types as $type) {
-                                $adjuster = floor(strlen($word) / 4);
-                                if ($adjuster <= 1) $adjuster = 2;
-                                if (strlen($word) >= 5) $adjuster++;
-                                $thing =  substr($word, 0, (strlen($word)-($adjuster)));
-                                $thing = preg_replace('/[^a-zA-Z\$]/', '', $thing);
-                                if (strlen($thing) <= 2) $thing = preg_replace('/[^a-zA-Z\$]/', '', $word);
-                                if (stristr('$' . $type, $thing)) { 
-                                    $wordtype = $type;
-                                    break;
-                                }
-                            }
-                            if (!$wordtype) {
-                                foreach ($types as $type) {
-                                    if (stristr($word, '$' . $type)) { 
-                                        $wordtype = $type;
-                                        break;
-                                    }
-                                }
-                                
+                $stuff = $this->_getWordStrings($w, $word, $command, $who);
+                $wd = $stuff['wd'];
+                if (isset($stuff['suffix'])) $suffix = $stuff['suffix'];
+                if (isset($stuff['prefix'])) $prefix = $stuff['prefix'];
+               
+                $pattern = '/[^a-zA-Z\$]/';
+                if (strstr($suffix, '$')) {
+                    preg_match($pattern, $suffix, $sfxmatch);
+                    $str = preg_replace($pattern, '', substr($suffix, strpos($suffix, '$')+1));
+                    $subworddata = $this->_get_word($str);
+                    if (isset($subworddata['word'])) {
+                        if (isset($sfxmatch[0])) {
+                            if (strpos($suffix, '$') == 0) {
+                                $subworddata['word'] .= $sfxmatch[0];
+                            } else {
+                                $subworddata['word'] = $sfxmatch[0] . $subworddata['word']; 
                             }
                         }
+                    } else {
+                        // could be a command, try that
+                        $stuff = $this->_getWordStrings($w, $word, $str, $who);
                         
-                        $suffix = $this->strings->suffix('$'.$wordtype, $word);
-
-                        $subworddata = array();
-                        if (strstr($suffix, '$')) {
-                            $subworddata = $this->_get_word(substr($suffix, 1));
-                        }
-
-                        $worddata = $this->_get_word($wordtype);
-                        
-                        if (isset($worddata['word'])) {
-                            $wd = $worddata['word'];
-                            if (isset($subworddata['word'])) {
-                                $suffix = $subworddata['word'];
+                        if (isset($sfxmatch[0])) {
+                            if (strpos($suffix, '$') == 0) {
+                                $suffix .= $sfxmatch[0];
+                            } else {
+                                $suffix = $sfxmatch[0];
                             }
-                            // @TODO when we implement the IDs, add this back 
-                            $wid = false; // $worddata['id'];
                         }
+
+                        if (isset($stuff['wd'])) $suffix .= $stuff['wd'];
+                        
+                    }
+                }
+
+                if (strstr($prefix, '$')) {
+                    preg_match($pattern, $prefix, $pfxmatch);
+                    $str = preg_replace($pattern, '', substr($prefix, 1));
+                    $pfxworddata = $this->_get_word($str);
+                    if (isset($pfxworddata['word'])) {
+                        if (isset($pfxmatch[0])) {
+                            if (strpos($prefix, '$') == 0) {
+                                $pfxworddata['word'] .= $pfxmatch[0];
+                            } else {
+                                $pfxworddata['word'] = $pfxmatch[0] . $pfxworddata['word'];
+                            }
+                        }
+                    } else {
+                        $stuff = $this->_getWordStrings($w, $word, $str, $who);
+                        if (isset($pfxmatch[0])) {
+                            if (strpos($prefix, '$') == 0) {
+                                $prefix .= $pfxmatch[0];
+                            } else {
+                                $prefix = $pfxmatch[0];
+                            }
+                        }
+
+                        if (isset($stuff['wd'])) $prefix = $prefix . $stuff['wd'];
+                    }
+                }
+
+                if (isset($subworddata['word'])) {
+                    $suffix = $subworddata['word'];
+                }
+                if (isset($pfxworddata['word'])) {
+                    $prefix = $pfxworddata['word'];
                 }
 
                 $phrase .= $prefix.$wd.$suffix.' ';

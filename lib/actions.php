@@ -2376,7 +2376,6 @@ class Actions
         $insult = $get_insult['word'];
         $version_string = "pybot (" . $insult . ") version " . $version . " - 'Old Found Glory'";
         $this->write_channel($version_string);
-
         return;
     }
     # HOLY FUCK THIS WAS INSECURE

@@ -422,7 +422,7 @@ class Actions
             if (($time - $this->_getChannelData($channel, 'topicdate')) > 600) {
                 $text = false;
                 if (!empty($args['arg1'])) $text = $args['arg1'];
-                $this->_setTopic($channel, $text);
+                $this->_setTopic($channel, $text, $args);
             } else {
                 $this->write_channel('Too soon, pantaloon!');
             }
@@ -477,15 +477,17 @@ class Actions
         return isset($this->config['irc_channels'][$channel][$key]) ? $this->config['irc_channels'][$channel][$key] : false;
     }
 
-    private function _setTopic($channel = false, $text = false)
+    private function _setTopic($channel = false, $text = false, $args = array())
     {
         if (!$channel) return;
         if (!$text) {
             $this->linguo->setLastRequester($this->config['bothandle']);
-            $text = $this->linguo->get_rant(array(), true);
+            $text = $this->linguo->get_rant($args, true);
         }
         $this->write('TOPIC', $channel, $text);
     }
+
+    // spiceh!
 
     private function _getDeadAir($chan = false)
     {

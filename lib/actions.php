@@ -4542,13 +4542,14 @@ class Actions
         for ($i = 0; $i < $num; $i++) {
             $dornot = array('-', 'd');
             $perms = $dornot[array_rand($dornot)];
-            $permarray = array('-', 'r', 'w', 'x', 'X', 's', 't');
+            $permarray = array('-', 'r', 'w', 'x'); //, 'X', 's', 't');
             for ($j=0; $j < 9; $j++) {
                 $perms .= $permarray[array_rand($permarray)];
             }
 
             $filedate = date('M j H:i', strtotime(rand(1,12) . '/' . rand(1,31) . '/1984 ' . rand(0,23) . ':' . rand(0,59)));
-            $owner = $group = strtolower($this->randuser());
+            $owner = strtolower($this->randuser());
+            $group = strtolower($this->randuser());
             $this->write_channel($this->linguo->testtpl(array('arg1' => $perms . '   ' . rand(1,16384) . ' ' . $owner . ' ' . $group . ' ' . $filedate . '  $media$extension')));
         }
     }

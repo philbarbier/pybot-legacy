@@ -46,6 +46,7 @@ class Actions
         $this->bartUseCount = 1;
         $this->public_commands = array();
         $this->_cacheData = array();
+        $this->_setKickWordCache();
         if (!$this->connection) {
             sleep(10);
             // try again
@@ -291,7 +292,7 @@ class Actions
        Use this for any event that should fire every time something happens. */
     public function catchall($data)
     {
-        if (!$data) {
+        if (!$data || is_null($data)) {
             return;
         }
 
@@ -315,6 +316,8 @@ class Actions
             }
             // check for a $word in the text
             $this->_checkForWord($data);
+            # There are some things we just don't tolerate...
+		    $this->_kickwords($data);
         }
         if ($this->config['log_stats']) {
             $this->stats($data);
@@ -329,9 +332,7 @@ class Actions
             }
         }
 
-		# There are some things we just don't tolerate...
-		$this->_kickwords($data);
-
+		
         if (isset($data['command']) && (($data['command'] == 'MODE') || ($data['command'] == 'JOIN') || ($data['command'] == 'PRIVMSG'))) {
             /*
             this just tracks channel data:
@@ -1735,13 +1736,13 @@ class Actions
         $insult = $get_insult['word'];
         $this->write_channel("So long, " . $insult . "s!");
         $this->write('PART', $chan, $partmsg);
-        $this->removeChannel($chan);
+        $this->_removeChannel($chan);
         if ($oldchan !== $chan) {
             $this->set_current_channel($oldchan);
         }
     }
 
-    public function addChannel($channel = false)
+    public function _addChannel($channel = false)
     {
         if (!$channel) return;
         if (!array_key_exists($channel, $this->config['channellist'])) {
@@ -1752,7 +1753,7 @@ class Actions
 
     }
 
-    public function removeChannel($channel = false)
+    public function _removeChannel($channel = false)
     {
         if (!$channel) return;
         if (array_key_exists($channel, $this->config['channellist'])) {
@@ -1830,7 +1831,7 @@ class Actions
                 $get_exclamation = $this->linguo->get_word('exclamation');
                 $exclamation = $get_exclamation['word'];
 
-                return $this->write_channel($exclamation . ', ' . $this->currentuser . ' you ' . $insult . ' - that word already exists.');
+                return $this->write_channel($exclamation . ', ' . $this->get_current_user() . ' you ' . $insult . ' - that word already exists.');
             }
 
             $this->collection->words->update($criteria, $data, array('upsert' => true));
@@ -1843,10 +1844,12 @@ class Actions
 
     public function rmword($args)
     {
-        $word = trim(@$args['arg1']);
+        if (!isset($args['arg1'])) return;
+        if (!isset($args['type'])) return $this->write_channel('Please supply a type before removing a word');
+        $word = trim($args['arg1']);
         try {
-            $this->collection->words->remove(array('word' => $word));
-            $this->write_channel("$word removed from dictionary.");
+            $this->collection->words->remove(array('word' => $word, 'type' => trim($args['type'])));
+            $this->write_channel($word . ' (' . $type . ') removed from dictionary.');
             $this->_invalidateWordCaches();
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
@@ -3207,7 +3210,7 @@ class Actions
 
     public function clrmysite()
     {
-        $user = $this->currentuser;
+        $user = $this->get_current_user();
         $path = "/var/www/p.5kb.us/public/$user.html";
         file_put_contents($path, '');
         $url = "http://p.5kb.us/$user.html";
@@ -3217,7 +3220,7 @@ class Actions
     public function mysite($args)
     {
         $this->write_channel();
-        $user = $this->currentuser;
+        $user = $this->get_current_user();
         $path = "/var/www/p.5kb.us/public/$user.html";
         file_put_contents($path, $args['arg1'].PHP_EOL, FILE_APPEND);
         $url = "http://p.5kb.us/$user.html";
@@ -3845,11 +3848,11 @@ class Actions
                 if ($user == $who) {
                     // Update points correct / incorrect
                     $this->collection->guess->update(
-                        array('user' => $this->currentuser),
+                        array('user' => $this->get_current_user()),
                         array('$inc' => array('correct' => 1)),
                         array('upsert' => true)
                     );
-                    $count = $this->collection->guess->findOne(array('user' => $this->currentuser));
+                    $count = $this->collection->guess->findOne(array('user' => $this->get_current_user()));
                     $correct = @$count['correct'];
                     $incorrect = @$count['incorrect'];
                     $this->write_channel("Correct! (c: $correct / i: $incorrect)");
@@ -3857,12 +3860,12 @@ class Actions
                     return;
                 }
                 $this->collection->guess->update(
-                    array('user' => $this->currentuser),
+                    array('user' => $this->get_current_user()),
                     array('$inc' => array('incorrect' => 1)),
                     array('upsert' => true)
                 );
                 // Get guesscount for user
-                $count = $this->collection->guess->findOne(array('user' => $this->currentuser));
+                $count = $this->collection->guess->findOne(array('user' => $this->get_current_user()));
                 $correct = @$count['correct'];
                 $incorrect = @$count['incorrect'];
                 $this->write_channel(strtoupper("Wrong $insult (c:$correct / i:$incorrect)"));
@@ -4522,15 +4525,107 @@ class Actions
         return;
     }
 
-	public function _kickwords($args = array()) {
-		// LOL shutup errors
-		$message = @$args['message'];
-		$channel = @$args['channel'];
-		$user = @$args['user'];
-		# Hardcoded for now, will live in DB eventually ( addkickword / rmkickword )
-		if (stristr($message, 'buzzfeed.com')) {
+    public function mkkickword($args = array())
+    {
+        if (!isset($args['arg1'])) return;
+        if (!isset($args['channel'])) {
+            $args['channel'] = $this->get_current_channel();
+        }
+        $criteria = array(
+            'user' => $this->get_current_user(),
+            'word' => $args['arg1'],
+            'channel' => $args['channel'],
+        );
+
+        $data = array(
+            'user' => $this->get_current_user(),
+            'timestamp' => date('U'),
+            'word' => $args['arg1'],
+            'channel' => $args['channel'],
+        );
+
+        $c = $this->collection->irc->kickwords;
+        
+        $checkdata = $c->findOne(array('word' => $args['arg1'], 'channel' => $args['channel']));
+            
+        if (is_array($checkdata)) {
+            $get_insult = $this->linguo->get_word('insult');
+            $insult = $get_insult['word'];
+
+            $get_exclamation = $this->linguo->get_word('exclamation');
+            $exclamation = $get_exclamation['word'];
+
+            return $this->write_channel($exclamation . ', ' . $this->get_current_user() . ' you ' . $insult . ' - that word already exists.');
+        }
+        $c->update($criteria, $data, array('upsert' => true));
+        $this->write_channel('Kickword added for ' . $args['channel']);
+        $this->_setKickWordCache();
+    }
+
+    public function rmkickword($args = array())
+    {
+        if (!isset($args['arg1'])) return false;
+        if (!isset($args['channel'])) {
+            $channel = $this->get_current_channel();
+        } else {
+            $channel = $args['channel'];
+        }
+        $criteria = array('word' => $args['arg1'], 'channel' => $channel);
+        $res = $this->collection->irc->kickwords->remove($criteria);
+        $this->write_channel($args['arg1'] . ' removed for ' . $channel);
+        $this->_setKickWordCache();
+    }
+
+    private function _setKickWordCache()
+    {
+        $data = array();
+        foreach ($this->config['channellist'] as $channel => $val) {
+            $results = $this->collection->irc->kickwords->find(array('channel' => $channel));
+            $words = array();
+            if ($results->count() > 0) {
+                foreach($results as $row) {
+                    $words[] = $row['word'];
+                }
+            }
+            if (!isset($data[$channel])) $data[$channel] = array();
+            $data[$channel] = implode(', ', $words);
+        }
+        $this->_setCacheData('kickwords', $data);
+    }
+
+    private function _checkKickWord($message = false, $channel = false)
+    {
+        if (!$message || !$channel) return false;
+
+        $message = str_replace('$', '\\$', $message);
+        $words = explode(' ', $message);
+        $data = $this->_getCacheData('kickwords');
+        if (!isset($data[$channel])) return false;
+        // @TODO fix the issue of "buzzfeed.com/blah" not matching
+        foreach ($words as $word) {
+            // if the word is a domain, strip the scheme and path off
+            if (stristr($word, 'http')) {
+                $parts = parse_url($word);
+                if (isset($parts['host'])) $word = $parts['host'];
+            }
+            $word = preg_replace('/[^a-zA-Z\.]/', '', $word);
+            // maybe a preg_match?
+            if (stristr($data[$channel], $word)) return true;
+        }
+        return false;
+    }
+
+	private function _kickwords($args = array()) {
+        if (!isset($args['message']) || !isset($args['channel']) || !isset($args['user'])) return;
+       
+		$channel = $args['channel'];
+        if ($this->_getChannelData($channel, 'allowkickwords') === false) return; 
+		$message = $args['message'];
+		$user = $args['user'];
+		if ($this->_checkKickWord($message, $channel)) {
             $random_insult = $this->linguo->get_word('insult');
             $this->write('KICK', $channel . ' ' . $user, 'STAHP ' . $random_insult['word']);
+            $this->abuse(array('arg1' => $user)); 
 		}
 	}
 

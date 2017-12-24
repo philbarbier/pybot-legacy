@@ -26,7 +26,8 @@ $config = array(
             'autovoice' => true,
             'keepquiet' => false,
             'topicchange' => true,
-            'modes' => '+nt'
+            'modes' => '+nt',
+            'allowkickwords' => true,
         ),
         '#linux' => array(
             'autovoice' => true,

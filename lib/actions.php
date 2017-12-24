@@ -4564,6 +4564,17 @@ class Actions
         $this->_setKickWordCache();
     }
 
+    public function lskickwords($args = array())
+    {
+        $data = $this->_getCacheData('kickwords'); 
+        if (count($data) == 0) {
+            $this->_setKickWordCache();
+            $data = $this->_getCacheData('kickwords'); 
+        }
+        if (!isset($data[$this->get_current_channel()]) || empty($data[$this->get_current_channel()])) return $this->write_channel('None found'); 
+        return $this->write_channel($data[$this->get_current_channel()]);
+    }
+
     public function rmkickword($args = array())
     {
         if (!isset($args['arg1'])) return false;

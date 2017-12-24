@@ -4600,7 +4600,7 @@ class Actions
         $message = str_replace('$', '\\$', $message);
         $words = explode(' ', $message);
         $data = $this->_getCacheData('kickwords');
-        if (!isset($data[$channel])) return false;
+        if (!isset($data[$channel]) || (count($data[$channel]) == 0)) return false;
         // @TODO fix the issue of "buzzfeed.com/blah" not matching
         foreach ($words as $word) {
             // if the word is a domain, strip the scheme and path off
@@ -4610,7 +4610,7 @@ class Actions
             }
             $word = preg_replace('/[^a-zA-Z\.]/', '', $word);
             // maybe a preg_match?
-            if (stristr($data[$channel], $word)) return true;
+            if (stristr($data[$channel], $word)) return $word;
         }
         return false;
     }
@@ -4622,9 +4622,10 @@ class Actions
         if ($this->_getChannelData($channel, 'allowkickwords') === false) return; 
 		$message = $args['message'];
 		$user = $args['user'];
-		if ($this->_checkKickWord($message, $channel)) {
+		$res = $this->_checkKickWord($message, $channel);
+        if (is_string($res)) {
             $random_insult = $this->linguo->get_word('insult');
-            $this->write('KICK', $channel . ' ' . $user, 'STAHP ' . $random_insult['word']);
+            $this->write('KICK', $channel . ' ' . $user, 'STAHP saying "' . $res . '" ' . $random_insult['word']);
             $this->abuse(array('arg1' => $user)); 
 		}
 	}

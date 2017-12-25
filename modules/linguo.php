@@ -232,6 +232,7 @@ class Linguo
                 $wd = Actions::getcc();
             break;
             default:
+                // @TODO for $dietys sake, fix this some time
                 $types = $this->_get_word_types();
                 $as = array_search(strtolower($w), $types);
                
@@ -249,9 +250,9 @@ class Linguo
                         if (($adjuster <= $adjlow) && (strlen($word) >= $adjsl)) $adjuster = $adjnew;
                         if (strlen($word) >= $adjsl) $adjuster++;
                         $thing =  substr($word, 0, (strlen($word)-($adjuster)));
-                        $thing = preg_replace('/[^a-zA-Z]/', '', $thing);
-                        if (strlen($thing) <= 2) $thing = preg_replace('/[^a-zA-Z]/', '', $word);
-                        if (stristr($type, $thing)) { 
+                        $thing = preg_replace('/[^a-zA-Z\$]/', '', $thing);
+                        if (strlen($thing) <= 2) $thing = preg_replace('/[^a-zA-Z\$]/', '', $word);
+                        if (stristr('$' . $type, $thing)) { 
                             $wordtype = $type;
                             break;
                         }
@@ -268,6 +269,11 @@ class Linguo
                 }
 
                 $suffix = $this->strings->suffix('$' . $wordtype, $word);
+                /*
+                var_dump($wordtype);
+                var_dump($word);
+                var_dump($suffix);
+                */
                 if (strpos($word, $wordtype) > 1) {
                     $prefix = $this->strings->prefix('$' . $wordtype, $word);
                 }

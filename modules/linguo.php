@@ -232,7 +232,6 @@ class Linguo
                 $wd = Actions::getcc();
             break;
             default:
-
                 $types = $this->_get_word_types();
                 $as = array_search(strtolower($w), $types);
                
@@ -241,13 +240,18 @@ class Linguo
                     $wordtype = $type = $types[$as];
                 } else {
                     foreach ($types as $type) {
-                        $adjuster = floor(strlen($word) / 4);
-                        if ($adjuster <= 1) $adjuster = 2;
-                        if (strlen($word) >= 5) $adjuster++;
+                        $adjlow = 1;
+                        $adjsl = 6;
+                        $adjfl = 4;
+                        $adjnew = 1;
+
+                        $adjuster = floor(strlen($word) / $adjfl);
+                        if (($adjuster <= $adjlow) && (strlen($word) >= $adjsl)) $adjuster = $adjnew;
+                        if (strlen($word) >= $adjsl) $adjuster++;
                         $thing =  substr($word, 0, (strlen($word)-($adjuster)));
-                        $thing = preg_replace('/[^a-zA-Z\$]/', '', $thing);
-                        if (strlen($thing) <= 2) $thing = preg_replace('/[^a-zA-Z\$]/', '', $word);
-                        if (stristr('$' . $type, $thing)) { 
+                        $thing = preg_replace('/[^a-zA-Z]/', '', $thing);
+                        if (strlen($thing) <= 2) $thing = preg_replace('/[^a-zA-Z]/', '', $word);
+                        if (stristr($type, $thing)) { 
                             $wordtype = $type;
                             break;
                         }
@@ -276,9 +280,10 @@ class Linguo
                     $wid = false; // $worddata['id'];
                 }
         }
-        $return = array('wd' => $wd);
-        if (isset($suffix)) $return['suffix'] = $suffix;
-        if (isset($prefix)) $return['prefix'] = $prefix;
+        $return = array();
+        if (isset($wd))     $return['wd']       = $wd;
+        if (isset($suffix)) $return['suffix']   = $suffix;
+        if (isset($prefix)) $return['prefix']   = $prefix;
        
         return $return;    
     }

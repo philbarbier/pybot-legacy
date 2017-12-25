@@ -4613,7 +4613,7 @@ class Actions
         $message = str_replace('$', '\\$', $message);
         $words = explode(' ', $message);
         $data = $this->_getCacheData('kickwords');
-        if (!isset($data[$channel]) || (count($data[$channel]) == 0)) return false;
+        if (!isset($data[$channel]) || (count($data[$channel]) == 0) || empty($data[$channel])) return false;
         // @TODO fix the issue of "buzzfeed.com/blah" not matching
         foreach ($words as $word) {
             if (strlen($word) <= 2) continue;

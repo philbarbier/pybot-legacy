@@ -4572,7 +4572,7 @@ class Actions
             $data = $this->_getCacheData('kickwords'); 
         }
         if (!isset($data[$this->get_current_channel()]) || empty($data[$this->get_current_channel()])) return $this->write_channel('None found'); 
-        return $this->write_channel($data[$this->get_current_channel()]);
+        return $this->write_channel('(' . $this->get_current_channel() . ') ' . $data[$this->get_current_channel()]);
     }
 
     public function rmkickword($args = array())

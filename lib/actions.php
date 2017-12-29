@@ -298,22 +298,24 @@ class Actions
 
         // make sure we have text content, that it's a message of some sort and make sure we're not logging ourself
         if (!empty($data['message']) && ($data['command'] == 'PRIVMSG') && ($data['user'] != $this->config['bothandle'])) {
+
             if (isset($this->config['log_history']) && $this->config['log_history']) {
                 try {
-                   
-                    if (stristr($data['message'], 'youtube.com') || stristr($data['message'], 'youtu.be')) {
-                        preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $data['message'], $match);
-                        $url = @$match[0][0];
-                        if (strpos($data['message'], 'ythist', 0) === false) {
-                            $this->_logYoutube($url);
-                        }
-                        $data['urltitle'] = $this->get_site_title($url);
-                    }
                     $this->collection->log->insert($data);
                 } catch (Exception $e) {
                     $this->Log->log('DB Error', 2);
                 }
             }
+            // log youtube stuffs
+            if (stristr($data['message'], 'youtube.com') || stristr($data['message'], 'youtu.be')) {
+                preg_match_all('#\bhttps?://[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|/))#', $data['message'], $match);
+                $url = @$match[0][0];
+                if (strpos($data['message'], 'ythist', 0) === false) {
+                    $this->_logYoutube($url);
+                }
+                $data['urltitle'] = $this->get_site_title($url);
+            }
+
             // check for a $word in the text
             $this->_checkForWord($data);
             # There are some things we just don't tolerate...
@@ -371,10 +373,6 @@ class Actions
         // only run check_url if we actually see a URL
         // *** can be expanded to look for 'www.' as well
         if (isset($data['message']) && preg_match('/http[s]?:\/\//', $data['message']) > 0) {
-            // temp bandaid to prevent a shortener loop
-            if (strstr($data['message'], '5kb.us')) {
-                break;
-            }
             if (!is_numeric(strpos($data['message'], 'ythist', 0))) {
                 $this->check_url(explode(' ', $data['message']), $this->get_current_channel());
             }
@@ -552,7 +550,7 @@ class Actions
         if (!$url) return;
 
         $videoId = $this->_getVideoId($url);
-
+        
         if (!$videoId) return;
 
         // see if we have this video in the log already
@@ -634,7 +632,7 @@ class Actions
         if ($spos) {
             $videoId = substr($d[1], 0, $spos);
         }
-        return $videoId;
+        return preg_replace('/[^a-zA-Z0-9\-\_]/', '', $videoId);
     }
 
     public function ythist($args = array())
@@ -2972,9 +2970,17 @@ class Actions
     private function check_url($words, $channel)
     {
         $url = false;
+
+        if (strstr($words[0], 'ACTION')) {
+            // this strips the control character from PRIVMSG ACTION (/me)
+            $words[0] = substr($words[0], 1);
+            $words[count($words)-1] = substr($words[count($words)-1], 0, strlen($words[count($words)-1])-1);
+        }
+
         foreach ($words as $word) {
-            $word = trim($word);
+            $word = trim($word);// preg_replace('/[:cntrl:]/', '', trim($word));
             if (filter_var($word, FILTER_VALIDATE_URL)) {
+                //$this->_debug('here');
                 $title = $this->get_site_title($word);
                 $title = preg_replace('/[^a-zA-Z0-9\s]/', '', $title);
                 $title = preg_replace('!\s+!', ' ', $title);
@@ -2982,8 +2988,9 @@ class Actions
                 if (empty($title)) {
                     $title = 'Untitled ';
                 }
+                //$this->_debug($title);
                 // find a better way to ignore other bots?
-                if ($this->get_current_user() == 'pybot') return;
+                if ($this->get_current_user() == $this->config['bothandle']) return;
                 $url = $this->_shorten($word);
                 $data = array('username' => $this->get_current_user(), 'title' => $title, 'url' => $url, 'created' => date('d-m-Y g:i A'));
                 try {

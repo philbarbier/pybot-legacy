@@ -2059,6 +2059,7 @@ class Actions
         return $this->config['usercache'];
     }
 
+    // @TODO build a "current user cache" as well as historical here
     public function setUserCache($key = false, $data = false)
     {
         if (!$data || !$key) return;
@@ -3159,11 +3160,12 @@ class Actions
     public function leak($args)
     {
         $search = false; #@$args['arg1'];
-        $line = $this->get_rand_line($search);
+        $data = $this->_getRandLine();
+        $line = '(' . $data['filename'] . ':' . $data['linenum'] . ') ' . $data['line'];
         $this->write_channel($line);
     }
 
-    private function get_rand_line($search = false)
+    private function _getRandLine($search = false)
     {
         $dir = new RecursiveDirectoryIterator('./');
         $files = new RecursiveIteratorIterator($dir);
@@ -3175,31 +3177,27 @@ class Actions
         }
 
         $listing = '';
+        $listData = array();
 
         foreach ($matches as $key => $file) {
-            $listing .= file_get_contents($file);
-        }
-        $data = explode("\n", $listing); //file_get_contents('lib/actions.php'));
-        $rand = array_rand($data);
-        $str = trim($data[$rand]);
-        if ($search) {
-            $lines = array();
-            foreach ($data as $line) {
-                if (stripos($line, $search)) {
-                    $lines[] = trim($line);
-                }
-            }
-            if ($lines) {
-                $rand = array_rand($lines);
-                $str = $lines[$rand];
-            }
-        }
-        $len = strlen($str);
-        if ($len <= 10) {
-            return $this->get_rand_line($search);
+            $listData[$key]['file'] = substr($file, 2);
+            $listData[$key]['contents'] = explode("\n", file_get_contents($file));
         }
 
-        return $str;
+        // random file first
+        $rand = array_rand($listData);
+        $filename = $listData[$rand]['file'];
+
+        $line = rand(0, count($listData[$rand]['contents']));
+        $str = trim($listData[$rand]['contents'][$line]);
+
+        if (strlen($str) <= 8) return $this->_getRandLine($search);
+
+        return array(
+            'filename' => $filename,
+            'linenum' => $line,
+            'line' => $str
+        );
     }
 /*
     public function clrsite()

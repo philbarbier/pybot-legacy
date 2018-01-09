@@ -4499,7 +4499,7 @@ class Actions
     // because why not?
     public function shrug($args = array())
     {
-        $this->write_channel('¯\_(ツ)_/¯');
+        return $this->write_channel('¯\_(ツ)_/¯');
     }
 
     // lulz

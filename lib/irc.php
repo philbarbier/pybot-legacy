@@ -300,7 +300,7 @@ class Irc
 
                 // $this->Log->log("Params: " . json_encode($params, true), 3);
                 try {
-                    if (substr($a, 0, 1) != '_') {
+                    if ((substr($a, 0, 1) != '_') && ($msg['command'] == 'PRIVMSG')) {
                         //
                         $ref = new ReflectionMethod($this->actions, $a);
                         if ($ref->isPublic()) {

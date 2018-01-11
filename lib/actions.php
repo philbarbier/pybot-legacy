@@ -1843,8 +1843,9 @@ class Actions
         if (!isset($args['arg1'])) return;
         if (!isset($args['type'])) return $this->write_channel('Please supply a type before removing a word');
         $word = trim($args['arg1']);
+        $type = trim($args['type']);
         try {
-            $this->collection->words->remove(array('word' => $word, 'type' => trim($args['type'])));
+            $this->collection->words->remove(array('word' => $word, 'type' => $type));
             $this->write_channel($word . ' (' . $type . ') removed from dictionary.');
             $this->_invalidateWordCaches();
         } catch (Exception $e) {

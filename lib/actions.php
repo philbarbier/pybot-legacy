@@ -3010,7 +3010,7 @@ class Actions
         $this->write_channel('Bot was started on: ' . date($this->config['_dateFormat'], $this->config['_starttime']));
         $this->write_channel($this->_calculate_timespan($this->config['_starttime']) . ' since our last incident');
         $lastcommit = explode("\n", $this->_getLastGitCommit());
-        if (!empty($lastcommit) || !$lastcommit) {
+        if (!empty($lastcommit) || $lastcommit) {
             $lastcommitlink = $this->_shorten('https://github.com/philbarbier/pybot-legacy/commit/' . str_replace('commit ', '', $lastcommit[0]));
             $authorraw = trim(str_replace('Author:', '', $lastcommit[1]));
             $author = substr($authorraw, 0, strpos($authorraw, ' <'));

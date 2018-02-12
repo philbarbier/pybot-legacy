@@ -424,6 +424,10 @@ class Actions
             } else {
                 $this->write_channel('Too soon, pantaloon!');
             }
+        } else {
+            $text = false;
+            if (!empty($args['arg1'])) $text = $args['arg1'];
+            $this->_setTopic($channel, $text, $args);
         }
     }
 

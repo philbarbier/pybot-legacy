@@ -3809,15 +3809,18 @@ class Actions
         }
 
         $hour = date('H');
-        if (in_array($hour, range(15, 23)) || in_array($hour, range(0, 6))) {
-            $this->write_channel("IT'S BEER NOW!!!");
-
-            return;
+        $dow = date('w');
+        if ((in_array($hour, range(15, 23)) || in_array($hour, range(0, 6))) || ($dow == 0 || $dow == 6)) {
+            return $this->write_channel("IT'S BEER NOW!!!");
         }
+
         $now = time();
         $time = strtotime('3 PM', $now);
         $delta = $time - $now;
         if ($delta < 0) {
+            if ($dow == 5) {
+                return $this->write_channel("IT'S BEER NOW!!!");
+            }
             $time = strtotime('tomorrow 3 PM', $now);
         }
 

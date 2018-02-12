@@ -1384,8 +1384,9 @@ class Actions
 
         if ($in_user == 'sunshine') {
             $this->write_channel('Go to hell');
-
-            return false;
+            
+            // I felt bad ...
+            //return false;
         }
 
         if ($in_user == 'nupogodi') {
@@ -1411,6 +1412,33 @@ class Actions
         }
 
         return true;
+    }
+
+    public function karma ($args = array())
+    {
+        if (!isset($args['arg1']) || empty($args['arg1'])) {
+            $user = $this->get_current_user();
+        } else {
+            $user = $args['arg1'];
+        }
+        $c = $this->collection->irc->votes;
+        $criteria = array('user' => $user);
+
+        $data = $c->findOne($criteria);
+
+        if (isset($data['upvotes']) && is_numeric($data['upvotes'])) {
+            $str = $user . ' has ' . $data['upvotes'] . ' upvotes.';
+        }
+
+        if (isset($data['downvotes']) && is_numeric($data['downvotes'])) {
+            $str .= ' ' . $data['downvotes'] . ' downvotes.';
+        }
+
+        if (isset($data['assfucks']) && is_numeric($data['assfucks'])) {
+            $str .= ' ' . $data['assfucks'] . ' assfucks.';
+        }
+        
+        return $this->write_channel($str);
     }
 
     public function assfuck($args)

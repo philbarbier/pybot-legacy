@@ -318,9 +318,15 @@ class Actions
 
             // check for a $word in the text
             $this->_checkForWord($data);
+
+            
             # There are some things we just don't tolerate...
 		    $this->_kickwords($data);
         }
+        
+        // handle uptime records
+        $this->_ooglyBooglyUptime($data);
+
         if ($this->config['log_stats']) {
             $this->stats($data);
         }
@@ -410,9 +416,37 @@ class Actions
             }
         }
     }
+    
+    // keep track of the uptime record
+    private function _ooglyBooglyUptime($args = array())
+    {
+        $now = date('U');
+        $diff = $now - $this->config['_starttime'];
 
+        if ($uptime = file_get_contents('./uptime')) {
+            //$this->config['_starttime'] 
+            if (is_numeric($uptime) && ($uptime < $diff)) {
+                $this->_writeUptime($diff);
+            }
+            $this->_calculate_timespan($this->config['_starttime']);
+        } else {
+            $this->_writeUptime($diff);
+        }
+    }
 
-    public function topic($args = array()) {
+    private function _writeUptime($uptime = 0)
+    {
+        if (is_numeric($uptime) || $uptime == 0) {
+            try {
+                file_put_contents('./uptime', $uptime);
+            } catch (Exception $e) {
+                $this->_debug('uptime write failure: ' . $uptime);
+            }
+        }
+    }
+
+    public function topic($args = array())
+    {
         $channel = $this->get_current_channel();
         // make sure it's not being done too frequently
         $time = time();
@@ -2401,6 +2435,14 @@ class Actions
 
     public function version()
     {
+        $lastcommit = explode("\n", $this->_getLastGitCommit());
+        if (!empty($lastcommit) || $lastcommit) {
+            $lastcommitlink = $this->_shorten('https://github.com/philbarbier/pybot-legacy/commit/' . str_replace('commit ', '', $lastcommit[0]));
+            $authorraw = trim(str_replace('Author:', '', $lastcommit[1]));
+            $author = substr($authorraw, 0, strpos($authorraw, ' <'));
+            $lastcommitdate = trim(str_replace('Date: ', '', $lastcommit[2])); 
+            $this->write_channel('Last commit: ' . $lastcommitlink . ' "' . trim($lastcommit[4]) . '" on ' . date($this->config['_dateFormat'], strtotime($lastcommitdate)) . ' (' . $this->_calculate_timespan(strtotime($lastcommitdate)) . ' ago) by ' . $author);
+        } 
         $version = trim($this->version);
         $get_insult = $this->linguo->get_word('insult');
         $insult = $get_insult['word'];
@@ -3042,15 +3084,11 @@ class Actions
         $this->write_channel(trim(shell_exec('uptime')));
         $this->write_channel('Bot was started on: ' . date($this->config['_dateFormat'], $this->config['_starttime']));
         $this->write_channel($this->_calculate_timespan($this->config['_starttime']) . ' since our last incident');
-        $lastcommit = explode("\n", $this->_getLastGitCommit());
-        if (!empty($lastcommit) || $lastcommit) {
-            $lastcommitlink = $this->_shorten('https://github.com/philbarbier/pybot-legacy/commit/' . str_replace('commit ', '', $lastcommit[0]));
-            $authorraw = trim(str_replace('Author:', '', $lastcommit[1]));
-            $author = substr($authorraw, 0, strpos($authorraw, ' <'));
-            $lastcommitdate = trim(str_replace('Date: ', '', $lastcommit[2])); 
-            $this->write_channel('Last commit: ' . $lastcommitlink . ' "' . trim($lastcommit[4]) . '" on ' . date($this->config['_dateFormat'], strtotime($lastcommitdate)) . ' (' . $this->_calculate_timespan(strtotime($lastcommitdate)) . ' ago) by ' . $author);
-        } 
-        return $this->version();
+        
+        if ($uptime = file_get_contents('./uptime')) {
+            $this->write_channel('Uptime record: ' . $this->_calculate_timespan(0, $uptime));
+        }
+        return;
     }
 
     private function _getLastGitCommit()

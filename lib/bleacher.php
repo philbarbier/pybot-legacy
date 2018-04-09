@@ -15,6 +15,12 @@ class Bleacher
 
     }
 
+    public function initModule($className = false, $config = false)
+    {
+        if (!$className || !$config) return;
+        $selfRef = strtolower($config['_origclass']);
+        $this->$selfRef = new $className($config);
+    }
     private static $_patterns = array(
         'int' => "/[^0-9\-]+/",
         'float' => "/[^0-9\.\,\-]+/",

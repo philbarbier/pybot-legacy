@@ -516,11 +516,14 @@ class Actions
     private function _setTopic($channel = false, $text = false, $args = array())
     {
         if (!$channel) return;
-        if (!$text || (strlen($text) >= ($this->txlimit - 56))) {
+        if (!$text) {
             $this->linguo->setLastRequester($this->config['bothandle']);
             $text = $this->linguo->get_rant($args, true);
         }
-        $this->write('TOPIC', $channel, $text);
+        if (strlen($text) >= ($this->txlimit - 56)) {
+            return $this->_setTopic($channel, false, $args);
+        }
+        return $this->write('TOPIC', $channel, $text);
     }
 
     // spiceh!

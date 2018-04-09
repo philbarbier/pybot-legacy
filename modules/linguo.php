@@ -232,66 +232,84 @@ class Linguo
                 $wd = Actions::getcc();
             break;
             default:
-                // @TODO for $dietys sake, fix this some time
-                $types = $this->_get_word_types();
-                $as = array_search(strtolower($w), $types);
-               
-                $wordtype = false;
-                if ($as) {
-                    $wordtype = $type = $types[$as];
-                } else {
-                    foreach ($types as $type) {
-                        $adjlow = 1;
-                        $adjsl = 6;
-                        $adjfl = 4;
-                        $adjnew = 1;
-
-                        $adjuster = floor(strlen($word) / $adjfl);
-                        if (($adjuster <= $adjlow) && (strlen($word) >= $adjsl)) $adjuster = $adjnew;
-                        if (strlen($word) >= $adjsl) $adjuster++;
-                        $thing =  substr($word, 0, (strlen($word)-($adjuster)));
-                        $thing = preg_replace('/[^a-zA-Z\$]/', '', $thing);
-                        if (strlen($thing) <= 2) $thing = preg_replace('/[^a-zA-Z\$]/', '', $word);
-                        if (stristr('$' . $type, $thing)) { 
-                            $wordtype = $type;
-                            break;
-                        }
-                    }
-                    if (!$wordtype) {
-                        foreach ($types as $type) {
-                            if (stristr($word, '$' . $type)) { 
-                                $wordtype = $type;
-                                break;
-                            }
-                        }
-                        
-                    }
-                }
-
-                $suffix = $this->strings->suffix('$' . $wordtype, $word);
-                /*
-                var_dump($wordtype);
-                var_dump($word);
-                var_dump($suffix);
-                */
-                if (strpos($word, $wordtype) > 1) {
-                    $prefix = $this->strings->prefix('$' . $wordtype, $word);
-                }
-
-                $worddata = $this->_get_word($wordtype);
-                
-                if (isset($worddata['word'])) {
-                    $wd = $worddata['word'];
-                    // @TODO when we implement the IDs, add this back 
-                    $wid = false; // $worddata['id'];
-                }
+                $ret = $this->_findWords($w, $word);
+                $prefix = $ret['prefix'];
+                $wd     = $ret['wd'];
+                $suffix = $ret['suffix'];
         }
+        
         $return = array();
         if (isset($wd))     $return['wd']       = $wd;
         if (isset($suffix)) $return['suffix']   = $suffix;
         if (isset($prefix)) $return['prefix']   = $prefix;
        
         return $return;    
+    }
+
+    private function _findWords($w = '', $word = '')
+    {
+        $prefix = $wd = $suffix = false;
+        $types = $this->_get_word_types();
+        $as = array_search(strtolower($w), $types);
+       
+        $wordtype = false;
+        if ($as) {
+            $wordtype = $type = $types[$as];
+        } else {
+            foreach ($types as $type) {
+
+                // @TODO for $dietys sake, fix this some time
+
+                $adjlow = 1;
+                $adjsl = 6;
+                $adjfl = 4;
+                $adjnew = 1;
+
+                $adjuster = floor(strlen($word) / $adjfl);
+                if (($adjuster <= $adjlow) && (strlen($word) >= $adjsl)) $adjuster = $adjnew;
+                if (strlen($word) >= $adjsl) $adjuster++;
+                $thing =  substr($word, 0, (strlen($word)-($adjuster)));
+                $thing = preg_replace('/[^a-zA-Z\$]/', '', $thing);
+                if (strlen($thing) <= 2) $thing = preg_replace('/[^a-zA-Z\$]/', '', $word);
+                if (stristr('$' . $type, $thing)) { 
+                    $wordtype = $type;
+                    break;
+                }
+            }
+            if (!$wordtype) {
+                foreach ($types as $type) {
+                    if (stristr($word, '$' . $type)) { 
+                        $wordtype = $type;
+                        break;
+                    }
+                }
+                
+            }
+        }
+
+        $suffix = $this->strings->suffix('$' . $wordtype, $word);
+        /*
+        var_dump($wordtype);
+        var_dump($word);
+        var_dump($suffix);
+        */
+        if (strpos($word, $wordtype) > 1) {
+            $prefix = $this->strings->prefix('$' . $wordtype, $word);
+        }
+
+        $worddata = $this->_get_word($wordtype);
+        
+        if (isset($worddata['word'])) {
+            $wd = $worddata['word'];
+            // @TODO when we implement the IDs, add this back 
+            $wid = false; // $worddata['id'];
+        }
+
+        return array(
+            'prefix'    => $prefix,
+            'wd'        => $wd,
+            'suffix'    => $suffix
+        );
     }
 
     private function _generate_phrase($template_string, $who, $letter = null)
@@ -345,7 +363,9 @@ class Linguo
                 $wd = $stuff['wd'];
                 if (isset($stuff['suffix'])) $suffix = $stuff['suffix'];
                 if (isset($stuff['prefix'])) $prefix = $stuff['prefix'];
-               
+                
+                //print_r($stuff);
+
                 $pattern = '/[^a-zA-Z\$]/';
                 if (strstr($suffix, '$')) {
                     preg_match($pattern, $suffix, $sfxmatch);

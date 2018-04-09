@@ -187,10 +187,12 @@ class Irc
                             unset($this->$theirRef);
                             $this->$initFnName($newClassName, $classconfig);
                         }
+                        $this->actions->write_channel('Reloaded: ' . $className . ' (' . $newClassName . ')');
                     }
                 }
             }
         }
+        //
     }
 
     private function set_socket($svr = '', $port = 0)

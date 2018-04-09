@@ -516,7 +516,7 @@ class Actions
     private function _setTopic($channel = false, $text = false, $args = array())
     {
         if (!$channel) return;
-        if (!$text) {
+        if (!$text || (strlen($text) >= ($this->txlimit - 56))) {
             $this->linguo->setLastRequester($this->config['bothandle']);
             $text = $this->linguo->get_rant($args, true);
         }

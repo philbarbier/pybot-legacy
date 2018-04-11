@@ -173,7 +173,11 @@ class Irc
                         $classconfig = self::$config;
                         if (count($calllist) > 1) {
                             unset($this->$localRef->$theirRef);
-                            $this->$localRef->initModule($newClassName, $classconfig);
+                            try {
+                                $this->$localRef->initModule($newClassName, $classconfig);
+                            } catch (Exception $e) {
+
+                            }
                         } else {
                             if (method_exists($this->$theirRef, '_getConfig')) {
                                 $oldconfig = $this->$theirRef->_getConfig();

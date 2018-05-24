@@ -4009,15 +4009,26 @@ class Actions
 
     public function answer($args)
     {
+        $get_insult = $this->linguo->get_word('insult');
+        $insult = $get_insult['word'];
+
+        return $this->write_channel("It's 'whatis' now, " . $insult . "!");
+    }
+
+    public function whatis($args)
+    {
         if (!isset($args['arg1'])) return $this->write_channel('Incorrect');
         
+
         $answer = strtolower($args['arg1']);
+
         $data = $this->collection->trivia->findOne();
         $question = $data['question'];
         $value = $data['value'];
         $canswer = strtolower(stripslashes($data['answer']));
         $pattern = '/[^a-z][^A-Z][^0-9]/';
         preg_replace($pattern, '', $canswer);
+        preg_replace($pattern, '', $answer);
         if ((strlen($canswer) > 1) && (strlen($answer) <= 2)) return $this->write_channel('Incorrect');
         $who = $this->get_current_user();
         

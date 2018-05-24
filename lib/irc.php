@@ -174,7 +174,10 @@ class Irc
                         if (count($calllist) > 1) {
                             unset($this->$localRef->$theirRef);
                             try {
-                                $this->$localRef->initModule($newClassName, $classconfig);
+                                $ref = new ReflectionMethod($this->$localRef, 'initModule');
+                                if ($ref->isPublic()) {
+                                    $this->$localRef->initModule($newClassName, $classconfig);
+                                }
                             } catch (Exception $e) {
 
                             }

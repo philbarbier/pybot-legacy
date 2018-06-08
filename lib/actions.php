@@ -2589,7 +2589,13 @@ class Actions
         // guh, fucking XML! $insult!
         $doc = file_get_html($apiurl);
 
-        $suggestions = $doc->find('suggestion');
+        if (!$doc || is_null($doc) || empty($doc)) return;
+
+        try {
+            $suggestions = $doc->find('suggestion');
+        } catch (Exception $ex) {
+            $suggestions = array();
+        }
 
         // if the word isn't found, it'll return suggestions - in this case, handle 'em
 

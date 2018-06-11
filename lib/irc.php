@@ -17,7 +17,7 @@ class Irc
         $this->_loadModules(self::$config['_cwd'] . '/modules');
         $this->Log = new Log(self::$config);
         $this->server = $config['irc_server'];
-        $this->version = $config['versionNum'] . '.' . $config['versionString'];
+        $this->version = $config['versionString'];
         $this->port = $config['irc_port'];
         $this->channels = $config['irc_channels'];
         $this->handle = $config['irc_handle'];

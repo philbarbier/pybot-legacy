@@ -38,7 +38,6 @@ unset($pi, $config_path, $ircClass);
 // We keep this here because it's not user configurable
 // and to avoid having to change config files every iteration
 
-$config['versionNum'] = '4.47';
 $v = file_get_contents('VERSION');
 $config['versionString'] = $v;
 $config['_versionChecksum'] = md5($v);

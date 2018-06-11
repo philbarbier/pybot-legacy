@@ -7,7 +7,7 @@ class Actions
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
         $this->socket = null;
-        $this->version = $config['versionNum'] . '.' . $config['versionString'];
+        $this->version = $config['versionString'];
         $this->txlimit = 256; // transmission length limit in bytes (chars)
         $this->currentuser = '';
         $this->currentchannel = false;
@@ -2449,6 +2449,11 @@ class Actions
         $version = trim($this->version);
         $get_insult = $this->linguo->get_word('insult');
         $insult = $get_insult['word'];
+        $get_dick = $this->linguo->get_word('dick');
+        $dick = $get_dick['word'];
+
+        $version = str_replace('$$', $dick, $version);
+
         $version_string = "pybot (" . $insult . ") version " . $version . " - 'Old Found Glory'";
         $this->write_channel($version_string);
         return;
@@ -2872,7 +2877,15 @@ class Actions
     public function host($args)
     {
         $arg = trim($args['arg1']);
-        $this->write_channel(gethostbyname($arg).' => '.gethostbyaddr($arg));
+        if (empty($arg)) return;
+        try {
+            $this->write_channel(gethostbyname($arg).' => '.gethostbyaddr($arg));
+        } catch (Exception $e) {
+            $this->_debug('host() firged');
+            $this->_debug($e->getMessage());
+            $this->_debug($args);
+            return;
+        }
     }
 
     public function follow($args)

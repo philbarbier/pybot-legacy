@@ -2450,7 +2450,7 @@ class Actions
         $get_insult = $this->linguo->get_word('insult');
         $insult = $get_insult['word'];
         $get_dick = $this->linguo->get_word('dick');
-        $dick = $get_dick['word'];
+        $dick = str_replace(' ', '-', $get_dick['word']);
 
         $version = str_replace('$$', $dick, $version);
 

@@ -2563,11 +2563,22 @@ class Actions
             $def = $this->_getDefinition($args);
             if (isset($def['definition'])) {
                 if (strlen($def['definition']) > 512) {
-                    $this->write_channel('Too long, see PM');
-                    $this->write_user('Definition: ' . $def['definition']);
-                    $this->write_user('Example: ' . $def['example']);
+                    $this->write_channel('Definition too long, see PM');
+                    if (strlen($def['definition']) > 1024) {
+                        $this->write_user('Definition too long!');
+                    } else {
+                        $this->write_user('Definition: ' . $def['definition']);
+                    }
                 } else {
                     $this->write_channel('Definition: ' . $def['definition']);
+                }
+                if (strlen($def['example']) > 512) {
+                    if (strlen($def['example']) > 1024) {
+                        $this->write_user('Example too long!');
+                    } else {
+                        $this->write_user('Example: ' . $def['example']);
+                    }
+                } else {
                     $this->write_channel('Example: ' . $def['example']);
                 }
                 return;

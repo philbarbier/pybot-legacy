@@ -4059,7 +4059,7 @@ class Actions
         $pattern = '/[^a-z][^A-Z][^0-9]/';
         preg_replace($pattern, '', $canswer);
         preg_replace($pattern, '', $answer);
-        if ((strlen($canswer) > 1) && (strlen($answer) <= 2)) return $this->write_channel('Incorrect');
+        if ((strlen($canswer) > 2) && (strlen($answer) <= 2)) return $this->write_channel('Incorrect');
         $who = $this->get_current_user();
         
         if (stristr($canswer,$answer)) {

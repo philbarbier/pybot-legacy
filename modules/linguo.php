@@ -360,7 +360,14 @@ class Linguo
                     $command = 'cc';
                 }
                 $stuff = $this->_getWordStrings($w, $word, $command, $who);
-                $wd = $stuff['wd'];
+                $limiter = 0;
+                while (!isset($stuff['wd'])) {
+                    $stuff = $this->_getWordStrings($w, $word, $command, $who);
+                    if ($limiter > 10) break;
+                    $limiter++;
+                }
+
+                $wd = isset($stuff['wd']) ? $stuff['wd'] : false;
                 if (isset($stuff['suffix'])) $suffix = $stuff['suffix'];
                 if (isset($stuff['prefix'])) $prefix = $stuff['prefix'];
                 

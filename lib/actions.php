@@ -4066,10 +4066,46 @@ class Actions
             $this->write_channel("Correct $who, $value points (" . $canswer . ")");
             $this->write_channel('Next question :');
 
+            // add points!
+            $this->_addTriviaPoints($who, $value);
+
             return $this->trebek();
         }
 
         return $this->write_channel('Incorrect');
+    }
+
+    private function _addTriviaPoints($user = '', $points = 0)
+    {
+        if (empty($user) || $points <= 0) return;
+
+        // get existing points, if any
+
+        $criteria = array('user' => $user);
+
+        $c = $this->collection->irc->triviascores;
+        $data = $c->findOne($criteria);
+        if (isset($data['user']) && isset($data['points'])) {
+            $newpoints = (int)$data['points'] + (int)$points;
+        } else {
+            $newpoints = $points;
+        }
+
+        $scoredata = array(
+            'user' => $user,
+            'points' => $newpoints
+        );
+
+        $c->update($criteria, $scoredata, array('upsert' => true));
+    }
+
+    public function triviascores($args = array())
+    {
+        $data = $this->collection->irc->triviascores->find();
+        foreach($data as $row) {
+            $this->write_channel($row['user'] . ": " . $row['points']);
+        }
+        return;
     }
 
     public function remind($args)

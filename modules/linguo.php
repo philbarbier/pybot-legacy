@@ -250,6 +250,9 @@ class Linguo
     {
         $prefix = $wd = $suffix = false;
         $types = $this->_get_word_types();
+
+        $w = preg_replace('/[^a-zA-Z\$]/', '', $w);
+
         $as = array_search(strtolower($w), $types);
        
         $wordtype = false;

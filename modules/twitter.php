@@ -18,10 +18,10 @@ class Twitter
     public function upload($path)
     {
         $client = new tmhOAuth(array(
-          'consumer_key' => 'kkqx07OVap3VClYjQm6vcA',
-          'consumer_secret' => '14eObQCm0EsAh2dTjwlG6fJ5osVsyYmiB8rIfV0M',
-          'user_token' => '2176663651-bVALnSABGhQgfZpR2KgCtwL8cEXpYkRfJRPvEwy',
-          'user_secret' => 'Groygdk79INg4NonprSMjYZvshGh2mUgYhKvAHRqi97c0',
+          'consumer_key' => $this->config['twitter_credentials']['consumer_key'],
+          'consumer_secret' => $this->config['twitter_credentials']['consumer_secret'],
+          'user_token' => $this->config['twitter_credentials']['user_token'],
+          'user_secret' => $this->config['twitter_credentials']['user_secret'],
           'curl_ssl_verifypeer' => false,
         ));
 
@@ -49,10 +49,10 @@ class Twitter
     public function tweet($message)
     {
         $tmhOAuth = new tmhOAuth(array(
-          'consumer_key' => 'kkqx07OVap3VClYjQm6vcA',
-          'consumer_secret' => '14eObQCm0EsAh2dTjwlG6fJ5osVsyYmiB8rIfV0M',
-          'user_token' => '2176663651-bVALnSABGhQgfZpR2KgCtwL8cEXpYkRfJRPvEwy',
-          'user_secret' => 'Groygdk79INg4NonprSMjYZvshGh2mUgYhKvAHRqi97c0',
+          'consumer_key' => $this->config['twitter_credentials']['consumer_key'],
+          'consumer_secret' => $this->config['twitter_credentials']['consumer_secret'],
+          'user_token' => $this->config['twitter_credentials']['user_token'],
+          'user_secret' => $this->config['twitter_credentials']['user_secret'],
           'curl_ssl_verifypeer' => false,
         ));
 
@@ -72,10 +72,11 @@ class Twitter
     public function follow($message)
     {
         $tmhOAuth = new tmhOAuth(array(
-          'consumer_key' => 'kkqx07OVap3VClYjQm6vcA',
-          'consumer_secret' => '14eObQCm0EsAh2dTjwlG6fJ5osVsyYmiB8rIfV0M',
-          'user_token' => '2176663651-bVALnSABGhQgfZpR2KgCtwL8cEXpYkRfJRPvEwy',
-          'user_secret' => 'Groygdk79INg4NonprSMjYZvshGh2mUgYhKvAHRqi97c0',
+          'consumer_key' => $this->config['twitter_credentials']['consumer_key'],
+          'consumer_secret' => $this->config['twitter_credentials']['consumer_secret'],
+          'user_token' => $this->config['twitter_credentials']['user_token'],
+          'user_secret' => $this->config['twitter_credentials']['user_secret'],
+          'curl_ssl_verifypeer' => false,
         ));
 
         $options = array(

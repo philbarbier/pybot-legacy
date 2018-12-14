@@ -3,6 +3,8 @@ class Actions
 {
     public function __construct($config)
     {
+
+        var_dump($config['usercache']['Flimflam']);
         $this->config = $config;
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
@@ -983,7 +985,7 @@ class Actions
         }
     }
 
-    private function _debug($stuff = array())
+    public function _debug($stuff = array())
     {
         $this->write_channel($stuff, $this->config['admin_chan']);
     }
@@ -1516,14 +1518,14 @@ class Actions
 
     public function radio($args)
     {
-        return;
+        //return;
         $abuse = $this->linguo->get_abuse($args);
         $this->collection->radio->insert(array('text' => $abuse));
     }
 
     public function sayradio($args)
     {
-        return;
+        //return;
         $message = @$args['arg1'];
         $this->collection->radio->insert(array('text' => $message));
     }
@@ -2060,9 +2062,10 @@ class Actions
 
     private function _sendRadio($data = array())
     {
-        $radioUrl = "http://99.255.152.57:10010/"; //"http://radio.riboflav.in:1337/api/v1/library";
+        $radioUrl = "https://radio.riboflav.in/"; //"https://radio.riboflav.in:9899/"; //"http://99.255.152.57:10010/"; //"http://radio.riboflav.in:1337/api/v1/library";
         //if (!isset($data['url'])) return;
         try {
+            //$this->write_channel($radioUrl . '?' . http_build_query($data));
             $thing = file_get_contents($radioUrl . '?' . http_build_query($data)); //"?url=" . $data['url']);
         } catch (Exception $e) {
             $this->write_channel('Request troubles');
@@ -2071,7 +2074,7 @@ class Actions
         // $this->write('PRIVMSG', $this->config['admin_chan'], json_encode($data));
         $options = array('CURLOPT_HTTPHEADER', array('Content-type: application/json'));
         //$thing = $this->curl->simple_post($radioUrl, json_encode($data), $options);
-        //if (!empty($thing)) $this->write_channel($thing);
+        if (!empty($thing)) $this->write_channel($thing);
     }
 
     public function rabuse($args)
@@ -2150,6 +2153,7 @@ class Actions
         try {
             $this->linguo->setLastRequester($this->get_current_user());
             $abuse = $this->linguo->get_rant($args);
+            if (!$abuse || empty($abuse) || (strlen($abuse) <= 2)) $this->rant($args);
             $this->write_channel($abuse);
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
@@ -2161,6 +2165,9 @@ class Actions
         try {
             $args['arg1'] = str_replace('$who', $this->randuser(), $args['arg1']);
             $args['arg1'] = str_replace('$name', $this->generateName(), $args['arg1']);
+
+
+            $this->_debug($this->config['usercache']['Flimflam']);
             $this->write_channel($this->linguo->testtpl($args));
         } catch (Exception $e) {
             $this->Log->log('DB Error', 2);
@@ -2374,6 +2381,7 @@ class Actions
             $i++;
         }
     }
+    /*
     public function geo($args)
     {
         $addr = trim($args['arg1']);
@@ -2395,28 +2403,11 @@ class Actions
         }
         $this->write('PRIVMSG', $this->get_current_channel(), "$output");
     }
+    */
 
-    public function cal()
-    {
-        // $output = explode("\n", shell_exec('/usr/bin/calendar'));
-        // $this->write_channel($output[array_rand($output)]);
-    }
     private function _get_git_revision()
     {
         return shell_exec('/usr/bin/git rev-parse HEAD');
-    }
-
-    public function sup()
-    {
-        /*
-        $res = shell_exec('cd /home/ircd/services/conf && /usr/bin/git pull');
-        $lines = explode("\n", $res);
-        foreach ($lines as $line) {
-            if ($line) {
-                $this->write_channel($line);
-            };
-        }
-        */
     }
 
     public function hup()
@@ -2510,7 +2501,7 @@ class Actions
         $q = rawurlencode($word);
         $output = array();
         $url = 'http://api.urbandictionary.com/v0/define?term=' . $q;
-        $html = file_get_html($url);
+        $html = file_get_contents($url);
         if ($html) {
             $html = json_decode($html);
             if (isset($html->list[0])) {
@@ -2518,9 +2509,7 @@ class Actions
                 $output['example'] = $html->list[0]->example;
             }
         }
-
         return $output;
-
     }
 
     public function rdefine($args)
@@ -2940,15 +2929,19 @@ class Actions
         $track = file_get_contents('https://riboflav.in/rfr/api/ices_current');
         $this->write_channel("Now playing : $track");
     }
-
+*/
     public function skip()
     {
+        /*
         $track = file_get_contents('https://riboflav.in/rfr/api/ices_next');
         sleep(2);
         $track = file_get_contents('https://riboflav.in/rfr/api/ices_current');
         $this->write_channel("Skipped, now playing : $track");
+        */
+        file_get_contents("https://radio.riboflav.in/skip");
+        return $this->write_channel('Skipped!');
     }
-*/
+    
     public function configure()
     {
         $base = 'checking for ';
@@ -3514,7 +3507,7 @@ class Actions
         $parts = explode('|', $args['arg1']);
         if (count($parts) != 2) return;
 
-        if (!is_numeric($parts[0]) || !is_numeric($parts[1])) return;
+        if (!is_numeric(trim($parts[0])) || !is_numeric(trim($parts[1]))) return;
 
         $this->write_channel(($parts[0] - $parts[1]));
     }
@@ -4181,7 +4174,7 @@ class Actions
         $what = str_ireplace('youtube', '', $what);
         $songAnnounce = "And next up from " . $who . " is " . $what . ' ' . $url; // . " which was played on " . $when;
         $this->write_channel($songAnnounce);
-        // $this->_sendRadio(array('text' => $songAnnounce));
+        $this->_sendRadio(array('text' => $songAnnounce));
         $extras = array('url' => $origurl, 'user' => $who, 'token' => md5($origurl), 'intro_text' => $songAnnounce);
         $thing = $this->_sendRadio($extras);
     }
@@ -4375,7 +4368,7 @@ class Actions
             $smokes[$row['user']]['smokecount'] = $smokedata['totalsmokes'];
             $smokes[$row['user']]['firstsmoke'] = $smokedata['firstsmoke'];
             $numdays = floor((date('U') - $smokedata['firstsmoke']) / 86400);
-            $smokes[$row['user']]['average'] = ceil($smokedata['totalsmokes'] / $numdays);
+            if ($numdays > 0) $smokes[$row['user']]['average'] = ceil($smokedata['totalsmokes'] / $numdays);
 
         }
         if (count($smokes) > 4) {

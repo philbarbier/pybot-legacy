@@ -4844,6 +4844,7 @@ class Actions
             if ($timeleft == 1) $days = 'day';
             $str .= "\x02: " . $timeleft . " " . $days . "!\x02";
             $this->christmasDate = date('U');
+            $this->_setTopic($this->get_current_channel(), $str);
             return $this->write_channel($str);
         }
     }

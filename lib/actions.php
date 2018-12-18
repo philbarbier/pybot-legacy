@@ -3,8 +3,6 @@ class Actions
 {
     public function __construct($config)
     {
-
-        var_dump($config['usercache']['Flimflam']);
         $this->config = $config;
         $this->connection = new Mongo($this->config['mongodb']);
         $this->collection = $this->connection->pybot;
@@ -13,6 +11,7 @@ class Actions
         $this->txlimit = 256; // transmission length limit in bytes (chars)
         $this->currentuser = '';
         $this->currentchannel = false;
+        $this->christmasDate = null;
         if (!isset($this->config['channellist'])) $this->config['channellist'] = array();
         
         $this->_setLastPrivmsg();
@@ -364,6 +363,19 @@ class Actions
                     }
                 }
             }
+
+            // <3 :D
+
+            $minute = rand(0,59);
+            $time = strtotime('12:' . $minute);
+            $now = date('U');
+            if (!is_null($this->christmasDate)) {
+                if ($now <= ($this->christmasDate - (86220 - ($minute / 60)))) {
+                    $this->christmasDate = null;
+                }
+            }
+            if ($now >= ($time - 180) && ($now <= ($time + 180))) $this->_christmas($data);
+
             // this is to check that the bot is using the configured nickname
 
             // this is just in case the bot has been trying to change nick too many times
@@ -390,7 +402,7 @@ class Actions
         $bit = rand(5400, 7200);
         $topicbit = rand(86400,86401);
 
-        if (isset($data['command'])) { // && $data['command'] == 'PING') {
+        if (isset($data['command'])) {
             foreach($this->config['channellist'] as $channel => $v) {
                 // check channel topics, switch it up if they're old AF
                 if (($this->_getChannelData($channel, 'topicchange')) && $this->_getChannelData($channel, 'topicchange')) {
@@ -4813,4 +4825,27 @@ class Actions
             $this->write_channel($this->linguo->testtpl(array('arg1' => $perms . '   ' . rand(1,16384) . ' ' . $owner . ' ' . $group . ' ' . $filedate . '  $media$extension')));
         }
     }
+
+    // eh why not? :D
+    private function _christmas($args = array())
+    {
+       
+        if (!is_null($this->christmasDate)) return;
+
+        $timeleft = abs(round((date('U') - strtotime('December 25')) / 60 / 60 / 24, 0));
+        if ($timeleft > 0) {
+            $str = "\x02\x0303,01C\x0304,01h\x0303,01r\x0304,01i\x0303,01s";
+            $str .= "\x0304,01t\x0303,01m\x0304,01a\x0304,01s";
+            $str .= " \x0303,01C\x0304,01o\x0303,01u\x0304,01n";
+            $str .= "\x0303,01t\x0304,01d\x0303,01o\x0304,01w\x0303,01n\x02";
+            $str .= "\x0F";
+
+            $days = 'days';
+            if ($timeleft == 1) $days = 'day';
+            $str .= "\x02: " . $timeleft . " " . $days . "!\x02";
+            $this->christmasDate = date('U');
+            return $this->write_channel($str);
+        }
+    }
+
 }

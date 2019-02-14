@@ -171,6 +171,9 @@ class Irc
                         $theirRef = strtolower($classData['origclass']);
                         $initFnName = 'init' . $theirRef;
                         $classconfig = self::$config;
+
+                        $this->actions->_debug(count($calllist));
+
                         if (count($calllist) > 1) {
                             unset($this->$localRef->$theirRef);
                             try {
@@ -190,11 +193,14 @@ class Irc
                                         $classconfig[$configkey] = $configval;
                                     }
                                 }
-                                                           }
+                            }
                             unset($this->$theirRef);
+
+                            var_dump('here pre init');
                             $this->$initFnName($newClassName, $classconfig);
+                            var_dump('here after init');
                         }
-                        $this->actions->write_channel('Reloaded: ' . $className . ' (' . $newClassName . ')');
+                        $this->actions->_debug('Reloaded: ' . $className . ' (' . $newClassName . ')');
                     }
                 }
             }

@@ -263,6 +263,8 @@ class Linguo
 
                 // @TODO for $dietys sake, fix this some time
 
+                // count the original number of chars to replace? ($dice)
+
                 $adjlow = 1;
                 $adjsl = 6;
                 $adjfl = 4;

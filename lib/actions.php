@@ -2564,11 +2564,14 @@ class Actions
             $def = $this->_getDefinition($args);
             if (isset($def['definition'])) {
                 if (strlen($def['definition']) > 512) {
-                    $this->write_channel('Definition too long, see PM');
-                    if (strlen($def['definition']) > 1024) {
-                        $this->write_user('Definition too long!');
-                    } else {
+                    $chanstr = 'Definition too long';
+                    if (strlen($def['definition']) <= 1024) {
+                        $chanstr .= ', see PM';
+                        $this->write_channel($chanstr);
                         $this->write_user('Definition: ' . $def['definition']);
+                    } else {
+                        $chanstr .= '! Too bad, sucker!';
+                        $this->write_channel($chanstr);
                     }
                 } else {
                     $this->write_channel('Definition: ' . $def['definition']);
@@ -3248,8 +3251,27 @@ class Actions
         }
 
         $weather = $data['weatherObservation'];
+        $str = $weather['stationName'].': ';
+        
+        $str .= $weather['temperature'] . ' degrees with ' . $weather['humidity'] . '% humidity.';
 
-        $this->write_channel($weather['stationName'].': '.$weather['observation']);
+        if (isset($weather['windDirection']) && isset($weather['windSpeed'])) {
+            $direction = $this->_getWindDirection($weather['windDirection']);
+            $speed = round($weather['windSpeed'] * 1.85);
+            $str .= ' Wind from the ' . $direction . ' at ' . $speed . ' km/h.';
+        }
+
+        return $this->write_channel($str);
+    }
+
+    private function _getWindDirection($degrees = false)
+    {
+        if (!is_numeric($degrees)) return false;
+        $points = array('North', 'North North East', 'North East', 'East North East', 'East', 'East South East', 'South East', 'South South East', 'South', 'South South West', 'South West', 'West South West', 'West', 'West North West', 'North West', 'North North West');
+
+        $pointsector = round($degrees / 22.5);
+        if (isset($points[$pointsector])) return $points[$pointsector];
+
     }
 
     public function b64e($args)
@@ -4219,7 +4241,8 @@ class Actions
     public function yt($args)
     {
         $data = $this->_getYoutube($args);
-        if (!isset($data['title']) || !isset($data['url'])) return $this->write_channel('Nothing found');
+        if ((!isset($data['title']) || !isset($data['url'])) || (empty($data['title']) || empty($data['url']))) return $this->write_channel('Nothing found');
+        if (empty($data['title'])) $this->_debug($data);
         $msg = $data['title'] . " | " . $data['url'] . " | " . $data['who'] . " on " . $data['when'];
         $this->write_channel($msg);
     }
@@ -4829,23 +4852,25 @@ class Actions
     // eh why not? :D
     private function _christmas($args = array())
     {
+        return;
        
         if (!is_null($this->christmasDate)) return;
 
-        $timeleft = abs(round((date('U') - strtotime('December 25')) / 60 / 60 / 24, 0));
+        $timeleft = abs(round((strtotime(date('F j')) - strtotime('December 25')) / 60 / 60 / 24, 0));
         if ($timeleft > 0) {
             $str = "\x02\x0303,01C\x0304,01h\x0303,01r\x0304,01i\x0303,01s";
-            $str .= "\x0304,01t\x0303,01m\x0304,01a\x0304,01s";
-            $str .= " \x0303,01C\x0304,01o\x0303,01u\x0304,01n";
-            $str .= "\x0303,01t\x0304,01d\x0303,01o\x0304,01w\x0303,01n\x02";
+            $str .= "\x0304,01t\x0303,01m\x0304,01a\x0303,01s";
+            $str .= " \x0304,01C\x0303,01o\x0304,01u\x0303,01n";
+            $str .= "\x0304,01t\x0303,01d\x0304,01o\x0303,01w\x0304,01n\x02";
             $str .= "\x0F";
 
             $days = 'days';
             if ($timeleft == 1) $days = 'day';
             $str .= "\x02: " . $timeleft . " " . $days . "!\x02";
             $this->christmasDate = date('U');
-            $this->_setTopic($this->get_current_channel(), $str);
-            return $this->write_channel($str);
+            $channel = $this->config['default_chan']; // $this->get_current_channel();
+            $this->_setTopic($channel, $str);
+            return $this->write_channel($str, $channel);
         }
     }
 

@@ -726,6 +726,37 @@ class Actions
 
     }
 
+    public function ytstats($args = array())
+    {
+        $offset = (isset($args['offset']) && is_numeric($args['offset'])) ? $args['offset'] : false;
+
+        $criteria = array();
+
+        $results = $this->collection->irc->youtubestats->find(); //->limit(5);
+        $results->sort(array('watchcount' => -1));
+        $count = $results->count();
+
+
+        if ($offset && (($offset > 0) && ($offset < $count))) {
+            $results = $results->skip($offset);
+        }
+
+        $results = $results->limit(5);        
+
+        foreach ($results as $row => $data) {
+            $str = '"' . $data['title'] . '" was first linked by ' . $data['firstuser'] . ' on ';
+            $str .= date($this->config['_dateFormat'] , $data['firstwatch']) . '. It has been linked ' . $data['watchcount'] . ' time';
+            if ((int)$data['watchcount'] > 1) $str .= 's';
+            $str .= '. It was last linked on ' . date($this->config['_dateFormat'], $data['time']) . ' by ' . $data['user'];
+
+            $str .= ' - ' .  $this->_shorten('https://youtube.com/watch?v=' . $data['videoid']); 
+            $this->write_channel($str);
+        }
+
+        $this->write_channel('There are ' . $count . ' total videos');
+
+    }
+
     private function _maintenance($args = array())
     {
         return;

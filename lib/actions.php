@@ -730,9 +730,15 @@ class Actions
     {
         $offset = (isset($args['offset']) && is_numeric($args['offset'])) ? $args['offset'] : false;
 
+        $username = isset($args['username']) ? trim($args['username']) : false;
+
         $criteria = array();
 
-        $results = $this->collection->irc->youtubestats->find(); //->limit(5);
+        if ($username) {
+			$criteria['user'] = $username;
+		}
+
+        $results = $this->collection->irc->youtubestats->find($criteria); //->limit(5);
         $results->sort(array('watchcount' => -1));
         $count = $results->count();
 

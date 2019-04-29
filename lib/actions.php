@@ -591,6 +591,10 @@ class Actions
         $pr = preg_match('/\$[a-zA-Z]/', $data['message']);
         if ($pr == 0) return;
         // check first word only, send it back if it's a command
+
+        // thoughts for the future, make this pick up the $technique:
+        // Flimflam and aster1sk : doing the $technique since 2010
+
         foreach(explode(' ', $data['message']) as $word) {
             if (method_exists($this, $word)) return;
             break;

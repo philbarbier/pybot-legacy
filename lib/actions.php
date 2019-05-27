@@ -2620,10 +2620,10 @@ class Actions
                 if (strlen($def['example']) > 512) {
                     if (strlen($def['example']) > 1024) {
                         $this->write_user('Example too long!');
-                    } else {
+                    } elseif (isset($def['example']) && strlen($def['example']) > 5) {
                         $this->write_user('Example: ' . $def['example']);
                     }
-                } else {
+                } elseif (isset($def['example']) && strlen($def['example']) > 5) {
                     $this->write_channel('Example: ' . $def['example']);
                 }
                 return;

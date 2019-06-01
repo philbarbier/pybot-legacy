@@ -12,6 +12,7 @@ class Actions
         $this->currentuser = '';
         $this->currentchannel = false;
         $this->christmasDate = null;
+        $this->_reloadCount = 0;
         if (!isset($this->config['channellist'])) $this->config['channellist'] = array();
         
         $this->_setLastPrivmsg();
@@ -3160,12 +3161,30 @@ class Actions
         return $url;
     }
 
+    public function _incReloadCount()
+    {
+        $this->_reloadCount++;
+    }
+
+    private function _getReloadCount()
+    {
+        return $this->_reloadCount;
+    }
+
     /* echo the system uptime */
     public function uptime($args)
     {
         $this->write_channel(trim(shell_exec('uptime')));
         $this->write_channel('Bot was started on: ' . date($this->config['_dateFormat'], $this->config['_starttime']));
-        $this->write_channel($this->_calculate_timespan($this->config['_starttime']) . ' since our last incident');
+        $rc = $this->_getReloadCount();
+        $reloads = ($rc > 0) ? ' with ' . $rc . ' reload' : '';
+        if (!empty($reloads)) {
+            $reloads .= ($rc > 1) ? 's' : '';
+        } else {
+            $reloads = ' with no reloads so far!';
+        }
+
+        $this->write_channel($this->_calculate_timespan($this->config['_starttime']) . ' since our last incident' . $reloads);
         
         if ($uptime = file_get_contents('./uptime')) {
             $this->write_channel('Uptime record: ' . $this->_calculate_timespan(0, $uptime));

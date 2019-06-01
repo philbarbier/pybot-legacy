@@ -311,6 +311,8 @@ class Irc
                     self::$config['irc_channels'] = $config['irc_channels'];
                     $changed = $this->_rehash();
                     $this->_reloadModules($changed);
+                    // just to keep track of for fun - maybe save it later?
+                    $this->actions->_incReloadCount();
                 }
 
                 // $this->Log->log("Params: " . json_encode($params, true), 3);
